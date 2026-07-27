@@ -3172,12 +3172,12 @@ RightGroupBox2:AddToggle("AutoExecute", {
         if AutoExecute and queue_on_teleport then
             queue_on_teleport([[
                 task.wait(12)
-                    if game.PlaceId == 76606442853797
 
-                    
+                if game.PlaceId == 76606442853797 then
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/script.lua"))()
                 end
             ]])
-            
+
             print("Queue Added")
         end
     end
