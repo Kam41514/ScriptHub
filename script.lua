@@ -2542,7 +2542,7 @@ local ChestConnections = {
 local function GetChestPart(chest)
 
     for _,v in ipairs(chest:GetDescendants()) do
-        if v:IsA("BasePart") then
+        if v:IsA("BasePart") and v.Transparency < 1 then
             return v
         end
     end
