@@ -176,7 +176,6 @@ local function UpdateOnCharacterReset()
         SelectedPlayer = ""
         MobESPObjects = {}
         BossList = {}
-		ChestESP = Toggles.Options.ChestESPToggle
 
         ResetPlayerStates()
 
@@ -2620,9 +2619,35 @@ end)
 
 VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
     Text = "Chest ESP",
-    Default = true
+    Default = false
 }):OnChanged(function(Value)
-	ChestESP = Value
+    ChestESP = Value
+
+    if not Value then
+        ClearESP()
+        return
+    end
+
+    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+        CreateESP(chest)
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not ChestESP then return end
+
+    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+        local gui = chest:FindFirstChild("ChestBillboard")
+        local part = chest:IsA("Model") and chest.PrimaryPart 
+            or chest:FindFirstChildWhichIsA("BasePart")
+
+        if gui and part and LocalPlayer.Character 
+        and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+
+            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
+            gui.TextLabel.Text = string.format("%.0f studs", dist)
+        end
+    end
 end)
 
 local Players = game:GetService("Players")
