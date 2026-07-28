@@ -2524,6 +2524,7 @@ VisualLeftGroupBox2:AddToggle("IgnorePlayersToggle", {
     end
 
 end)
+--Start Of ChestESP
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -2534,15 +2535,20 @@ local ChestESP = false
 local ChestConnections = {}
 
 local function ClearChestESP()
-    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
-        local h = chest:FindFirstChild("ChestHighlight")
-        if h then
-            h:Destroy()
-        end
+    local chestFolder = workspace:FindFirstChild("Collectibles")
+        and workspace.Collectibles:FindFirstChild("Chest")
 
-        local gui = chest:FindFirstChild("ChestBillboard")
-        if gui then
-            gui:Destroy()
+    if chestFolder then
+        for _, chest in ipairs(chestFolder:GetChildren()) do
+            local h = chest:FindFirstChild("ChestHighlight")
+            if h then
+                h:Destroy()
+            end
+
+            local gui = chest:FindFirstChild("ChestBillboard")
+            if gui then
+                gui:Destroy()
+            end
         end
     end
 
@@ -2572,7 +2578,9 @@ local function CreateESP(chest)
     billboard.AlwaysOnTop = true
     billboard.StudsOffset = Vector3.new(0,3,0)
 
-    local adornee = chest:IsA("Model") and chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+    local adornee = chest:IsA("Model") and chest.PrimaryPart 
+        or chest:FindFirstChildWhichIsA("BasePart")
+
     if adornee then
         billboard.Adornee = adornee
     end
@@ -2584,38 +2592,11 @@ local function CreateESP(chest)
     label.TextStrokeTransparency = 0
     label.TextScaled = true
     label.Font = Enum.Font.SourceSansBold
+    label.Text = "Chest"
     label.Parent = billboard
 
     billboard.Parent = chest
 end
-
-AdminPanelShowChests:SetCallback(function(Value)
-    ChestESP = Value
-
-    if not Value then
-        ClearESP()
-        return
-    end
-
-    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
-        CreateESP(chest)
-    end
-
-    Connections.Render = RunService.RenderStepped:Connect(function()
-        if not ChestESP then return end
-
-        for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
-            local gui = chest:FindFirstChild("ChestBillboard")
-
-            local part = chest:IsA("Model") and chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-
-            if gui and part and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
-                gui.TextLabel.Text = string.format("%.0f studs", dist)
-            end
-        end
-    end)
-end)
 
 local AdminPanelShowChests = VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
     Text = "Chest ESP",
@@ -2625,33 +2606,98 @@ local AdminPanelShowChests = VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
 AdminPanelShowChests:OnChanged(function(Value)
     ChestESP = Value
 
+    if ChestConnections.Render then
+        ChestConnections.Render:Disconnect()
+        ChestConnections.Render = nil
+    end
+
     if not Value then
-        ClearESP()
+        ClearChestESP()
         return
     end
 
-    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+    local chestFolder = workspace:FindFirstChild("Collectibles")
+        and workspace.Collectibles:FindFirstChild("Chest")
+
+    if not chestFolder then
+        return
+    end
+
+    for _, chest in ipairs(chestFolder:GetChildren()) do
         CreateESP(chest)
     end
+
+    ChestConnections.Render = RunService.RenderStepped:Connect(function()
+        if not ChestESP then
+            return
+        end
+
+        local character = LocalPlayer.Character
+        local root = character and character:FindFirstChild("HumanoidRootPart")
+
+        if not root then
+            return
+        end
+
+        for _, chest in ipairs(chestFolder:GetChildren()) do
+            if not chest:FindFirstChild("ChestHighlight") then
+                CreateESP(chest)
+            end
+
+            local gui = chest:FindFirstChild("ChestBillboard")
+            local part
+
+            if chest:IsA("Model") then
+                part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+            elseif chest:IsA("BasePart") then
+                part = chest
+            end
+
+            if gui and gui:FindFirstChild("TextLabel") and part then
+                local dist = (root.Position - part.Position).Magnitude
+                gui.TextLabel.Text = math.floor(dist) .. " studs"
+            end
+        end
+    end)
 end)
 
 RunService.RenderStepped:Connect(function()
-    if not ChestESP then return end
+    if not ChestESP then
+        return
+    end
 
-    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+    local chestFolder = workspace:FindFirstChild("Collectibles")
+        and workspace.Collectibles:FindFirstChild("Chest")
+
+    if not chestFolder then
+        return
+    end
+
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not root then
+        return
+    end
+
+    for _, chest in ipairs(chestFolder:GetChildren()) do
         local gui = chest:FindFirstChild("ChestBillboard")
-        local part = chest:IsA("Model") and chest.PrimaryPart 
-            or chest:FindFirstChildWhichIsA("BasePart")
+        local part
 
-        if gui and part and LocalPlayer.Character 
-        and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if chest:IsA("Model") then
+            part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+        elseif chest:IsA("BasePart") then
+            part = chest
+        end
 
-            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
+        if gui and gui:FindFirstChild("TextLabel") and part then
+            local dist = (root.Position - part.Position).Magnitude
             gui.TextLabel.Text = string.format("%.0f studs", dist)
         end
     end
 end)
 
+-- Observe Leaderboard
 local Players = game:GetService("Players")
 
 local LocalPlayer = Players.LocalPlayer
