@@ -2691,18 +2691,20 @@ local function UpdateChestESP()
             local billboard = chest:FindFirstChild("ChestBillboard")
 
 
-            if not highlight or highlight.Adornee == nil then
-
-                if highlight then
-                    highlight:Destroy()
-                end
-
-                if billboard then
-                    billboard:Destroy()
-                end
-
-                continue
-            end
+					if not highlight 
+						or highlight.Adornee == nil 
+						or highlight.Parent == nil then
+						
+						    if billboard then
+						        billboard:Destroy()
+						    end
+						
+						    if highlight then
+						        highlight:Destroy()
+						    end
+						
+						    continue
+						end
 
 
             if billboard and billboard:FindFirstChild("ChestText") then
