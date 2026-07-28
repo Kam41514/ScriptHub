@@ -3061,6 +3061,9 @@ VisualRightGroupBox2:AddSlider("AutoLogDistance", {
     end
 })
 
+local LastAutoLog = 0
+local AutoLogCooldown = 10 -- saniye
+
 local function CheckDistance(Player)
     if not AutoLog then return end
     if not Player.Character then return end
@@ -3073,6 +3076,13 @@ local function CheckDistance(Player)
         local Distance = (MyRoot.Position - TheirRoot.Position).Magnitude
 
         if Distance <= AutoLogDistance then
+            
+            if tick() - LastAutoLog < AutoLogCooldown then
+                return
+            end
+
+            LastAutoLog = tick()
+
             Library:Notify({
                 Title = "Hopping Server!",
                 Description = Player.Name .. " is too close!",
