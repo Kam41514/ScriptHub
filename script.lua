@@ -2012,6 +2012,7 @@ ExploitsRightGroupBox:AddButton({
 
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "box")
 local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Mob ESP", "box")
+local VisualLeftGroupBox3 = Tabs.Visual:AddLeftGroupbox("Item ESP, box)
 local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Observe Camera", "camera")
 local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning") 
 
@@ -2517,9 +2518,119 @@ VisualLeftGroupBox2:AddToggle("IgnorePlayersToggle", {
     IgnorePlayers = Value
 
 
-    -- Sadece ESP aktifse yenile
+
     if MobESPEnabled then
         RefreshMobESP()
+    end
+
+end)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local ChestESP = false
+local ChestConnections = {}
+
+local function ClearChestESP()
+    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+        local h = chest:FindFirstChild("ChestHighlight")
+        if h then
+            h:Destroy()
+        end
+
+        local gui = chest:FindFirstChild("ChestBillboard")
+        if gui then
+            gui:Destroy()
+        end
+    end
+
+    if ChestConnections.Render then
+        ChestConnections.Render:Disconnect()
+        ChestConnections.Render = nil
+    end
+end
+
+local function CreateESP(chest)
+    if chest:FindFirstChild("ChestHighlight") then
+        return
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ChestHighlight"
+    highlight.FillColor = Color3.fromRGB(255,0,0)
+    highlight.OutlineColor = Color3.fromRGB(255,255,255)
+    highlight.FillTransparency = 0.35
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Adornee = chest
+    highlight.Parent = chest
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ChestBillboard"
+    billboard.Size = UDim2.new(0,100,0,40)
+    billboard.AlwaysOnTop = true
+    billboard.StudsOffset = Vector3.new(0,3,0)
+
+    local adornee = chest:IsA("Model") and chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+    if adornee then
+        billboard.Adornee = adornee
+    end
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.fromScale(1,1)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextStrokeTransparency = 0
+    label.TextScaled = true
+    label.Font = Enum.Font.SourceSansBold
+    label.Parent = billboard
+
+    billboard.Parent = chest
+end
+
+AdminPanelShowChests:SetCallback(function(Value)
+    ChestESP = Value
+
+    if not Value then
+        ClearESP()
+        return
+    end
+
+    for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+        CreateESP(chest)
+    end
+
+    Connections.Render = RunService.RenderStepped:Connect(function()
+        if not ChestESP then return end
+
+        for _, chest in ipairs(workspace.Collectibles.Chest:GetChildren()) do
+            local gui = chest:FindFirstChild("ChestBillboard")
+
+            local part = chest:IsA("Model") and chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+
+            if gui and part and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
+                gui.TextLabel.Text = string.format("%.0f studs", dist)
+            end
+        end
+    end)
+end)
+
+	VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
+    Text = "Chest ESP",
+    Default = true
+}):OnChanged(function(Value)
+
+    ChestESP = Value
+
+
+
+    if ChestESP then
+        CreateESP(chest)
+			else
+				ClearChestESP()
+			end
     end
 
 end)
