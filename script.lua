@@ -592,8 +592,6 @@ RightGroupBox2:AddLabel("Menu bind")
 
 Library.ToggleKeybind = Options.MenuKeybind
 
-local AutoExecute = true
-
 -- Player Tab
 
 -- Groupboxes For Player Tab
@@ -3170,7 +3168,7 @@ RightGroupBox2:AddToggle("AutoRejoinGame", {
     end
 })
 
-local AutoExecute = true
+local AutoExecute = Value
 
 RightGroupBox2:AddToggle("AutoExecute", {
     Text = "Auto Execute on Teleport",
