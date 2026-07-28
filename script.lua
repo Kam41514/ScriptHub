@@ -2617,11 +2617,11 @@ local function CreateESP(chest)
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = chest
 
-	if not highlight.Adornee then
-	    	highlight:Destroy()
-	    return
-	end
 
+    if not highlight.Adornee then
+        highlight:Destroy()
+        return
+    end
 
 
     local billboard = Instance.new("BillboardGui")
@@ -2632,7 +2632,6 @@ local function CreateESP(chest)
     billboard.StudsOffset = Vector3.new(0,4,0)
     billboard.AlwaysOnTop = true
     billboard.Parent = chest
-
 
 
     local text = Instance.new("TextLabel")
@@ -2658,6 +2657,7 @@ local function UpdateChestESP()
         return
     end
 
+
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
 
@@ -2672,10 +2672,11 @@ local function UpdateChestESP()
 
             local part = GetChestPart(chest)
 
-            if not part then
+            local highlight = chest:FindFirstChild("ChestHighlight")
+            local billboard = chest:FindFirstChild("ChestBillboard")
 
-                local highlight = chest:FindFirstChild("ChestHighlight")
-                local billboard = chest:FindFirstChild("ChestBillboard")
+
+            if not part or not highlight or highlight.Adornee == nil or highlight.Parent == nil then
 
                 if highlight then
                     highlight:Destroy()
@@ -2689,30 +2690,13 @@ local function UpdateChestESP()
             end
 
 
-            CreateESP(chest)
+            if not billboard then
+                CreateESP(chest)
+                continue
+            end
 
 
-            local highlight = chest:FindFirstChild("ChestHighlight")
-            local billboard = chest:FindFirstChild("ChestBillboard")
-
-
-					if not highlight 
-						or highlight.Adornee == nil 
-						or highlight.Parent == nil then
-						
-						    if billboard then
-						        billboard:Destroy()
-						    end
-						
-						    if highlight then
-						        highlight:Destroy()
-						    end
-						
-						    continue
-						end
-
-
-            if billboard and billboard:FindFirstChild("ChestText") then
+            if billboard:FindFirstChild("ChestText") then
 
                 local distance = (root.Position - part.Position).Magnitude
 
