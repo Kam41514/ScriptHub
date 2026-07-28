@@ -2661,31 +2661,12 @@ local function UpdateChestESP()
 
     for _,chest in ipairs(folder:GetChildren()) do
 
-        local part = GetChestPart(chest)
-
-        if not part then
-            local highlight = chest:FindFirstChild("ChestHighlight")
-            local billboard = chest:FindFirstChild("ChestBillboard")
-
-            if highlight then
-                highlight:Destroy()
-            end
-
-            if billboard then
-                billboard:Destroy()
-            end
-
-            continue
-        end
-
         if chest.Name == "Chest" and chest:IsA("Model") then
 
-            if not chest:FindFirstChild("ChestHighlight") then
-                CreateESP(chest)
-            end
+            CreateESP(chest)
 
-            local billboard = chest:FindFirstChild("ChestBillboard")
             local highlight = chest:FindFirstChild("ChestHighlight")
+            local billboard = chest:FindFirstChild("ChestBillboard")
             local part = GetChestPart(chest)
 
             if not highlight then
