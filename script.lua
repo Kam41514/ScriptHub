@@ -2526,34 +2526,82 @@ VisualLeftGroupBox2:AddToggle("IgnorePlayersToggle", {
 end)
 --Start Of ChestESP
 
-local function GetChestPart(chest)
-    local bottom = chest:FindFirstChild("Bottom")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
+local LocalPlayer = Players.LocalPlayer
+
+local ChestESP = false
+local ChestConnections = {
+    Render = nil,
+    ChildAdded = nil
+}
+
+local function GetChestPart(chest)
+
+    local bottom = chest:FindFirstChild("Bottom")
     if bottom then
-        for _, obj in ipairs(bottom:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                return obj
+        for _,v in ipairs(bottom:GetDescendants()) do
+            if v:IsA("BasePart") then
+                return v
             end
         end
     end
 
     local top = chest:FindFirstChild("Top")
-
     if top then
-        for _, obj in ipairs(top:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                return obj
+        for _,v in ipairs(top:GetDescendants()) do
+            if v:IsA("BasePart") then
+                return v
             end
         end
     end
 
-    for _, obj in ipairs(chest:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            return obj
+    for _,v in ipairs(chest:GetDescendants()) do
+        if v:IsA("BasePart") then
+            return v
         end
     end
 
     return nil
+end
+
+
+local function ClearChestESP()
+
+    local chestFolder = workspace:FindFirstChild("Collectibles")
+        and workspace.Collectibles:FindFirstChild("Chest")
+
+
+    if chestFolder then
+        for _, chest in ipairs(chestFolder:GetChildren()) do
+
+            local highlight = chest:FindFirstChild("ChestHighlight")
+            if highlight then
+                highlight:Destroy()
+            end
+
+
+            local billboard = chest:FindFirstChild("ChestBillboard")
+            if billboard then
+                billboard:Destroy()
+            end
+
+        end
+    end
+
+
+    if ChestConnections.Render then
+        ChestConnections.Render:Disconnect()
+        ChestConnections.Render = nil
+    end
+
+
+    if ChestConnections.ChildAdded then
+        ChestConnections.ChildAdded:Disconnect()
+        ChestConnections.ChildAdded = nil
+    end
+
 end
 
 
@@ -2574,32 +2622,32 @@ local function CreateESP(chest)
     highlight.Name = "ChestHighlight"
     highlight.FillColor = Color3.fromRGB(255,0,0)
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
-    highlight.FillTransparency = 0.35
+    highlight.FillTransparency = 0.25
+    highlight.OutlineTransparency = 0
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Adornee = chest
+    highlight.Adornee = part
     highlight.Parent = chest
 
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ChestBillboard"
-    billboard.Size = UDim2.new(0,80,0,35)
+    billboard.Size = UDim2.new(0,90,0,40)
     billboard.AlwaysOnTop = true
-    billboard.StudsOffset = Vector3.new(0,4,0)
+    billboard.StudsOffset = Vector3.new(0,5,0)
     billboard.Adornee = part
+    billboard.Parent = chest
 
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(1,1)
+    label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.TextStrokeTransparency = 0.35
+    label.TextStrokeTransparency = 0
     label.TextSize = 14
     label.Font = Enum.Font.GothamBold
     label.Text = "Chest\n0 studs"
     label.Parent = billboard
 
-
-    billboard.Parent = chest
 end
 
 
@@ -2608,6 +2656,7 @@ local function UpdateChestESP()
     local chestFolder = workspace:FindFirstChild("Collectibles")
         and workspace.Collectibles:FindFirstChild("Chest")
 
+
     if not chestFolder then
         return
     end
@@ -2615,6 +2664,7 @@ local function UpdateChestESP()
 
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
+
 
     if not root then
         return
@@ -2628,15 +2678,15 @@ local function UpdateChestESP()
         end
 
 
-        local gui = chest:FindFirstChild("ChestBillboard")
+        local billboard = chest:FindFirstChild("ChestBillboard")
         local part = GetChestPart(chest)
 
 
-        if gui and gui:FindFirstChild("TextLabel") and part then
+        if billboard and billboard:FindFirstChild("TextLabel") and part then
 
             local distance = (root.Position - part.Position).Magnitude
 
-            gui.TextLabel.Text =
+            billboard.TextLabel.Text =
                 "Chest\n" .. math.floor(distance) .. " studs"
 
         end
@@ -2655,18 +2705,6 @@ local AdminPanelShowChests = VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
 AdminPanelShowChests:OnChanged(function(Value)
 
     ChestESP = Value
-
-
-    if ChestConnections.Render then
-        ChestConnections.Render:Disconnect()
-        ChestConnections.Render = nil
-    end
-
-
-    if ChestConnections.ChildAdded then
-        ChestConnections.ChildAdded:Disconnect()
-        ChestConnections.ChildAdded = nil
-    end
 
 
     if not Value then
@@ -2706,98 +2744,6 @@ AdminPanelShowChests:OnChanged(function(Value)
         end
 
     end)
-
-end)
-
--- Start Of Observe
-local Camera = workspace.CurrentCamera or workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
-
-local LeaderboardObserve = true
-local ObservingPlayer = nil
-local SelectedInfoPlayer = nil
-
-
-local PlayerInfoGui = Instance.new("ScreenGui")
-PlayerInfoGui.Name = "LeaderboardPlayerInfo"
-PlayerInfoGui.ResetOnSpawn = false
-PlayerInfoGui.Parent = LocalPlayer.PlayerGui
-
-
-local InfoFrame = Instance.new("Frame")
-InfoFrame.Size = UDim2.new(0,300,0,130)
-InfoFrame.Position = UDim2.new(0.5,-150,0,40)
-InfoFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-InfoFrame.Visible = false
-InfoFrame.Parent = PlayerInfoGui
-
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0,10)
-Corner.Parent = InfoFrame
-
-
-local PlayerNameLabel = Instance.new("TextLabel")
-PlayerNameLabel.Size = UDim2.new(1,0,0,35)
-PlayerNameLabel.BackgroundTransparency = 1
-PlayerNameLabel.TextColor3 = Color3.new(1,1,1)
-PlayerNameLabel.TextSize = 22
-PlayerNameLabel.Font = Enum.Font.GothamBold
-PlayerNameLabel.Parent = InfoFrame
-
-
-local RaceLabel = Instance.new("TextLabel")
-RaceLabel.Position = UDim2.new(0,10,0,45)
-RaceLabel.Size = UDim2.new(1,-20,0,25)
-RaceLabel.BackgroundTransparency = 1
-RaceLabel.TextColor3 = Color3.new(1,1,1)
-RaceLabel.TextSize = 18
-RaceLabel.TextXAlignment = Enum.TextXAlignment.Left
-RaceLabel.Parent = InfoFrame
-
-
-local LevelLabel = Instance.new("TextLabel")
-LevelLabel.Position = UDim2.new(0,10,0,75)
-LevelLabel.Size = UDim2.new(1,-20,0,25)
-LevelLabel.BackgroundTransparency = 1
-LevelLabel.TextColor3 = Color3.new(1,1,1)
-LevelLabel.TextSize = 18
-LevelLabel.TextXAlignment = Enum.TextXAlignment.Left
-LevelLabel.Parent = InfoFrame
-
-
-local HealthLabel = Instance.new("TextLabel")
-HealthLabel.Position = UDim2.new(0,10,0,105)
-HealthLabel.Size = UDim2.new(1,-20,0,25)
-HealthLabel.BackgroundTransparency = 1
-HealthLabel.TextColor3 = Color3.new(1,1,1)
-HealthLabel.TextSize = 18
-HealthLabel.TextXAlignment = Enum.TextXAlignment.Left
-HealthLabel.Parent = InfoFrame
-
-
-VisualRightGroupBox:AddToggle("LeaderboardObserveToggle", {
-    Text = "Leaderboard Observe",
-    Default = true
-}):OnChanged(function(Value)
-
-    LeaderboardObserve = Value
-
-    if not Value then
-
-        local char = LocalPlayer.Character 
-            or LocalPlayer.CharacterAdded:Wait()
-
-        local hum = char:FindFirstChildOfClass("Humanoid")
-
-        if hum then
-            Camera.CameraSubject = hum
-        end
-
-        ObservingPlayer = nil
-        SelectedInfoPlayer = nil
-        InfoFrame.Visible = false
-
-    end
 
 end)
 
