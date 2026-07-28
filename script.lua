@@ -2617,6 +2617,11 @@ local function CreateESP(chest)
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = chest
 
+	if not highlight.Adornee then
+	    	highlight:Destroy()
+	    return
+	end
+
 
 
     local billboard = Instance.new("BillboardGui")
