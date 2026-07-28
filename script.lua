@@ -2671,18 +2671,25 @@ local function UpdateChestESP()
             end
 
 
-            local billboard = chest:FindFirstChild("ChestBillboard")
-            local part = GetChestPart(chest)
+			local billboard = chest:FindFirstChild("ChestBillboard")
+			local highlight = chest:FindFirstChild("ChestHighlight")
+			local part = GetChestPart(chest)
+			
+			if not highlight then
+			    if billboard then
+			        billboard:Destroy()
+			    end
+			    continue
+			end
 
+if billboard and billboard:FindFirstChild("ChestText") and part then
 
-            if billboard and billboard:FindFirstChild("ChestText") and part then
+    local distance = (root.Position - part.Position).Magnitude
 
-                local distance = (root.Position - part.Position).Magnitude
+    billboard.ChestText.Text =
+        "Chest\n" .. math.floor(distance) .. " studs"
 
-                billboard.ChestText.Text =
-                    "Chest\n" .. math.floor(distance) .. " studs"
-
-            end
+end
 
         end
 
