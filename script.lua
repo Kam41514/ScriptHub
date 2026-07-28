@@ -2574,9 +2574,9 @@ local function CreateESP(chest)
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ChestBillboard"
-    billboard.Size = UDim2.new(0,100,0,40)
+    billboard.Size = UDim2.new(0,80,0,35)
     billboard.AlwaysOnTop = true
-    billboard.StudsOffset = Vector3.new(0,3,0)
+    billboard.StudsOffset = Vector3.new(0,4,0)
 
     local adornee = chest:IsA("Model") and chest.PrimaryPart 
         or chest:FindFirstChildWhichIsA("BasePart")
@@ -2586,13 +2586,15 @@ local function CreateESP(chest)
     end
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(1,1)
+    label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1,1,1)
-    label.TextStrokeTransparency = 0
-    label.TextScaled = true
-    label.Font = Enum.Font.SourceSansBold
-    label.Text = "Chest"
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.TextStrokeTransparency = 0.35
+    label.TextScaled = false
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.RichText = true
+    label.Text = "Chest\n0 studs"
     label.Parent = billboard
 
     billboard.Parent = chest
@@ -2655,7 +2657,7 @@ AdminPanelShowChests:OnChanged(function(Value)
 
             if gui and gui:FindFirstChild("TextLabel") and part then
                 local dist = (root.Position - part.Position).Magnitude
-                gui.TextLabel.Text = math.floor(dist) .. " studs"
+                gui.TextLabel.Text = "Chest\n" .. math.floor(dist) .. " studs"
             end
         end
     end)
@@ -2692,9 +2694,101 @@ RunService.RenderStepped:Connect(function()
 
         if gui and gui:FindFirstChild("TextLabel") and part then
             local dist = (root.Position - part.Position).Magnitude
-            gui.TextLabel.Text = string.format("%.0f studs", dist)
+            gui.TextLabel.Text = "Chest\n" .. string.format("%.0f studs", dist)
         end
     end
+end)
+
+
+local Camera = workspace.CurrentCamera or workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
+
+local LeaderboardObserve = true
+local ObservingPlayer = nil
+local SelectedInfoPlayer = nil
+
+
+local PlayerInfoGui = Instance.new("ScreenGui")
+PlayerInfoGui.Name = "LeaderboardPlayerInfo"
+PlayerInfoGui.ResetOnSpawn = false
+PlayerInfoGui.Parent = LocalPlayer.PlayerGui
+
+
+local InfoFrame = Instance.new("Frame")
+InfoFrame.Size = UDim2.new(0,300,0,130)
+InfoFrame.Position = UDim2.new(0.5,-150,0,40)
+InfoFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+InfoFrame.Visible = false
+InfoFrame.Parent = PlayerInfoGui
+
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0,10)
+Corner.Parent = InfoFrame
+
+
+local PlayerNameLabel = Instance.new("TextLabel")
+PlayerNameLabel.Size = UDim2.new(1,0,0,35)
+PlayerNameLabel.BackgroundTransparency = 1
+PlayerNameLabel.TextColor3 = Color3.new(1,1,1)
+PlayerNameLabel.TextSize = 22
+PlayerNameLabel.Font = Enum.Font.GothamBold
+PlayerNameLabel.Parent = InfoFrame
+
+
+local RaceLabel = Instance.new("TextLabel")
+RaceLabel.Position = UDim2.new(0,10,0,45)
+RaceLabel.Size = UDim2.new(1,-20,0,25)
+RaceLabel.BackgroundTransparency = 1
+RaceLabel.TextColor3 = Color3.new(1,1,1)
+RaceLabel.TextSize = 18
+RaceLabel.TextXAlignment = Enum.TextXAlignment.Left
+RaceLabel.Parent = InfoFrame
+
+
+local LevelLabel = Instance.new("TextLabel")
+LevelLabel.Position = UDim2.new(0,10,0,75)
+LevelLabel.Size = UDim2.new(1,-20,0,25)
+LevelLabel.BackgroundTransparency = 1
+LevelLabel.TextColor3 = Color3.new(1,1,1)
+LevelLabel.TextSize = 18
+LevelLabel.TextXAlignment = Enum.TextXAlignment.Left
+LevelLabel.Parent = InfoFrame
+
+
+local HealthLabel = Instance.new("TextLabel")
+HealthLabel.Position = UDim2.new(0,10,0,105)
+HealthLabel.Size = UDim2.new(1,-20,0,25)
+HealthLabel.BackgroundTransparency = 1
+HealthLabel.TextColor3 = Color3.new(1,1,1)
+HealthLabel.TextSize = 18
+HealthLabel.TextXAlignment = Enum.TextXAlignment.Left
+HealthLabel.Parent = InfoFrame
+
+
+VisualRightGroupBox:AddToggle("LeaderboardObserveToggle", {
+    Text = "Leaderboard Observe",
+    Default = true
+}):OnChanged(function(Value)
+
+    LeaderboardObserve = Value
+
+    if not Value then
+
+        local char = LocalPlayer.Character 
+            or LocalPlayer.CharacterAdded:Wait()
+
+        local hum = char:FindFirstChildOfClass("Humanoid")
+
+        if hum then
+            Camera.CameraSubject = hum
+        end
+
+        ObservingPlayer = nil
+        SelectedInfoPlayer = nil
+        InfoFrame.Visible = false
+
+    end
+
 end)
 
 -- Observe Leaderboard
