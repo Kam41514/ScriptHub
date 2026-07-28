@@ -2630,7 +2630,6 @@ end)
         CreateESP(chest)
 			else
 				ClearChestESP()
-			end
     end
 
 end)
