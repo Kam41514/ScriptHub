@@ -2539,22 +2539,15 @@ local ChestConnections = {
 }
 
 
-local function GetTopPart(chest)
+local function GetChestPart(chest)
 
-    local top = chest:FindFirstChild("Top")
+    for _,obj in ipairs(chest:GetDescendants()) do
 
-    if top then
-
-        for _,obj in ipairs(top:GetDescendants()) do
-
-            if obj:IsA("BasePart") then
-                return obj
-            end
-
+        if obj:IsA("BasePart") then
+            return obj
         end
 
     end
-
 
     return nil
 
@@ -2564,41 +2557,24 @@ end
 local function ClearChestESP()
 
     local folder = workspace:FindFirstChild("Collectibles")
-        and workspace.Collectibles:FindFirstChild("Chest")
-
 
     if folder then
 
         for _,chest in ipairs(folder:GetChildren()) do
 
-            local bottom = chest:FindFirstChild("Bottom")
-            local top = chest:FindFirstChild("Top")
+            if chest.Name:find("Chest") then
 
+                local highlight = chest:FindFirstChild("ChestHighlight")
 
-            if bottom then
-
-                local h = bottom:FindFirstChild("ChestHighlight")
-
-                if h then
-                    h:Destroy()
-                end
-
-            end
-
-
-            if top then
-
-                local h = top:FindFirstChild("ChestHighlight")
-
-                if h then
-                    h:Destroy()
+                if highlight then
+                    highlight:Destroy()
                 end
 
 
-                local gui = top:FindFirstChild("ChestBillboard")
+                local billboard = chest:FindFirstChild("ChestBillboard")
 
-                if gui then
-                    gui:Destroy()
+                if billboard then
+                    billboard:Destroy()
                 end
 
             end
@@ -2622,14 +2598,16 @@ local function ClearChestESP()
 end
 
 
-local function AddHighlight(folder)
+local function CreateESP(chest)
 
-    if not folder then
+    if chest:FindFirstChild("ChestHighlight") then
         return
     end
 
 
-    if folder:FindFirstChild("ChestHighlight") then
+    local part = GetChestPart(chest)
+
+    if not part then
         return
     end
 
@@ -2641,62 +2619,33 @@ local function AddHighlight(folder)
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
     highlight.FillTransparency = 0.25
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Adornee = folder
-    highlight.Parent = folder
+    highlight.Adornee = chest
+    highlight.Parent = chest
 
-end
-
-
-local function CreateESP(chest)
-
-    local bottom = chest:FindFirstChild("Bottom")
-    local top = chest:FindFirstChild("Top")
-
-
-    AddHighlight(bottom)
-    AddHighlight(top)
-
-
-    if not top then
-        return
-    end
-
-
-    local topPart = GetTopPart(chest)
-
-
-    if not topPart then
-        return
-    end
-
-
-    if top:FindFirstChild("ChestBillboard") then
-        return
-    end
 
 
     local billboard = Instance.new("BillboardGui")
 
     billboard.Name = "ChestBillboard"
-    billboard.Size = UDim2.new(0,90,0,40)
-    billboard.StudsOffset = Vector3.new(0,3,0)
+    billboard.Size = UDim2.new(0,80,0,35)
+    billboard.StudsOffset = Vector3.new(0,4,0)
     billboard.AlwaysOnTop = true
-    billboard.Adornee = topPart
-    billboard.Parent = top
+    billboard.Adornee = part
+    billboard.Parent = chest
 
 
 
-    local label = Instance.new("TextLabel")
+    local text = Instance.new("TextLabel")
 
-    label.Name = "ChestText"
-    label.Size = UDim2.fromScale(1,1)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.TextStrokeTransparency = 0.2
-    label.TextSize = 14
-    label.Font = Enum.Font.GothamBold
-    label.Text = "Chest\n0 studs"
-    label.Parent = billboard
+    text.Name = "ChestText"
+    text.Size = UDim2.fromScale(1,1)
+    text.BackgroundTransparency = 1
+    text.TextColor3 = Color3.fromRGB(255,255,255)
+    text.TextStrokeTransparency = 0.2
+    text.TextSize = 14
+    text.Font = Enum.Font.GothamBold
+    text.Text = "Chest\n0 studs"
+    text.Parent = billboard
 
 end
 
@@ -2704,8 +2653,6 @@ end
 local function UpdateChestESP()
 
     local folder = workspace:FindFirstChild("Collectibles")
-        and workspace.Collectibles:FindFirstChild("Chest")
-
 
     if not folder then
         return
@@ -2713,9 +2660,7 @@ local function UpdateChestESP()
 
 
     local character = LocalPlayer.Character
-
     local root = character and character:FindFirstChild("HumanoidRootPart")
-
 
     if not root then
         return
@@ -2724,20 +2669,22 @@ local function UpdateChestESP()
 
     for _,chest in ipairs(folder:GetChildren()) do
 
-        local top = chest:FindFirstChild("Top")
+        if chest.Name:find("Chest") then
 
-        if top then
-
-            local gui = top:FindFirstChild("ChestBillboard")
-
-            local part = GetTopPart(chest)
+            if not chest:FindFirstChild("ChestHighlight") then
+                CreateESP(chest)
+            end
 
 
-            if gui and part then
+            local billboard = chest:FindFirstChild("ChestBillboard")
+            local part = GetChestPart(chest)
+
+
+            if billboard and billboard:FindFirstChild("ChestText") and part then
 
                 local distance = (root.Position - part.Position).Magnitude
 
-                gui.ChestText.Text =
+                billboard.ChestText.Text =
                     "Chest\n" .. math.floor(distance) .. " studs"
 
             end
@@ -2770,8 +2717,6 @@ AdminPanelShowChests:OnChanged(function(Value)
 
 
     local folder = workspace:FindFirstChild("Collectibles")
-        and workspace.Collectibles:FindFirstChild("Chest")
-
 
     if not folder then
         return
@@ -2779,13 +2724,18 @@ AdminPanelShowChests:OnChanged(function(Value)
 
 
     for _,chest in ipairs(folder:GetChildren()) do
-        CreateESP(chest)
+
+        if chest.Name:find("Chest") then
+            CreateESP(chest)
+        end
+
     end
+
 
 
     ChestConnections.ChildAdded = folder.ChildAdded:Connect(function(chest)
 
-        if ChestESP then
+        if ChestESP and chest.Name:find("Chest") then
 
             task.wait(0.2)
 
@@ -2796,12 +2746,11 @@ AdminPanelShowChests:OnChanged(function(Value)
     end)
 
 
+
     ChestConnections.Render = RunService.RenderStepped:Connect(function()
 
         if ChestESP then
-
             UpdateChestESP()
-
         end
 
     end)
