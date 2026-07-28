@@ -2644,6 +2644,7 @@ local function CreateESP(chest)
 
 end
 
+
 local function UpdateChestESP()
 
     local folder = workspace:FindFirstChild("Collectibles")
@@ -2659,41 +2660,52 @@ local function UpdateChestESP()
         return
     end
 
+
     for _,chest in ipairs(folder:GetChildren()) do
 
         if chest.Name == "Chest" and chest:IsA("Model") then
 
-			    local part = GetChestPart(chest)
-			
-			    if not part then
-			        local highlight = chest:FindFirstChild("ChestHighlight")
-			        local billboard = chest:FindFirstChild("ChestBillboard")
-			
-			        if highlight then
-			            highlight:Destroy()
-			        end
-			
-			        if billboard then
-			            billboard:Destroy()
-			        end
-			
-			        continue
-			    end
-
-            CreateESP(chest)
-
-            local highlight = chest:FindFirstChild("ChestHighlight")
-            local billboard = chest:FindFirstChild("ChestBillboard")
             local part = GetChestPart(chest)
 
-            if not highlight then
+            if not part then
+
+                local highlight = chest:FindFirstChild("ChestHighlight")
+                local billboard = chest:FindFirstChild("ChestBillboard")
+
+                if highlight then
+                    highlight:Destroy()
+                end
+
                 if billboard then
                     billboard:Destroy()
                 end
+
                 continue
             end
 
-            if billboard and billboard:FindFirstChild("ChestText") and part then
+
+            CreateESP(chest)
+
+
+            local highlight = chest:FindFirstChild("ChestHighlight")
+            local billboard = chest:FindFirstChild("ChestBillboard")
+
+
+            if not highlight or highlight.Adornee == nil then
+
+                if highlight then
+                    highlight:Destroy()
+                end
+
+                if billboard then
+                    billboard:Destroy()
+                end
+
+                continue
+            end
+
+
+            if billboard and billboard:FindFirstChild("ChestText") then
 
                 local distance = (root.Position - part.Position).Magnitude
 
