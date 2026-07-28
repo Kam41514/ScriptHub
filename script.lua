@@ -176,6 +176,7 @@ local function UpdateOnCharacterReset()
         SelectedPlayer = ""
         MobESPObjects = {}
         BossList = {}
+		ChestESP = Toggles.Options.ChestESPToggle
 
         ResetPlayerStates()
 
@@ -2012,9 +2013,9 @@ ExploitsRightGroupBox:AddButton({
 
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "box")
 local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Mob ESP", "box")
-local VisualLeftGroupBox3 = Tabs.Visual:AddLeftGroupbox("Item ESP, box)
+local VisualLeftGroupBox3 = Tabs.Visual:AddLeftGroupbox("Item ESP", "box")
 local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Observe Camera", "camera")
-local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning") 
+local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -2617,21 +2618,11 @@ AdminPanelShowChests:SetCallback(function(Value)
     end)
 end)
 
-	VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
+VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
     Text = "Chest ESP",
     Default = true
 }):OnChanged(function(Value)
-
-    ChestESP = Value
-
-
-
-    if ChestESP then
-        CreateESP(chest)
-			else
-				ClearChestESP()
-    end
-
+	ChestESP = Value
 end)
 
 local Players = game:GetService("Players")
