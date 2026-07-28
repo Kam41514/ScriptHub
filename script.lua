@@ -2617,10 +2617,12 @@ AdminPanelShowChests:SetCallback(function(Value)
     end)
 end)
 
-VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
+local AdminPanelShowChests = VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
     Text = "Chest ESP",
     Default = false
-}):OnChanged(function(Value)
+})
+
+AdminPanelShowChests:OnChanged(function(Value)
     ChestESP = Value
 
     if not Value then
