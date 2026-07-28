@@ -2526,54 +2526,49 @@ VisualLeftGroupBox2:AddToggle("IgnorePlayersToggle", {
 end)
 --Start Of ChestESP
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local function GetChestPart(chest)
+    local bottom = chest:FindFirstChild("Bottom")
 
-local LocalPlayer = Players.LocalPlayer
-
-local ChestESP = false
-local ChestConnections = {}
-
-local function ClearChestESP()
-    local chestFolder = workspace:FindFirstChild("Collectibles")
-        and workspace.Collectibles:FindFirstChild("Chest")
-
-    if chestFolder then
-        for _, chest in ipairs(chestFolder:GetChildren()) do
-            local h = chest:FindFirstChild("ChestHighlight")
-            if h then
-                h:Destroy()
-            end
-
-            local gui = chest:FindFirstChild("ChestBillboard")
-            if gui then
-                gui:Destroy()
+    if bottom then
+        for _, obj in ipairs(bottom:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                return obj
             end
         end
     end
 
-    if ChestConnections.Render then
-        ChestConnections.Render:Disconnect()
-        ChestConnections.Render = nil
+    local top = chest:FindFirstChild("Top")
+
+    if top then
+        for _, obj in ipairs(top:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                return obj
+            end
+        end
     end
+
+    for _, obj in ipairs(chest:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            return obj
+        end
+    end
+
+    return nil
 end
 
+
 local function CreateESP(chest)
+
     if chest:FindFirstChild("ChestHighlight") then
         return
     end
 
-    local part
-
-    if chest:IsA("Model") then
-        part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-    elseif chest:IsA("BasePart") then
-        part = chest
-    end
+    local part = GetChestPart(chest)
 
     if not part then
         return
     end
+
 
     local highlight = Instance.new("Highlight")
     highlight.Name = "ChestHighlight"
@@ -2581,8 +2576,9 @@ local function CreateESP(chest)
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
     highlight.FillTransparency = 0.35
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Adornee = part
+    highlight.Adornee = chest
     highlight.Parent = chest
+
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ChestBillboard"
@@ -2591,18 +2587,62 @@ local function CreateESP(chest)
     billboard.StudsOffset = Vector3.new(0,4,0)
     billboard.Adornee = part
 
+
     local label = Instance.new("TextLabel")
     label.Size = UDim2.fromScale(1,1)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255,255,255)
     label.TextStrokeTransparency = 0.35
-    label.TextScaled = false
     label.TextSize = 14
     label.Font = Enum.Font.GothamBold
     label.Text = "Chest\n0 studs"
     label.Parent = billboard
 
+
     billboard.Parent = chest
+end
+
+
+local function UpdateChestESP()
+
+    local chestFolder = workspace:FindFirstChild("Collectibles")
+        and workspace.Collectibles:FindFirstChild("Chest")
+
+    if not chestFolder then
+        return
+    end
+
+
+    local character = LocalPlayer.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not root then
+        return
+    end
+
+
+    for _, chest in ipairs(chestFolder:GetChildren()) do
+
+        if not chest:FindFirstChild("ChestHighlight") then
+            CreateESP(chest)
+        end
+
+
+        local gui = chest:FindFirstChild("ChestBillboard")
+        local part = GetChestPart(chest)
+
+
+        if gui and gui:FindFirstChild("TextLabel") and part then
+
+            local distance = (root.Position - part.Position).Magnitude
+
+            gui.TextLabel.Text =
+                "Chest\n" .. math.floor(distance) .. " studs"
+
+        end
+
+    end
+
 end
 
 
@@ -2616,18 +2656,28 @@ AdminPanelShowChests:OnChanged(function(Value)
 
     ChestESP = Value
 
+
     if ChestConnections.Render then
         ChestConnections.Render:Disconnect()
         ChestConnections.Render = nil
     end
+
+
+    if ChestConnections.ChildAdded then
+        ChestConnections.ChildAdded:Disconnect()
+        ChestConnections.ChildAdded = nil
+    end
+
 
     if not Value then
         ClearChestESP()
         return
     end
 
+
     local chestFolder = workspace:FindFirstChild("Collectibles")
         and workspace.Collectibles:FindFirstChild("Chest")
+
 
     if not chestFolder then
         return
@@ -2639,114 +2689,23 @@ AdminPanelShowChests:OnChanged(function(Value)
     end
 
 
-    if ChestConnections.ChildAdded then
-        ChestConnections.ChildAdded:Disconnect()
-    end
-
     ChestConnections.ChildAdded = chestFolder.ChildAdded:Connect(function(chest)
+
         if ChestESP then
             task.wait(0.2)
             CreateESP(chest)
         end
+
     end)
 
 
     ChestConnections.Render = RunService.RenderStepped:Connect(function()
 
-        if not ChestESP then
-            return
-        end
-
-        local character = LocalPlayer.Character
-        local root = character and character:FindFirstChild("HumanoidRootPart")
-
-        if not root then
-            return
-        end
-
-
-        for _, chest in ipairs(chestFolder:GetChildren()) do
-
-            if not chest:FindFirstChild("ChestHighlight") then
-                CreateESP(chest)
-            end
-
-
-            local gui = chest:FindFirstChild("ChestBillboard")
-            local part
-
-
-            if chest:IsA("Model") then
-                part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-            elseif chest:IsA("BasePart") then
-                part = chest
-            end
-
-
-            if gui and gui:FindFirstChild("TextLabel") and part then
-
-                local dist = (root.Position - part.Position).Magnitude
-
-                gui.TextLabel.Text =
-                    "Chest\n" .. math.floor(dist) .. " studs"
-
-            end
-
+        if ChestESP then
+            UpdateChestESP()
         end
 
     end)
-
-end)
-
-
-RunService.RenderStepped:Connect(function()
-
-    if not ChestESP then
-        return
-    end
-
-
-    local chestFolder = workspace:FindFirstChild("Collectibles")
-        and workspace.Collectibles:FindFirstChild("Chest")
-
-
-    if not chestFolder then
-        return
-    end
-
-
-    local character = LocalPlayer.Character
-    local root = character and character:FindFirstChild("HumanoidRootPart")
-
-
-    if not root then
-        return
-    end
-
-
-    for _, chest in ipairs(chestFolder:GetChildren()) do
-
-        local gui = chest:FindFirstChild("ChestBillboard")
-        local part
-
-
-        if chest:IsA("Model") then
-            part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
-        elseif chest:IsA("BasePart") then
-            part = chest
-        end
-
-
-        if gui and gui:FindFirstChild("TextLabel") and part then
-
-            local dist = (root.Position - part.Position).Magnitude
-
-            gui.TextLabel.Text =
-                "Chest\n" .. string.format("%.0f studs", dist)
-
-        end
-
-    end
 
 end)
 
