@@ -2563,13 +2563,25 @@ local function CreateESP(chest)
         return
     end
 
+    local part
+
+    if chest:IsA("Model") then
+        part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+    elseif chest:IsA("BasePart") then
+        part = chest
+    end
+
+    if not part then
+        return
+    end
+
     local highlight = Instance.new("Highlight")
     highlight.Name = "ChestHighlight"
     highlight.FillColor = Color3.fromRGB(255,0,0)
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
     highlight.FillTransparency = 0.35
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Adornee = chest
+    highlight.Adornee = part
     highlight.Parent = chest
 
     local billboard = Instance.new("BillboardGui")
@@ -2577,35 +2589,31 @@ local function CreateESP(chest)
     billboard.Size = UDim2.new(0,80,0,35)
     billboard.AlwaysOnTop = true
     billboard.StudsOffset = Vector3.new(0,4,0)
-
-    local adornee = chest:IsA("Model") and chest.PrimaryPart 
-        or chest:FindFirstChildWhichIsA("BasePart")
-
-    if adornee then
-        billboard.Adornee = adornee
-    end
+    billboard.Adornee = part
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,0,1,0)
+    label.Size = UDim2.fromScale(1,1)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255,255,255)
     label.TextStrokeTransparency = 0.35
     label.TextScaled = false
     label.TextSize = 14
     label.Font = Enum.Font.GothamBold
-    label.RichText = true
     label.Text = "Chest\n0 studs"
     label.Parent = billboard
 
     billboard.Parent = chest
 end
 
+
 local AdminPanelShowChests = VisualLeftGroupBox3:AddToggle("ChestESPToggle", {
     Text = "Chest ESP",
     Default = false
 })
 
+
 AdminPanelShowChests:OnChanged(function(Value)
+
     ChestESP = Value
 
     if ChestConnections.Render then
@@ -2625,11 +2633,26 @@ AdminPanelShowChests:OnChanged(function(Value)
         return
     end
 
+
     for _, chest in ipairs(chestFolder:GetChildren()) do
         CreateESP(chest)
     end
 
+
+    if ChestConnections.ChildAdded then
+        ChestConnections.ChildAdded:Disconnect()
+    end
+
+    ChestConnections.ChildAdded = chestFolder.ChildAdded:Connect(function(chest)
+        if ChestESP then
+            task.wait(0.2)
+            CreateESP(chest)
+        end
+    end)
+
+
     ChestConnections.Render = RunService.RenderStepped:Connect(function()
+
         if not ChestESP then
             return
         end
@@ -2641,13 +2664,17 @@ AdminPanelShowChests:OnChanged(function(Value)
             return
         end
 
+
         for _, chest in ipairs(chestFolder:GetChildren()) do
+
             if not chest:FindFirstChild("ChestHighlight") then
                 CreateESP(chest)
             end
 
+
             local gui = chest:FindFirstChild("ChestBillboard")
             local part
+
 
             if chest:IsA("Model") then
                 part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
@@ -2655,36 +2682,53 @@ AdminPanelShowChests:OnChanged(function(Value)
                 part = chest
             end
 
+
             if gui and gui:FindFirstChild("TextLabel") and part then
+
                 local dist = (root.Position - part.Position).Magnitude
-                gui.TextLabel.Text = "Chest\n" .. math.floor(dist) .. " studs"
+
+                gui.TextLabel.Text =
+                    "Chest\n" .. math.floor(dist) .. " studs"
+
             end
+
         end
+
     end)
+
 end)
 
+
 RunService.RenderStepped:Connect(function()
+
     if not ChestESP then
         return
     end
 
+
     local chestFolder = workspace:FindFirstChild("Collectibles")
         and workspace.Collectibles:FindFirstChild("Chest")
+
 
     if not chestFolder then
         return
     end
 
+
     local character = LocalPlayer.Character
     local root = character and character:FindFirstChild("HumanoidRootPart")
+
 
     if not root then
         return
     end
 
+
     for _, chest in ipairs(chestFolder:GetChildren()) do
+
         local gui = chest:FindFirstChild("ChestBillboard")
         local part
+
 
         if chest:IsA("Model") then
             part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
@@ -2692,14 +2736,21 @@ RunService.RenderStepped:Connect(function()
             part = chest
         end
 
+
         if gui and gui:FindFirstChild("TextLabel") and part then
+
             local dist = (root.Position - part.Position).Magnitude
-            gui.TextLabel.Text = "Chest\n" .. string.format("%.0f studs", dist)
+
+            gui.TextLabel.Text =
+                "Chest\n" .. string.format("%.0f studs", dist)
+
         end
+
     end
+
 end)
 
-
+-- Start Of Observe
 local Camera = workspace.CurrentCamera or workspace:GetPropertyChangedSignal("CurrentCamera"):Wait()
 
 local LeaderboardObserve = true
