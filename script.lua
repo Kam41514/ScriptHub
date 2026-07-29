@@ -92,6 +92,7 @@ local function ResetPlayerStates()
     ESPEnabled = false
     StaffHop = Toggles.StaffLogToggle
 	AutoExecuteValue = Toggles.AutoExecute
+	MobESPEnabled = Toggles.MobESPToggle
 
     WalkSpeed = 16
     JumpPower = 50
@@ -139,6 +140,15 @@ local function ResetPlayerStates()
     if Toggles.StaffHopToggle then
         Toggles.StaffHopToggle:SetValue(true)
     end
+
+	if Toggles.MobESPToggle then
+		Toggles.MobESPToggle:SetValue(false)
+		Library:Notify({
+		    Title = "Module Mob ESP",
+		    Description = "Module Set To Off",
+		    Duration = 5
+		})
+	end
 
     local player = Players.LocalPlayer
 
