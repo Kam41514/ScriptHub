@@ -1162,89 +1162,87 @@ ExploitsRightGroupBox:AddToggle("AutoChestToggle", {
     Default = false
 }):OnChanged(function(Value)
 
-    AutoChest = Value
+AutoChest = Value
 
-    if AutoChest then
-        task.spawn(function()
+if AutoChest then
+    task.spawn(function()
 
-            local Players = game:GetService("Players")
-            local RunService = game:GetService("RunService")
-            local player = Players.LocalPlayer
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local player = Players.LocalPlayer
 
-            while AutoChest do
+        while AutoChest do
 
-                local character = player.Character or player.CharacterAdded:Wait()
-                local hrp = character:WaitForChild("HumanoidRootPart")
+            local character = player.Character or player.CharacterAdded:Wait()
+            local hrp = character:WaitForChild("HumanoidRootPart")
 
-                for _, chest in ipairs(workspace.Collectibles:GetChildren()) do
+            for _, chest in ipairs(workspace.Collectibles:GetChildren()) do
 
-                    if not AutoChest then
-                        return
-                    end
+                if not AutoChest then
+                    return
+                end
 
-                    local top = chest:FindFirstChild("Top")
-                    local bottom = chest:FindFirstChild("Bottom")
-                    local prompt = bottom and bottom:FindFirstChild("ProximityPrompt")
+                local top = chest:FindFirstChild("Top")
+                local bottom = chest:FindFirstChild("Bottom")
+                local prompt = bottom and bottom:FindFirstChild("ProximityPrompt")
 
-                    if top and prompt then
+                if top and prompt then
 
-                        -- Sandığın altına ışınlanılacak konum
-                        local lockPosition = top.CFrame + Vector3.new(0, -6.33, 0)
+                    -- Sabitlenecek konumlar
+                    local lockPosition = top.CFrame + Vector3.new(0, -6.33, 0)
+                    local lockPosition2 = top.CFrame + Vector3.new(0, -12.33, 0)
 
-                        -- Işınlan
-                        hrp.CFrame = lockPosition
+                    -- İlk konum
+                    local currentLockPosition = lockPosition
+
+                    hrp.CFrame = currentLockPosition
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    hrp.AssemblyAngularVelocity = Vector3.zero
+
+                    -- Pozisyonu sabitle
+                    local connection
+                    connection = RunService.Heartbeat:Connect(function()
+
+                        if not AutoChest or not hrp or not hrp.Parent then
+                            if connection then
+                                connection:Disconnect()
+                                connection = nil
+                            end
+                            return
+                        end
+
+                        hrp.CFrame = currentLockPosition
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         hrp.AssemblyAngularVelocity = Vector3.zero
 
-                        -- Pozisyonu sabitle
-                        local connection
-                        connection = RunService.Heartbeat:Connect(function()
+                    end)
 
-                            if not AutoChest or not hrp or not hrp.Parent then
-                                if connection then
-                                    connection:Disconnect()
-                                    connection = nil
-                                end
-                                return
-                            end
+                    task.wait(0.25)
 
-                            hrp.CFrame = lockPosition
-                            hrp.AssemblyLinearVelocity = Vector3.zero
-                            hrp.AssemblyAngularVelocity = Vector3.zero
+                    -- ProximityPrompt tetikle
+                    fireproximityprompt(prompt)
 
-                        end)
+                    -- Daha aşağı in
+                    task.wait(0.3)
+                    currentLockPosition = lockPosition2
 
-                        task.wait(0.25)
+                    task.wait(3.2)
 
-                        -- ProximityPrompt tetikle
-                        fireproximityprompt(prompt)
-
-						task.wait(0.3)
-						local hrp2 = character:WaitForChild("HumanoidRootPart")
-							hrp2.CFrame = top.CFrame + Vector3.new(0, -15.33, 0)
-							hrp2.CFrame = lockPosition
-	                        hrp2.AssemblyLinearVelocity = Vector3.zero
-	                        hrp2.AssemblyAngularVelocity = Vector3.zero
-
-                        task.wait(3.2)
-
-                        -- Sabitlemeyi kapat
-                        if connection then
-                            connection:Disconnect()
-                            connection = nil
-                        end
-
+                    -- Sabitlemeyi kapat
+                    if connection then
+                        connection:Disconnect()
+                        connection = nil
                     end
+
                 end
-
-                task.wait(1)
-
             end
 
-        end)
-    end
+            task.wait(1)
 
-end)
+        end
+
+    end)
+end
 
 
 local Players = game:GetService("Players")
