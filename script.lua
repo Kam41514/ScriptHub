@@ -57,6 +57,7 @@ local IgnorePlayers = true
 local BossList = {}
 local SelectedBoss = nil
 local StaffLog = false
+local AutoExecute = AutoExecuteValue
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -83,6 +84,7 @@ local function ResetPlayerStates()
     AutoFloatNPC = false
     ESPEnabled = false
     StaffHop = Toggles.StaffLogToggle
+	AutoExecuteValue = Toggles.AutoExecute
 
     WalkSpeed = 16
     JumpPower = 50
@@ -3422,14 +3424,12 @@ RightGroupBox2:AddToggle("AutoRejoinGame", {
     end
 })
 
-local AutoExecute = Value
-
 RightGroupBox2:AddToggle("AutoExecute", {
     Text = "Auto Execute on Teleport",
     Default = true,
 
-    Callback = function(Value)
-        AutoExecute = Value
+    Callback = function(AutoExecuteValue)
+        AutoExecute = AutoExecuteValue
 
         if AutoExecute and queue_on_teleport then
             queue_on_teleport([[
