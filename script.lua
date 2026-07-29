@@ -143,7 +143,6 @@ local function ResetPlayerStates()
 
 	if Toggles.MobESPToggle then
 		Toggles.MobESPToggle:SetValue(false)
-		RefreshMobESP()
 		MobESPConnection:Disconnect()
 	end
 
