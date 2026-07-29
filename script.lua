@@ -1243,7 +1243,7 @@ if AutoChest then
 
     end)
 end
-
+	end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
