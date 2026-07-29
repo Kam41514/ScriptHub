@@ -1220,8 +1220,8 @@ ExploitsRightGroupBox:AddToggle("AutoChestToggle", {
                         fireproximityprompt(prompt)
 
 						task.wait(0.3)
-						local hrp2 = character:WaitForChild("HumanoidRootPart)
-							hrp.CFrame = CFrame.new(0, -15, 0)
+						local hrp2 = character:WaitForChild("HumanoidRootPart")
+						hrp.CFrame = CFrame.new(0, -15, 0)
 
                         task.wait(3.2)
 
