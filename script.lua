@@ -197,23 +197,6 @@ local function UpdateOnCharacterReset()
         end)
 
 
-        -- Mob ESP yenile
-        if MobESPEnabled then
-			RemoveMobESP()
-				task.wait(0.5)
-            RefreshMobESP()
-        end
-
-	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
-		    if MobESPConnection then
-		        MobESPConnection:Disconnect()
-		        MobESPConnection = nil
-		    end
-		
-		    RemoveMobESP()
-		end
-
-
         Library:Notify("Functions Updated On Character Reset!", 1)
 
     end)
@@ -2535,6 +2518,23 @@ VisualLeftGroupBox2:AddToggle("MobESPToggle", {
     end
 
 end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function(Character)
+        if MobESPEnabled then
+			RemoveMobESP()
+				task.wait(0.5)
+            RefreshMobESP()
+        end
+
+	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
+		    if MobESPConnection then
+		        MobESPConnection:Disconnect()
+		        MobESPConnection = nil
+		    end
+		
+		    RemoveMobESP()
+		end
+	end)
 
 
 
