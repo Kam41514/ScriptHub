@@ -16,6 +16,13 @@ local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
+-- Execute Notify
+
+Library:Notify({
+    Title = "Everwind Hub",
+    Description = "Script Succesfully Executed.",
+    Duration = 3
+})
 
 -- Updates:
 
@@ -3433,7 +3440,7 @@ RightGroupBox2:AddToggle("AutoExecute", {
 
         if AutoExecute and queue_on_teleport then
             queue_on_teleport([[
-                task.wait(12)
+                repeat task.wait() until game:IsLoaded()
 
                 if game.PlaceId == 76606442853797 then
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/script.lua"))()
