@@ -3313,7 +3313,6 @@ local function ResetPlayerStates()
     ESPEnabled = false
     StaffHop = Toggles.StaffLogToggle.Value
 	AutoExecuteValue = Toggles.AutoExecute.Value
-	MobESPEnabled = Toggles.MobESPToggle.Value
 
     WalkSpeed = 16
     JumpPower = 50
@@ -3421,6 +3420,8 @@ local function UpdateOnCharacterReset()
 
         -- Mob ESP yenile
         if MobESPEnabled then
+			RemoveMobESP()
+				task.wait(0.5)
             RefreshMobESP()
         end
 
