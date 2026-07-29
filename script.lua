@@ -1221,7 +1221,10 @@ ExploitsRightGroupBox:AddToggle("AutoChestToggle", {
 
 						task.wait(0.3)
 						local hrp2 = character:WaitForChild("HumanoidRootPart")
-						hrp2.CFrame = top.CFrame + Vector3.new(0, -15.33, 0)
+							hrp2.CFrame = top.CFrame + Vector3.new(0, -15.33, 0)
+							hrp2.CFrame = lockPosition
+	                        hrp2.AssemblyLinearVelocity = Vector3.zero
+	                        hrp2.AssemblyAngularVelocity = Vector3.zero
 
                         task.wait(3.2)
 
