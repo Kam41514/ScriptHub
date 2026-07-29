@@ -1190,7 +1190,7 @@ if AutoChest then
 
                     -- Sabitlenecek konumlar
                     local lockPosition = top.CFrame + Vector3.new(0, -6.33, 0)
-                    local lockPosition2 = top.CFrame + Vector3.new(0, -12.33, 0)
+                    local lockPosition2 = top.CFrame + Vector3.new(0, -15.33, 0)
 
                     -- İlk konum
                     local currentLockPosition = lockPosition
@@ -1223,7 +1223,7 @@ if AutoChest then
                     fireproximityprompt(prompt)
 
                     -- Daha aşağı in
-                    task.wait(0.3)
+                    task.wait(0.32)
                     currentLockPosition = lockPosition2
 
                     task.wait(3.2)
