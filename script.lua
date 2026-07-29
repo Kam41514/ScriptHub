@@ -82,7 +82,7 @@ local function ResetPlayerStates()
     AutoOre = false
     AutoFloatNPC = false
     ESPEnabled = false
-    StaffHop = true
+    StaffHop = Toggles.StaffLogToggle
 
     WalkSpeed = 16
     JumpPower = 50
@@ -174,7 +174,7 @@ local function UpdateOnCharacterReset()
         UpdatePlayerList()
 
         SelectedPlayer = ""
-        MobESPObjects = {}
+		MobESPObjects = {}
         BossList = {}
 
         ResetPlayerStates()
@@ -235,6 +235,15 @@ LeftGroupBox:AddButton({
     Func = function()
         loadstring(game:HttpGet(
             "https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua"
+        ))()
+    end
+})
+
+LeftGroupBox:AddButton({
+    Text = "Execute Dex Explorer",
+    Func = function()
+        loadstring(game:HttpGet(
+            "https://github.com/DarkNetworks/Infinite-Yield/blob/main/dex.lua"
         ))()
     end
 })
