@@ -141,11 +141,6 @@ local function ResetPlayerStates()
         Toggles.StaffHopToggle:SetValue(true)
     end
 
-	if Toggles.MobESPToggle then
-		Toggles.MobESPToggle:SetValue(false)
-		MobESPConnection:Disconnect()
-	end
-
     local player = Players.LocalPlayer
 
     -- SpeedValue reset
@@ -206,9 +201,16 @@ local function UpdateOnCharacterReset()
         -- Mob ESP yenile
         if MobESPEnabled then
             RefreshMobESP()
-			else
-			MobESPConnection:Disconnect()
         end
+
+	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
+		    if MobESPConnection then
+		        MobESPConnection:Disconnect()
+		        MobESPConnection = nil
+		    end
+		
+		    RemoveMobESP()
+		end
 
 
         Library:Notify("Functions Updated On Character Reset!", 1)
