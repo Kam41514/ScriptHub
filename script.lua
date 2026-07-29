@@ -209,7 +209,6 @@ local function UpdateOnCharacterReset()
             RefreshMobESP()
 			else
 			MobESPConnection:Disconnect()
-			end
         end
 
 
