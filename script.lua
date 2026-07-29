@@ -66,6 +66,160 @@ local SelectedBoss = nil
 local StaffLog = false
 local AutoExecute = AutoExecuteValue
 
+local function UpdatePlayerList()
+    local NewList = {}
+    local playerOptions = {}
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        table.insert(NewList, player.Name)
+    end
+
+    if Options.PlayerDropdown then
+        Options.PlayerDropdown:SetValues(NewList)
+    end
+end
+
+
+local function ResetPlayerStates()
+    fly = false
+    ToggleAutoFallValue = false
+    NoclipEnabled = false
+    SpeedEnabled = false
+    AutoChest = false
+    AutoCedarPlume = false
+    AutoOre = false
+    AutoFloatNPC = false
+    ESPEnabled = false
+    StaffHop = Toggles.StaffLogToggle.Value
+	AutoExecuteValue = Toggles.AutoExecute.Value
+
+    WalkSpeed = 16
+    JumpPower = 50
+
+    if Toggles.FlyToggle then
+        Toggles.FlyToggle:SetValue(false)
+    end
+
+    if Toggles.AutoFallToggle then
+        Toggles.AutoFallToggle:SetValue(false)
+    end
+
+    if Toggles.SpeedToggle then
+        Toggles.SpeedToggle:SetValue(false)
+    end
+
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+        NoclipConnection = nil
+    end
+
+    if Toggles.NoclipToggle then
+        Toggles.NoclipToggle:SetValue(false)
+    end
+
+    if Toggles.AutoChestToggle then
+        Toggles.AutoChestToggle:SetValue(false)
+    end
+
+    if Toggles.AutoCedarPlumeToggle then
+        Toggles.AutoCedarPlumeToggle:SetValue(false)
+    end
+     if Toggles.AutoOreToggle then
+         Toggles.AutoOreToggle:SetValue(false)
+    end
+    
+    if Toggles.AutoFloatNPCToggle then
+        Toggles.AutoFloatNPCToggle:SetValue(false)
+    end
+
+    if Toggles.BoxESPToggle then
+        Toggles.BoxESPToggle:SetValue(false)
+    end
+
+    if Toggles.StaffHopToggle then
+        Toggles.StaffHopToggle:SetValue(true)
+    end
+
+    local player = Players.LocalPlayer
+
+    -- SpeedValue reset
+    if player:FindFirstChild("Data") and player.Data:FindFirstChild("SpeedValue") then
+        player.Data.SpeedValue.Value = 0
+    end
+
+    if player:FindFirstChild("DataOld") and player.DataOld:FindFirstChild("SpeedValue") then
+        player.DataOld.SpeedValue.Value = 0
+    end
+
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+        if humanoid then
+            humanoid.WalkSpeed = DefaultSpeed
+            humanoid.JumpPower = JumpPower
+        end
+    end
+end
+
+local function UpdateHumanoid()
+    local character = Players.LocalPlayer.Character
+
+    if character then
+        Humanoid = character:FindFirstChildOfClass("Humanoid")
+    else
+        Humanoid = nil
+    end
+end
+
+
+local function UpdateOnCharacterReset()
+
+    Players.LocalPlayer.CharacterAdded:Connect(function(character)
+
+        task.wait(1)
+
+        UpdateHumanoid()
+        UpdatePlayerList()
+
+        SelectedPlayer = ""
+		MobESPObjects = {}
+        BossList = {}
+
+        ResetPlayerStates()
+
+
+        local humanoid = character:WaitForChild("Humanoid")
+
+
+        humanoid.Died:Connect(function()
+            ResetPlayerStates()
+        end)
+
+
+        -- Mob ESP yenile
+        if MobESPEnabled then
+			RemoveMobESP()
+				task.wait(0.5)
+            RefreshMobESP()
+        end
+
+	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
+		    if MobESPConnection then
+		        MobESPConnection:Disconnect()
+		        MobESPConnection = nil
+		    end
+		
+		    RemoveMobESP()
+		end
+
+
+        Library:Notify("Functions Updated On Character Reset!", 1)
+
+    end)
+
+end
+
 
 -- Window
 local Window = Library:CreateWindow({
@@ -3286,161 +3440,6 @@ RightGroupBox2:AddToggle("AutoRejoinGame", {
         end
     end
 })
-
-local function UpdatePlayerList()
-    local NewList = {}
-    local playerOptions = {}
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        table.insert(NewList, player.Name)
-    end
-
-    if Options.PlayerDropdown then
-        Options.PlayerDropdown:SetValues(NewList)
-    end
-end
-
-
-local function ResetPlayerStates()
-    fly = false
-    ToggleAutoFallValue = false
-    NoclipEnabled = false
-    SpeedEnabled = false
-    AutoChest = false
-    AutoCedarPlume = false
-    AutoOre = false
-    AutoFloatNPC = false
-    ESPEnabled = false
-    StaffHop = Toggles.StaffLogToggle.Value
-	AutoExecuteValue = Toggles.AutoExecute.Value
-
-    WalkSpeed = 16
-    JumpPower = 50
-
-    if Toggles.FlyToggle then
-        Toggles.FlyToggle:SetValue(false)
-    end
-
-    if Toggles.AutoFallToggle then
-        Toggles.AutoFallToggle:SetValue(false)
-    end
-
-    if Toggles.SpeedToggle then
-        Toggles.SpeedToggle:SetValue(false)
-    end
-
-    if NoclipConnection then
-        NoclipConnection:Disconnect()
-        NoclipConnection = nil
-    end
-
-    if Toggles.NoclipToggle then
-        Toggles.NoclipToggle:SetValue(false)
-    end
-
-    if Toggles.AutoChestToggle then
-        Toggles.AutoChestToggle:SetValue(false)
-    end
-
-    if Toggles.AutoCedarPlumeToggle then
-        Toggles.AutoCedarPlumeToggle:SetValue(false)
-    end
-     if Toggles.AutoOreToggle then
-         Toggles.AutoOreToggle:SetValue(false)
-    end
-    
-    if Toggles.AutoFloatNPCToggle then
-        Toggles.AutoFloatNPCToggle:SetValue(false)
-    end
-
-    if Toggles.BoxESPToggle then
-        Toggles.BoxESPToggle:SetValue(false)
-    end
-
-    if Toggles.StaffHopToggle then
-        Toggles.StaffHopToggle:SetValue(true)
-    end
-
-    local player = Players.LocalPlayer
-
-    -- SpeedValue reset
-    if player:FindFirstChild("Data") and player.Data:FindFirstChild("SpeedValue") then
-        player.Data.SpeedValue.Value = 0
-    end
-
-    if player:FindFirstChild("DataOld") and player.DataOld:FindFirstChild("SpeedValue") then
-        player.DataOld.SpeedValue.Value = 0
-    end
-
-    local character = player.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-        if humanoid then
-            humanoid.WalkSpeed = DefaultSpeed
-            humanoid.JumpPower = JumpPower
-        end
-    end
-end
-
-local function UpdateHumanoid()
-    local character = Players.LocalPlayer.Character
-
-    if character then
-        Humanoid = character:FindFirstChildOfClass("Humanoid")
-    else
-        Humanoid = nil
-    end
-end
-
-
-local function UpdateOnCharacterReset()
-
-    Players.LocalPlayer.CharacterAdded:Connect(function(character)
-
-        task.wait(1)
-
-        UpdateHumanoid()
-        UpdatePlayerList()
-
-        SelectedPlayer = ""
-		MobESPObjects = {}
-        BossList = {}
-
-        ResetPlayerStates()
-
-
-        local humanoid = character:WaitForChild("Humanoid")
-
-
-        humanoid.Died:Connect(function()
-            ResetPlayerStates()
-        end)
-
-
-        -- Mob ESP yenile
-        if MobESPEnabled then
-			RemoveMobESP()
-				task.wait(0.5)
-            RefreshMobESP()
-        end
-
-	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
-		    if MobESPConnection then
-		        MobESPConnection:Disconnect()
-		        MobESPConnection = nil
-		    end
-		
-		    RemoveMobESP()
-		end
-
-
-        Library:Notify("Functions Updated On Character Reset!", 1)
-
-    end)
-
-end
-
 
 RightGroupBox2:AddToggle("AutoExecute", {
     Text = "Auto Execute on Teleport",
