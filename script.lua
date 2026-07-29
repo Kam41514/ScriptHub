@@ -183,7 +183,6 @@ local function UpdateOnCharacterReset()
         UpdatePlayerList()
 
         SelectedPlayer = ""
-		MobESPObjects = {}
         BossList = {}
 
         ResetPlayerStates()
@@ -2520,21 +2519,15 @@ VisualLeftGroupBox2:AddToggle("MobESPToggle", {
 end)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(Character)
-        if MobESPEnabled then
-			RemoveMobESP()
-				task.wait(0.5)
-            RefreshMobESP()
-        end
+    task.wait(1)
 
-	if Toggles.MobESPToggle and not Toggles.MobESPToggle.Value then
-		    if MobESPConnection then
-		        MobESPConnection:Disconnect()
-		        MobESPConnection = nil
-		    end
-		
-		    RemoveMobESP()
-		end
-	end)
+    if MobESPEnabled then
+        RemoveMobESP()
+        RefreshMobESP()
+    else
+        RemoveMobESP()
+    end
+end)
 
 
 
