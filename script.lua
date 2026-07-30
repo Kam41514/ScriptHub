@@ -68,6 +68,10 @@ local AutoExecute = AutoExecuteValue
 local SpoofNameValue = ""
 local SpoofEnabled = false
 local SpoofLevelValue = 1
+local SpoofKillsValue = 0
+local SpoofWinsValue = 0
+local SpoofRukhValue = 0
+
 
 
 local function UpdatePlayerList()
@@ -999,13 +1003,31 @@ PlayerLeftGroupBox2:AddButton({
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-
 local function UpdateSpoof()
     local Data = LocalPlayer:FindFirstChild("Data")
 
-    if Data and Data:FindFirstChild("PlayerName") then
-        Data.PlayerName.Value = SpoofNameValue
+    if Data then
+        if Data:FindFirstChild("PlayerName") then
+            Data.PlayerName.Value = SpoofNameValue
+        end
+
+        if Data:FindFirstChild("Level") then
+            Data.Level.Value = SpoofLevelValue
+        end
+
+        if Data:FindFirstChild("Kills") then
+            Data.Kills.Value = SpoofKillsValue
+        end
+
+        if Data:FindFirstChild("Wins") then
+            Data.Wins.Value = SpoofWinsValue
+        end
+
+        if Data:FindFirstChild("Rukh") then
+            Data.Rukh.Value = SpoofRukhValue
+        end
     end
+
 
     local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
 
@@ -1013,29 +1035,17 @@ local function UpdateSpoof()
         and Entity:FindFirstChild("Head")
         and Entity.Head:FindFirstChild("GlobalHpBar")
         and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
-        and Entity.Head.GlobalHpBar.Tufferson.Frame:FindFirstChild("CharacterName") then
+        and Entity.Head.GlobalHpBar.Tufferson:FindFirstChild("Frame") then
         
-        Entity.Head.GlobalHpBar.Tufferson.Frame.CharacterName.Text = SpoofNameValue
-    end
-end
+        local Frame = Entity.Head.GlobalHpBar.Tufferson.Frame
 
+        if Frame:FindFirstChild("CharacterName") then
+            Frame.CharacterName.Text = SpoofNameValue
+        end
 
-local function UpdateLevelSpoof()
-    local Data = LocalPlayer:FindFirstChild("Data")
-
-    if Data and Data:FindFirstChild("Level") then
-        Data.Level.Value = SpoofLevelValue
-    end
-
-    local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
-
-    if Entity 
-        and Entity:FindFirstChild("Head")
-        and Entity.Head:FindFirstChild("GlobalHpBar")
-        and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
-        and Entity.Head.GlobalHpBar.Tufferson.Frame:FindFirstChild("Level") then
-        
-        Entity.Head.GlobalHpBar.Tufferson.Frame.Level.Text = tostring(SpoofLevelValue)
+        if Frame:FindFirstChild("Level") then
+            Frame.Level.Text = tostring(SpoofLevelValue)
+        end
     end
 end
 
@@ -1043,10 +1053,6 @@ end
 local function RefreshSpoof()
     if SpoofEnabled then
         UpdateSpoof()
-    end
-
-    if SpoofLevelEnabled then
-        UpdateLevelSpoof()
     end
 end
 
@@ -1063,7 +1069,7 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
 
             Library:Notify({
                 Title = "Client Side Change!",
-                Description = "Your Name On Your Screen Changed To: " .. SpoofNameValue,
+                Description = "Spoof Enabled",
                 Time = 5
             })
         end
@@ -1082,7 +1088,6 @@ PlayerRightGroupBox2:AddInput("SpoofName", {
 
         if SpoofEnabled then
             UpdateSpoof()
-			UpdateLevelSpoof()
         end
     end
 })
@@ -1099,7 +1104,58 @@ PlayerRightGroupBox2:AddSlider("SpoofLevel", {
         SpoofLevelValue = Value
 
         if SpoofEnabled then
-            UpdateLevelSpoof()
+            UpdateSpoof()
+        end
+    end
+})
+
+
+PlayerRightGroupBox2:AddSlider("SpoofKills", {
+    Text = "Kills",
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 0,
+
+    Callback = function(Value)
+        SpoofKillsValue = Value
+
+        if SpoofEnabled then
+            UpdateSpoof()
+        end
+    end
+})
+
+
+PlayerRightGroupBox2:AddSlider("SpoofWins", {
+    Text = "Wins",
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 0,
+
+    Callback = function(Value)
+        SpoofWinsValue = Value
+
+        if SpoofEnabled then
+            UpdateSpoof()
+        end
+    end
+})
+
+
+PlayerRightGroupBox2:AddSlider("SpoofRukh", {
+    Text = "Rukh",
+    Default = 0,
+    Min = 0,
+    Max = 99999,
+    Rounding = 0,
+
+    Callback = function(Value)
+        SpoofRukhValue = Value
+
+        if SpoofEnabled then
+            UpdateSpoof()
         end
     end
 })
@@ -1117,7 +1173,6 @@ workspace.Entities.ChildAdded:Connect(function()
     task.wait(0.5)
     RefreshSpoof()
 end)
-
 
 -- End Of Player Tab
 
