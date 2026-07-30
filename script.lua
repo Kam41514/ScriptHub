@@ -993,6 +993,48 @@ PlayerLeftGroupBox2:AddButton({
 })
 
 local SpoofNameValue = ""
+local SpoofEnabled = false
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function UpdateSpoof()
+    local PlayerNameValue = LocalPlayer.Data.PlayerName
+
+    if PlayerNameValue then
+        PlayerNameValue.Value = SpoofNameValue
+    end
+
+    local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
+
+    if Entity 
+        and Entity:FindFirstChild("Head")
+        and Entity.Head:FindFirstChild("GlobalHpBar")
+        and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
+        and Entity.Head.GlobalHpBar.Tufferson.Frame:FindFirstChild("CharacterName") then
+        
+        Entity.Head.GlobalHpBar.Tufferson.Frame.CharacterName.Text = SpoofNameValue
+    end
+end
+
+PlayerRightGroupBox2:AddToggle("SpoofToggle", {
+    Text = "Identity Spoofer",
+    Default = false,
+
+    Callback = function(SpoofValue)
+        SpoofEnabled = SpoofValue
+
+        if SpoofValue then
+            UpdateSpoof()
+
+            Library:Notify({
+                Title = "Client Side Change!",
+                Description = "Your Name On Your Screen Changed To: " .. SpoofNameValue,
+                Time = 5
+            })
+        end
+    end
+})
 
 PlayerRightGroupBox2:AddInput("SpoofName", {
     Text = "Player Name",
@@ -1002,28 +1044,13 @@ PlayerRightGroupBox2:AddInput("SpoofName", {
 
     Callback = function(Value)
         SpoofNameValue = Value
-    end
-})
 
-PlayerRightGroupBox2:AddToggle("SpoofToggle", {
-    Text = "Identity Spoofer",
-    Default = false,
-
-    Callback = function(SpoofValue)
-        if SpoofValue then
-            local PlayerNameValue = game:GetService("Players").LocalPlayer.Data.PlayerName
-            
-            if PlayerNameValue then
-                PlayerNameValue.Value = SpoofNameValue
-					Library:Notify({
-				    Title = "Client Side Change!",
-				    Description = "Your Name On Your Screen Changed To: " ..SpoofNameValue,
-				    Time = 5
-				})	
-            end
+        if SpoofEnabled then
+            UpdateSpoof()
         end
     end
 })
+
 
 -- End Of Player Tab
 
