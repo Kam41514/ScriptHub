@@ -24,6 +24,17 @@ Library:Notify({
     Duration = 3
 })
 
+-- Spoofer
+
+local OriginalValues = {
+
+OriginalValues.Level = Data.Level.Value
+OriginalValues.Kills = Data.Kills.Value
+OriginalValues.Wins = Data.Wins.Value
+OriginalValues.Rukh = Data.Rukh.Value
+
+}
+
 -- Updates:
 
 local SelectedPlayer = ""
@@ -1072,6 +1083,32 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
                 Description = "Spoof Enabled",
                 Time = 5
             })
+        else
+            local Data = LocalPlayer:FindFirstChild("Data")
+
+            if Data then
+                if OriginalValues.Level then
+                    Data.Level.Value = OriginalValues.Level
+                end
+
+                if OriginalValues.Kills then
+                    Data.Kills.Value = OriginalValues.Kills
+                end
+
+                if OriginalValues.Wins then
+                    Data.Wins.Value = OriginalValues.Wins
+                end
+
+                if OriginalValues.Rukh then
+                    Data.Rukh.Value = OriginalValues.Rukh
+                end
+            end
+
+            Library:Notify({
+                Title = "Client Side Change!",
+                Description = "Spoof Disabled",
+                Time = 5
+            })
         end
     end
 })
@@ -1156,7 +1193,7 @@ PlayerRightGroupBox2:AddSlider("SpoofRukh", {
 
         if SpoofEnabled then
             UpdateSpoof()
-        end
+		end
     end
 })
 
