@@ -49,6 +49,9 @@ if Data then
 	if Data:FindFirstChild("PlayerName") then
 		OriginalValues.PlayerName = Data.PlayerName.Value
 	end
+	if Data:FindFirstChild("Souls") then
+	    OriginalValues.Souls = Data.Souls.Value
+	end
 end
 
 local OriginalGuiValues = {}
@@ -1144,6 +1147,10 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
                 if OriginalValues.PlayerName then
                     Data.PlayerName.Value = OriginalValues.PlayerName
                 end
+					
+				if OriginalValues.Souls then
+				    Data.Souls.Value = OriginalValues.Souls
+				end
             end
 
 
