@@ -1080,6 +1080,10 @@ local function UpdateSpoof()
         if Data:FindFirstChild("Rukh") then
             Data.Rukh.Value = SpoofRukhValue
         end
+
+		if Data:FindFirstChild("Souls") then
+			Data.Souls.Value = SpoofSoulValue
+		end
     end
 
 
