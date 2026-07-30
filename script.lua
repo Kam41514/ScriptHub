@@ -51,6 +51,27 @@ if Data then
 	end
 end
 
+local OriginalGuiValues = {}
+
+local Entity = workspace.Entities:FindFirstChild(Players.LocalPlayer.Name)
+
+if Entity 
+    and Entity:FindFirstChild("Head")
+    and Entity.Head:FindFirstChild("GlobalHpBar")
+    and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
+    and Entity.Head.GlobalHpBar.Tufferson:FindFirstChild("Frame") then
+
+    local Frame = Entity.Head.GlobalHpBar.Tufferson.Frame
+
+    if Frame:FindFirstChild("CharacterName") then
+        OriginalGuiValues.CharacterName = Frame.CharacterName.Text
+    end
+
+    if Frame:FindFirstChild("Level") then
+        OriginalGuiValues.Level = Frame.Level.Text
+    end
+end
+
 -- Updates:
 
 local SelectedPlayer = ""
@@ -1056,7 +1077,7 @@ local function UpdateSpoof()
     end
 
 
-    local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
+    local Entity = workspace.Entities:FindFirstChild(Players.LocalPlayer.Name)
 
     if Entity 
         and Entity:FindFirstChild("Head")
@@ -1099,6 +1120,7 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
                 Description = "Spoof Enabled",
                 Time = 5
             })
+
         else
             local Data = LocalPlayer:FindFirstChild("Data")
 
@@ -1118,10 +1140,32 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
                 if OriginalValues.Rukh then
                     Data.Rukh.Value = OriginalValues.Rukh
                 end
-				if OriginalValues.PlayerName then
-					Data.PlayerName.Value = OriginalValues.PlayerName
-				end
+
+                if OriginalValues.PlayerName then
+                    Data.PlayerName.Value = OriginalValues.PlayerName
+                end
             end
+
+
+            local Entity = workspace.Entities:FindFirstChild(Players.LocalPlayer.Name)
+
+            if Entity 
+                and Entity:FindFirstChild("Head")
+                and Entity.Head:FindFirstChild("GlobalHpBar")
+                and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
+                and Entity.Head.GlobalHpBar.Tufferson:FindFirstChild("Frame") then
+
+                local Frame = Entity.Head.GlobalHpBar.Tufferson.Frame
+
+                if OriginalGuiValues.CharacterName then
+                    Frame.CharacterName.Text = OriginalGuiValues.CharacterName
+                end
+
+                if OriginalGuiValues.Level then
+                    Frame.Level.Text = OriginalGuiValues.Level
+                end
+            end
+
 
             Library:Notify({
                 Title = "Client Side Change!",
