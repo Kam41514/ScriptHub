@@ -122,6 +122,7 @@ local SpoofLevelValue = 1
 local SpoofKillsValue = 0
 local SpoofWinsValue = 0
 local SpoofRukhValue = 0
+local SpoofSoulValue = 0
 
 
 
@@ -1262,6 +1263,22 @@ PlayerRightGroupBox2:AddSlider("SpoofRukh", {
         SpoofRukhValue = Value
 
         if SpoofEnabled then
+            UpdateSpoof()
+		end
+    end
+})
+
+PlayerRightGroupBox2:AddSlider("SpoofSlider", {
+    Text = "Souls",
+    Default = 0,
+    Min = 0,
+    Max = 1000,
+    Rounding = 0,
+
+    Callback = function(Value)
+        SpoofSoulValue = Value
+			
+		if SpoofEnabled then
             UpdateSpoof()
 		end
     end
