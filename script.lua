@@ -28,7 +28,7 @@ Library:Notify({
 
 local OriginalValues = {}
 
-local Data = LocalPlayer:FindFirstChild("Data")
+local Data = Players.LocalPlayer:FindFirstChild("Data")
 
 if Data then
     if Data:FindFirstChild("Level") then
