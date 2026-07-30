@@ -24,56 +24,6 @@ Library:Notify({
     Duration = 3
 })
 
--- Spoofer
-
-local OriginalValues = {}
-
-local Data = Players.LocalPlayer:FindFirstChild("Data")
-
-if Data then
-    if Data:FindFirstChild("Level") then
-        OriginalValues.Level = Data.Level.Value
-    end
-
-    if Data:FindFirstChild("Kills") then
-        OriginalValues.Kills = Data.Kills.Value
-    end
-
-    if Data:FindFirstChild("Wins") then
-        OriginalValues.Wins = Data.Wins.Value
-    end
-
-    if Data:FindFirstChild("Rukh") then
-        OriginalValues.Rukh = Data.Rukh.Value
-    end
-	if Data:FindFirstChild("PlayerName") then
-		OriginalValues.PlayerName = Data.PlayerName.Value
-	end
-	if Data:FindFirstChild("Souls") then
-	    OriginalValues.Souls = Data.Souls.Value
-	end
-end
-
-local OriginalGuiValues = {}
-
-local Entity = workspace.Entities:FindFirstChild(Players.LocalPlayer.Name)
-
-if Entity 
-    and Entity:FindFirstChild("Head")
-    and Entity.Head:FindFirstChild("GlobalHpBar")
-    and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
-    and Entity.Head.GlobalHpBar.Tufferson:FindFirstChild("Frame") then
-
-    local Frame = Entity.Head.GlobalHpBar.Tufferson.Frame
-
-    if Frame:FindFirstChild("CharacterName") then
-        OriginalGuiValues.CharacterName = Frame.CharacterName.Text
-    end
-
-    if Frame:FindFirstChild("Level") then
-        OriginalGuiValues.Level = Frame.Level.Text
-    end
-end
 
 -- Updates:
 
@@ -1054,6 +1004,58 @@ PlayerLeftGroupBox2:AddButton({
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- Spoofer
+
+
+local OriginalValues = {}
+
+local Data = Players.LocalPlayer:FindFirstChild("Data")
+
+if Data then
+    if Data:FindFirstChild("Level") then
+        OriginalValues.Level = Data.Level.Value
+    end
+
+    if Data:FindFirstChild("Kills") then
+        OriginalValues.Kills = Data.Kills.Value
+    end
+
+    if Data:FindFirstChild("Wins") then
+        OriginalValues.Wins = Data.Wins.Value
+    end
+
+    if Data:FindFirstChild("Rukh") then
+        OriginalValues.Rukh = Data.Rukh.Value
+    end
+	if Data:FindFirstChild("PlayerName") then
+		OriginalValues.PlayerName = Data.PlayerName.Value
+	end
+	if Data:FindFirstChild("Souls") then
+	    OriginalValues.Souls = Data.Souls.Value
+	end
+end
+
+local OriginalGuiValues = {}
+
+local Entity = workspace.Entities:FindFirstChild(Players.LocalPlayer.Name)
+
+if Entity 
+    and Entity:FindFirstChild("Head")
+    and Entity.Head:FindFirstChild("GlobalHpBar")
+    and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
+    and Entity.Head.GlobalHpBar.Tufferson:FindFirstChild("Frame") then
+
+    local Frame = Entity.Head.GlobalHpBar.Tufferson.Frame
+
+    if Frame:FindFirstChild("CharacterName") then
+        OriginalGuiValues.CharacterName = Frame.CharacterName.Text
+    end
+
+    if Frame:FindFirstChild("Level") then
+        OriginalGuiValues.Level = Frame.Level.Text
+    end
+end
 
 local function UpdateSpoof()
     local Data = LocalPlayer:FindFirstChild("Data")
