@@ -65,6 +65,11 @@ local BossList = {}
 local SelectedBoss = nil
 local StaffLog = false
 local AutoExecute = AutoExecuteValue
+local SpoofNameValue = ""
+local SpoofEnabled = false
+local SpoofLevelValue = 1
+local SpoofLevelEnabled = false
+
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -992,17 +997,15 @@ PlayerLeftGroupBox2:AddButton({
     end
 })
 
-local SpoofNameValue = ""
-local SpoofEnabled = false
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local function UpdateSpoof()
-    local PlayerNameValue = LocalPlayer.Data.PlayerName
 
-    if PlayerNameValue then
-        PlayerNameValue.Value = SpoofNameValue
+local function UpdateSpoof()
+    local Data = LocalPlayer:FindFirstChild("Data")
+
+    if Data and Data:FindFirstChild("PlayerName") then
+        Data.PlayerName.Value = SpoofNameValue
     end
 
     local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
@@ -1017,14 +1020,46 @@ local function UpdateSpoof()
     end
 end
 
+
+local function UpdateLevelSpoof()
+    local Data = LocalPlayer:FindFirstChild("Data")
+
+    if Data and Data:FindFirstChild("Level") then
+        Data.Level.Value = SpoofLevelValue
+    end
+
+    local Entity = workspace.Entities:FindFirstChild("SlmBneKamil")
+
+    if Entity 
+        and Entity:FindFirstChild("Head")
+        and Entity.Head:FindFirstChild("GlobalHpBar")
+        and Entity.Head.GlobalHpBar:FindFirstChild("Tufferson")
+        and Entity.Head.GlobalHpBar.Tufferson.Frame:FindFirstChild("Level") then
+        
+        Entity.Head.GlobalHpBar.Tufferson.Frame.Level.Text = tostring(SpoofLevelValue)
+    end
+end
+
+
+local function RefreshSpoof()
+    if SpoofEnabled then
+        UpdateSpoof()
+    end
+
+    if SpoofLevelEnabled then
+        UpdateLevelSpoof()
+    end
+end
+
+
 PlayerRightGroupBox2:AddToggle("SpoofToggle", {
     Text = "Identity Spoofer",
     Default = false,
 
-    Callback = function(SpoofValue)
-        SpoofEnabled = SpoofValue
+    Callback = function(Value)
+        SpoofEnabled = Value
 
-        if SpoofValue then
+        if Value then
             UpdateSpoof()
 
             Library:Notify({
@@ -1035,6 +1070,7 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
         end
     end
 })
+
 
 PlayerRightGroupBox2:AddInput("SpoofName", {
     Text = "Player Name",
@@ -1050,6 +1086,57 @@ PlayerRightGroupBox2:AddInput("SpoofName", {
         end
     end
 })
+
+
+PlayerRightGroupBox2:AddSlider("SpoofLevel", {
+    Text = "Level",
+    Default = 1,
+    Min = 1,
+    Max = 1000,
+    Rounding = 0,
+
+    Callback = function(Value)
+        SpoofLevelValue = Value
+
+        if SpoofLevelEnabled then
+            UpdateLevelSpoof()
+        end
+    end
+})
+
+
+PlayerRightGroupBox2:AddToggle("SpoofLevelToggle", {
+    Text = "Level Spoofer",
+    Default = false,
+
+    Callback = function(Value)
+        SpoofLevelEnabled = Value
+
+        if Value then
+            UpdateLevelSpoof()
+
+            Library:Notify({
+                Title = "Client Side Change!",
+                Description = "Level Changed To: " .. SpoofLevelValue,
+                Time = 5
+            })
+        end
+    end
+})
+
+
+-- Reset sonrası tekrar uygula
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    RefreshSpoof()
+end)
+
+
+-- Workspace objesi yeniden gelirse tekrar uygula
+workspace.Entities.ChildAdded:Connect(function()
+    task.wait(0.5)
+    RefreshSpoof()
+end)
 
 
 -- End Of Player Tab
