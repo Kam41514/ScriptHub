@@ -608,6 +608,7 @@ Library.ToggleKeybind = Options.MenuKeybind
 local PlayerLeftGroupBox = Tabs.Player:AddLeftGroupbox("Flight", "wind")
 local PlayerLeftGroupBox2 = Tabs.Player:AddLeftGroupbox("Extras", "user")
 local PlayerRightGroupBox = Tabs.Player:AddRightGroupbox("Speed", "wind")
+local PlayerRightGroupBox2 = Tabs.Player:AddRightGroupbox("Identity Spoofer", "user")
 
 -- Scripts For Player Tab
 
@@ -988,6 +989,39 @@ PlayerLeftGroupBox2:AddButton({
     Text = "Reset Character",
     Func = function()
         game.Players.LocalPlayer.Character:BreakJoints()
+    end
+})
+
+local SpoofNameValue = ""
+
+PlayerRightGroupBox2:AddInput("SpoofName", {
+    Text = "Player Name",
+    Default = "",
+    Numeric = false,
+    Finished = false,
+
+    Callback = function(Value)
+        SpoofNameValue = Value
+    end
+})
+
+PlayerRightGroupBox2:AddToggle("SpoofToggle", {
+    Text = "Identity Spoofer",
+    Default = false,
+
+    Callback = function(SpoofValue)
+        if SpoofValue then
+            local PlayerNameValue = game:GetService("Players").LocalPlayer.Data.PlayerName
+            
+            if PlayerNameValue then
+                PlayerNameValue.Value = SpoofNameValue
+					Library:Notify({
+				    Title = "Client Side Change!",
+				    Description = "Your Name On Your Screen Changed To: " ..SpoofNameValue,
+				    Time = 5
+				})	
+            end
+        end
     end
 })
 
