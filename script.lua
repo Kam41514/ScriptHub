@@ -46,6 +46,9 @@ if Data then
     if Data:FindFirstChild("Rukh") then
         OriginalValues.Rukh = Data.Rukh.Value
     end
+	if Data:FindFirstChild("PlayerName") then
+		OriginalValues.PlayerName = Data.PlayerName.Value
+	end
 end
 
 -- Updates:
@@ -1115,6 +1118,9 @@ PlayerRightGroupBox2:AddToggle("SpoofToggle", {
                 if OriginalValues.Rukh then
                     Data.Rukh.Value = OriginalValues.Rukh
                 end
+				if OriginalValues.PlayerName then
+					Data.PlayerName.Value = OriginalValues.PlayerName
+				end
             end
 
             Library:Notify({
