@@ -1316,7 +1316,7 @@ ExploitsRightGroupBox:AddToggle("AutoPlantToggle", {
 
 
 
-                            task.wait(0.1)
+                            task.wait(0.12)
 
 
 
@@ -1377,7 +1377,7 @@ ExploitsRightGroupBox:AddToggle("AutoPlantToggle", {
 
 
 
-                            task.wait(0.15)
+                            task.wait(0.11)
 
 
                         end
@@ -1390,7 +1390,7 @@ ExploitsRightGroupBox:AddToggle("AutoPlantToggle", {
 
                 if not found then
 
-                    task.wait(0.2)
+                    task.wait(0.11)
 
                 end
 
