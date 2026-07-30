@@ -68,7 +68,6 @@ local AutoExecute = AutoExecuteValue
 local SpoofNameValue = ""
 local SpoofEnabled = false
 local SpoofLevelValue = 1
-local SpoofLevelEnabled = false
 
 
 local function UpdatePlayerList()
@@ -1083,6 +1082,7 @@ PlayerRightGroupBox2:AddInput("SpoofName", {
 
         if SpoofEnabled then
             UpdateSpoof()
+			UpdateLevelSpoof()
         end
     end
 })
@@ -1098,28 +1098,8 @@ PlayerRightGroupBox2:AddSlider("SpoofLevel", {
     Callback = function(Value)
         SpoofLevelValue = Value
 
-        if SpoofLevelEnabled then
+        if SpoofEnabled then
             UpdateLevelSpoof()
-        end
-    end
-})
-
-
-PlayerRightGroupBox2:AddToggle("SpoofLevelToggle", {
-    Text = "Level Spoofer",
-    Default = false,
-
-    Callback = function(Value)
-        SpoofLevelEnabled = Value
-
-        if Value then
-            UpdateLevelSpoof()
-
-            Library:Notify({
-                Title = "Client Side Change!",
-                Description = "Level Changed To: " .. SpoofLevelValue,
-                Time = 5
-            })
         end
     end
 })
