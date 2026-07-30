@@ -26,14 +26,27 @@ Library:Notify({
 
 -- Spoofer
 
-local OriginalValues = {
+local OriginalValues = {}
 
-OriginalValues.Level = Data.Level.Value
-OriginalValues.Kills = Data.Kills.Value
-OriginalValues.Wins = Data.Wins.Value
-OriginalValues.Rukh = Data.Rukh.Value
+local Data = LocalPlayer:FindFirstChild("Data")
 
-}
+if Data then
+    if Data:FindFirstChild("Level") then
+        OriginalValues.Level = Data.Level.Value
+    end
+
+    if Data:FindFirstChild("Kills") then
+        OriginalValues.Kills = Data.Kills.Value
+    end
+
+    if Data:FindFirstChild("Wins") then
+        OriginalValues.Wins = Data.Wins.Value
+    end
+
+    if Data:FindFirstChild("Rukh") then
+        OriginalValues.Rukh = Data.Rukh.Value
+    end
+end
 
 -- Updates:
 
