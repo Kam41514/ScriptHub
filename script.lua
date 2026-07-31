@@ -857,7 +857,7 @@ FlyToggle:AddKeyPicker("FlyKeybind", {
     SyncToggleState = true,
 
     Callback = function(key)
-        CurrentFlyKey = key -- None ise nil olur
+        CurrentFlyKey = key 
     end
 })
 
@@ -1291,14 +1291,12 @@ PlayerRightGroupBox2:AddSlider("SpoofSlider", {
 })
 
 
--- Reset sonrası tekrar uygula
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(1)
     RefreshSpoof()
 end)
 
 
--- Workspace objesi yeniden gelirse tekrar uygula
 workspace.Entities.ChildAdded:Connect(function()
     task.wait(0.5)
     RefreshSpoof()
@@ -1442,11 +1440,9 @@ ExploitsLeftGroupBox2:AddToggle("KillBrickToggle", {
 
     if Value then
 
-        -- Var olanları kapat
         SetKillParts(false)
 
 
-        -- Yeni yüklenenleri yakala
         KillBrickConnection = workspace.DescendantAdded:Connect(function(obj)
 
             task.wait(0.1)
@@ -1463,7 +1459,6 @@ ExploitsLeftGroupBox2:AddToggle("KillBrickToggle", {
         end
 
 
-        -- Geri aç
         SetKillParts(true)
 
     end
@@ -1501,18 +1496,18 @@ if AutoChest then
 
                 if top and prompt then
 
-                    -- Sabitlenecek konumlar
+
                     local lockPosition = top.CFrame + Vector3.new(0, -6.33, 0)
                     local lockPosition2 = top.CFrame + Vector3.new(0, -15.33, 0)
 
-                    -- İlk konum
+
                     local currentLockPosition = lockPosition
 
                     hrp.CFrame = currentLockPosition
                     hrp.AssemblyLinearVelocity = Vector3.zero
                     hrp.AssemblyAngularVelocity = Vector3.zero
 
-                    -- Pozisyonu sabitle
+
                     local connection
                     connection = RunService.Heartbeat:Connect(function()
 
@@ -1532,16 +1527,16 @@ if AutoChest then
 
                     task.wait(0.25)
 
-                    -- ProximityPrompt tetikle
+
                     fireproximityprompt(prompt)
 
-                    -- Daha aşağı in
+
                     task.wait(0.32)
                     currentLockPosition = lockPosition2
 
                     task.wait(3.2)
 
-                    -- Sabitlemeyi kapat
+
                     if connection then
                         connection:Disconnect()
                         connection = nil
@@ -1612,18 +1607,18 @@ ExploitsRightGroupBox:AddToggle("AutoPlantToggle", {
                             found = true
 
 
-                            -- Bitkinin altındaki yatay pozisyon
+
                             local targetCFrame = CFrame.new(
                                 mainPart.Position + Vector3.new(0,-3.74,0)
                             ) * CFrame.Angles(math.rad(90),0,0)
 
 
 
-                            -- Işınlan
+
                             hrp.CFrame = targetCFrame
 
 
-                            -- Hareketi kes
+
                             hrp.AssemblyLinearVelocity = Vector3.zero
                             hrp.AssemblyAngularVelocity = Vector3.zero
 
@@ -1633,7 +1628,7 @@ ExploitsRightGroupBox:AddToggle("AutoPlantToggle", {
 
 
 
-                            -- Kendi promptunu bul
+
                             local prompt = mainPart:FindFirstChild("ProximityPrompt")
 
 
@@ -1763,18 +1758,17 @@ if AutoOre then
                         local character = player.Character or player.CharacterAdded:Wait()
                         local hrp = character:WaitForChild("HumanoidRootPart")
 
-                        -- Işınlanacağı konum
+
                         local lockPosition = CFrame.new(
                             target.Position + Vector3.new(0, -4.5, 0),
                             target.Position
                         )
 
-                        -- Işınlan
+
                         hrp.CFrame = lockPosition
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         hrp.AssemblyAngularVelocity = Vector3.zero
 
-                        -- Karakteri sabit tut
                         local connection
                         connection = RunService.Heartbeat:Connect(function()
 
@@ -1794,7 +1788,7 @@ if AutoOre then
 
                         task.wait(0.3)
 
-                        -- ProximityPrompt çalıştır
+
                         local prompt = target:FindFirstChild("ProximityPrompt")
 
                         if prompt then
@@ -1805,7 +1799,7 @@ if AutoOre then
 
                         task.wait(3)
 
-                        -- Sabitlemeyi kapat
+    
                         if connection then
                             connection:Disconnect()
                             connection = nil
@@ -2145,7 +2139,6 @@ end
 
 
 
--- Elle M1 basınca teleport
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
 
@@ -2204,7 +2197,6 @@ task.spawn(function()
 
 
 
-            -- Auto click sonrası teleport
             TeleportToNPC()
 
 
@@ -2287,7 +2279,7 @@ local function UpdateBossList()
     end
 end
 
--- Önce listeyi doldur
+
 UpdateBossList()
 
 ExploitsRightGroupBox:AddLabel("Boss Section")
@@ -2302,7 +2294,7 @@ BossDropdown = ExploitsRightGroupBox:AddDropdown({
     end
 })
 
--- Dropdown oluşturulduktan sonra tekrar güncelle
+
 UpdateBossList()
 
 BossFolder.ChildAdded:Connect(UpdateBossList)
@@ -2389,8 +2381,6 @@ local function CreatePlayerESP(plr)
         highlight.Parent = char
 
 
-
-        -- Yazı
 
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "PlayerESPText"
@@ -2481,7 +2471,6 @@ local function CreatePlayerESP(plr)
 
         if PlayerESPEnabled then
 
-            -- eskiyi temizle
             if PlayerESPObjects[plr] then
                 local old = PlayerESPObjects[plr]
 
@@ -3120,7 +3109,7 @@ local SelectedInfoPlayer = nil
 
 
 
--- Bilgi GUI
+-- Info GUI
 local PlayerInfoGui = Instance.new("ScreenGui")
 PlayerInfoGui.Name = "LeaderboardPlayerInfo"
 PlayerInfoGui.ResetOnSpawn = false
@@ -3355,7 +3344,6 @@ local function ShowPlayerInfo(player)
         level and level.Value or "Unknown"
     )
 
-    -- Yeni eklenenler
     HealthLabel.Text = "Health: " .. health
 
     SelectedInfoPlayer = player
@@ -3384,7 +3372,6 @@ local function ConnectLeaderboardObject(obj)
 
 
 
-        -- Sol click bilgi
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
 
 
@@ -3403,7 +3390,6 @@ local function ConnectLeaderboardObject(obj)
 
 
 
-        -- Sağ click observe
         if input.UserInputType == Enum.UserInputType.MouseButton2 then
 
 
@@ -3537,7 +3523,6 @@ VisualRightGroupBox2:AddToggle("StaffLogToggle", {
                 local HasAdminRace = false
                 local FoundRace = nil
 
-                -- Data.Race kontrolü
                 local Data = Player:FindFirstChild("Data")
                 local Race = Data and Data:FindFirstChild("Race")
 
@@ -3610,13 +3595,11 @@ local function CheckStaff(Player)
 end
 
 
--- Script açılınca mevcut oyuncuları kontrol eder
 for _, Player in ipairs(Players:GetPlayers()) do
     CheckStaff(Player)
 end
 
 
--- Sonradan girenleri kontrol eder
 Players.PlayerAdded:Connect(function(Player)
     CheckStaff(Player)
 end)
@@ -3644,7 +3627,7 @@ VisualRightGroupBox2:AddSlider("AutoLogDistance", {
 })
 
 local LastAutoLog = 0
-local AutoLogCooldown = 10 -- saniye
+local AutoLogCooldown = 10 
 
 local function CheckDistance(Player)
     if not AutoLog then return end
