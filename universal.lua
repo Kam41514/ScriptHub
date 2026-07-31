@@ -1111,8 +1111,6 @@ local function CreatePlayerESP(plr)
 
 
 
-        -- Yazı
-
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "PlayerESPText"
         billboard.Size = UDim2.new(0,200,0,50)
@@ -1202,7 +1200,6 @@ local function CreatePlayerESP(plr)
 
         if PlayerESPEnabled then
 
-            -- eskiyi temizle
             if PlayerESPObjects[plr] then
                 local old = PlayerESPObjects[plr]
 
@@ -1335,7 +1332,7 @@ VisualRightGroupBox2:AddSlider("AutoLogDistance", {
 })
 
 local LastAutoLog = 0
-local AutoLogCooldown = 10 -- saniye
+local AutoLogCooldown = 10 
 
 local function CheckDistance(Player)
     if not AutoLog then return end
