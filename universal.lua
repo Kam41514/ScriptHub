@@ -112,12 +112,10 @@ local function ResetPlayerStates()
     local player = Players.LocalPlayer
 
     -- SpeedValue reset
-    if player:FindFirstChild("Data") and player.Data:FindFirstChild("SpeedValue") then
-        player.Data.SpeedValue.Value = 0
-    end
-
-    if player:FindFirstChild("DataOld") and player.DataOld:FindFirstChild("SpeedValue") then
-        player.DataOld.SpeedValue.Value = 0
+    if SpeedEnabled then
+        Humanoid.WalkSpeed = SpeedValue
+    else
+        Humanoid.WalkSpeed = DefaultSpeed
     end
 
     local character = player.Character
