@@ -912,11 +912,9 @@ SpeedToggle:OnChanged(function(Value)
     local player = game:GetService("Players").LocalPlayer
 
     if Value then
-        player.Data.SpeedValue.Value = SpeedValue * 10
-        player.DataOld.SpeedValue.Value = SpeedValue * 10
+        Humanoid.WalkSpeed = SpeedValue
     else
-        player.Data.SpeedValue.Value = 0
-        player.DataOld.SpeedValue.Value = 0
+        Humanoid.WalkSpeed = DefaultSpeed
     end
 end)
 
