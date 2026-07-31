@@ -40,11 +40,6 @@ local Humanoid = nil
 local SpeedValue = 100
 local DefaultSpeed = 16
 local JumpPower = 50
-local AutoChest = false
-local AutoCedarPlume = false
-local AutoOre = false
-local SelectedPlant = "CedarPlume"
-local SelectedOre = "Chryite"
 local SelectedNPC = nil
 local AutoFloatNPC = false
 local ESPEnabled = false
@@ -54,16 +49,7 @@ local CurrentNoclipKey = nil
 local NoclipToggle = nil
 local SpeedToggle = nil
 local playerOptions = {}
-local LeaderboardObserve = true
-local ObservingPlayer = nil
 local KillBrickConnection
-local MobESPConnection
-local MobESPObjects = {}
-local MobESPEnabled = false
-local IgnorePlayers = true
-local BossList = {}
-local SelectedBoss = nil
-local StaffLog = false
 local AutoExecute = AutoExecuteValue
 
 local function UpdatePlayerList()
@@ -85,14 +71,8 @@ local function ResetPlayerStates()
     ToggleAutoFallValue = false
     NoclipEnabled = false
     SpeedEnabled = false
-    AutoChest = false
-    AutoCedarPlume = false
-    AutoOre = false
-    AutoFloatNPC = false
     ESPEnabled = false
-    StaffHop = Toggles.StaffLogToggle.Value
 	AutoExecuteValue = Toggles.AutoExecute.Value
-	MobESPEnabled = Toggles.MobESPToggle.Value
 
     WalkSpeed = 16
     JumpPower = 50
@@ -118,16 +98,6 @@ local function ResetPlayerStates()
         Toggles.NoclipToggle:SetValue(false)
     end
 
-    if Toggles.AutoChestToggle then
-        Toggles.AutoChestToggle:SetValue(false)
-    end
-
-    if Toggles.AutoCedarPlumeToggle then
-        Toggles.AutoCedarPlumeToggle:SetValue(false)
-    end
-     if Toggles.AutoOreToggle then
-         Toggles.AutoOreToggle:SetValue(false)
-    end
     
     if Toggles.AutoFloatNPCToggle then
         Toggles.AutoFloatNPCToggle:SetValue(false)
@@ -137,15 +107,7 @@ local function ResetPlayerStates()
         Toggles.BoxESPToggle:SetValue(false)
     end
 
-    if Toggles.StaffHopToggle then
-        Toggles.StaffHopToggle:SetValue(true)
-    end
 
-	if Toggles.MobESPToggle then
-		Toggles.MobESPToggle:SetValue(false)
-		RefreshMobESP()
-		MobESPConnection:Disconnect()
-	end
 
     local player = Players.LocalPlayer
 
@@ -190,7 +152,6 @@ local function UpdateOnCharacterReset()
         UpdatePlayerList()
 
         SelectedPlayer = ""
-		MobESPObjects = {}
         BossList = {}
 
         ResetPlayerStates()
@@ -203,13 +164,6 @@ local function UpdateOnCharacterReset()
             ResetPlayerStates()
         end)
 
-
-        -- Mob ESP yenile
-        if MobESPEnabled then
-            RefreshMobESP()
-			else
-			MobESPConnection:Disconnect()
-        end
 
 
         Library:Notify("Functions Updated On Character Reset!", 1)
@@ -1010,9 +964,7 @@ PlayerLeftGroupBox2:AddButton({
 
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
-local ExploitsRightGroupBox = Tabs.Exploits:AddRightGroupbox("Botting", "bot")
 local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
-local ExploitsRightGroupBox2 = Tabs.Exploits:AddRightGroupbox("Artifact", "bot")
 
 ExploitsLeftGroupBox:AddDropdown("PlayerDropdown", {
     Values = PlayerList,
@@ -1115,9 +1067,6 @@ end)
 -- Visual Section
 
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "box")
-local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Mob ESP", "box")
-local VisualLeftGroupBox3 = Tabs.Visual:AddLeftGroupbox("Item ESP", "box")
-local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Observe Camera", "camera")
 local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning")
 
 local Players = game:GetService("Players")
@@ -1512,7 +1461,7 @@ RightGroupBox2:AddToggle("AutoExecute", {
                 if game.PlaceId == 76606442853797 then
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/script.lua"))()
                       else
-                        
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/universal.lua"))()
                 end
             ]])
 
