@@ -19,7 +19,7 @@ local Camera = workspace.CurrentCamera
 -- Execute Notify
 
 Library:Notify({
-    Title = "Universal Hub",
+    Title = "Bloodlines Hub",
     Description = "Script Succesfully Executed.",
     Duration = 3
 })
