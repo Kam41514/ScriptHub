@@ -114,9 +114,9 @@ local function ResetPlayerStates()
 
     -- SpeedValue reset
     if SpeedEnabled then
-        Humanoid.WalkSpeed = SpeedValue
+        SpeedHumanoid.WalkSpeed = SpeedValue
     else
-        Humanoid.WalkSpeed = DefaultSpeed
+        SpeedHumanoid.WalkSpeed = DefaultSpeed
     end
 
     local character = player.Character
@@ -124,7 +124,7 @@ local function ResetPlayerStates()
         local humanoid = character:FindFirstChildOfClass("Humanoid")
 
         if humanoid then
-            humanoid.WalkSpeed = DefaultSpeed
+            SpeedHumanoid.WalkSpeed = DefaultSpeed
             humanoid.JumpPower = JumpPower
         end
     end
@@ -912,11 +912,15 @@ SpeedToggle:OnChanged(function(Value)
     SpeedEnabled = Value
 
     local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local SpeedHumanoid = character:WaitForChild("Humanoid")
+
+
 
     if Value then
-        Humanoid.WalkSpeed = SpeedValue
+        SpeedHumanoid.WalkSpeed = SpeedValue
     else
-        Humanoid.WalkSpeed = DefaultSpeed
+        SpeedHumanoid.WalkSpeed = DefaultSpeed
     end
 end)
 
