@@ -1226,7 +1226,7 @@ local function isPlayerNearby(position)
 			if root then
 				local distance = (position - root.Position).Magnitude
 
-				if distance <= 150 then
+				if distance <= 250 then
 					return true
 				end
 			end
@@ -1254,7 +1254,7 @@ local function getFruits(position)
 
 			local distance = (position - obj.Position).Magnitude
 
-			if distance <= 150 then
+			if distance <= 200 then
 				table.insert(fruits, {
 					part = obj,
 					distance = distance
