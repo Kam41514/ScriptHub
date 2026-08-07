@@ -24,6 +24,60 @@ Library:Notify({
     Duration = 3
 })
 
+-- Observe Notify
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local notified = {}
+
+local function watchCharacter(player, character)
+    local torso = character:WaitForChild("Torso", 5) or character:WaitForChild("UpperTorso", 5)
+    if not torso then return end
+
+    local function notify()
+        if notified[character] then return end
+        notified[character] = true
+
+        Library:Notify({
+            Title = "Chakra Sense Detected",
+            Description = player.Name .. " Used Chakra Sense!.",
+            Duration = 5
+        })
+    end
+
+    if torso:FindFirstChild("ChakraSense") then
+        notify()
+    end
+
+    torso.ChildAdded:Connect(function(child)
+        if child.Name == "ChakraSense" then
+            notify()
+        end
+    end)
+end
+
+local function setupPlayer(player)
+    if player == LocalPlayer then
+        return
+    end
+
+    player.CharacterAdded:Connect(function(character)
+        notified[character] = nil
+        watchCharacter(player, character)
+    end)
+
+    if player.Character then
+        watchCharacter(player, player.Character)
+    end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setupPlayer(player)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
+
 -- Updates:
 
 local SelectedPlayer = ""
@@ -52,6 +106,9 @@ local playerOptions = {}
 local KillBrickConnection
 local AutoExecute = AutoExecuteValue
 local selectedPoint
+local FruitESP = false
+local farmConnection
+local farming = false
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -102,6 +159,10 @@ local function ResetPlayerStates()
     
     if Toggles.AutoFloatNPCToggle then
         Toggles.AutoFloatNPCToggle:SetValue(false)
+    end
+
+    if Toggles.AutoFruit then
+        Toggles.AutoFruit:SetValue(false)
     end
 
     if Toggles.BoxESPToggle then
@@ -175,9 +236,8 @@ end
 
 -- Window
 local Window = Library:CreateWindow({
-    Title = "Bloodlines",
+    Title = "Bloodlines | Beta",
     Footer = "Version: 1.0",
-    Icon = 93364949241311,
     NotifySide = "Left",
     ShowCustomCursor = true,
     Center = true,
@@ -579,192 +639,113 @@ local PlayerRightGroupBox = Tabs.Player:AddRightGroupbox("Speed", "wind")
 
 -- Scripts For Player Tab
 
-local player = game:GetService'Players'.LocalPlayer;
-local mouse = player:GetMouse();
-local camera = workspace.CurrentCamera;
-local runservice = game:GetService'RunService';
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-local input = {
-    down = {}
-}
+local player = Players.LocalPlayer
 
-UserInputService.InputBegan:Connect(function(key, gameProcessed)
-    if gameProcessed then return end
+local BodyGyro
+local BodyVelocity
+local FlyConnection
 
-    input.down[key.KeyCode.Name:lower()] = true
-end)
-
-UserInputService.InputEnded:Connect(function(key)
-    input.down[key.KeyCode.Name:lower()] = false
-end)
-
-local gayGames = {
-    3016661674; -- rogue lineage checks falling humanoid state lmao
-};
-
-for i, v in ipairs(gayGames) do
-    gayGames[v] = true;
-    gayGames[i] = false;
-end
-
-local gay = gayGames[game.PlaceId];
-
-shared.sfls = script;
-
-
-function IsInZone(Object1, Object2, YCheck) -- broken 2 lazy 2 fix
-    if (typeof(Object1) ~= 'Instance' and typeof(Object1) ~= 'table') or (typeof(Object2) ~= 'Instance' and typeof(Object2) ~= 'table') then return 'NIGGER'; end
-    if YCheck ~= nil and typeof(YCheck) ~= 'boolean' then return end
-
-    YCheck = (YCheck ~= nil and YCheck or false);
-
-    local RYCheck = true;
-
-    local Object = Object1;
-    
-    local Positive = (Object2.CFrame * CFrame.new(Object2.Size.X / 2, Object2.Size.Y / 2, Object2.Size.Z / 2));
-    local Negative = (Object2.CFrame * CFrame.new(-Object2.Size.X / 2, -Object2.Size.Y / 2, -Object2.Size.Z / 2));
-
-    if YCheck then
-        RYCheck = (YCheck == true and
-            (Object.Position.Y > Positive.Y) and
-            (Object.Position.Y < Negative.Y));
-    end
-
-    -- print(1, (Object.Position.X < Positive.X), Object.Position.X, Positive.X)
-    -- print(2, (Object.Position.X > Negative.X), Object.Position.X, Negative.X)
-    -- print(3, (Object.Position.Z > Positive.Z), Object.Position.Z, Positive.Z)
-    -- print(4, (Object.Position.Z < Negative.Z), Object.Position.Z, Negative.Z)
-    -- print(5, RYCheck);
-
-    return (Object.Position.X < Positive.X) and
-        (Object.Position.X > Negative.X) and
-        (Object.Position.Z > Positive.Z) and
-        (Object.Position.Z < Negative.Z) and
-        (RYCheck);
-end
-
-function GetIndex(Table, Value)
-    for i, v in pairs(Table) do
-        if v == Value then
-            return i;
-        end
-    end
-
-    return -1;
-end
-
-local PartIgnore = {};
-
-function DisableClip(Part)
-    if Part:IsA'BasePart' and Part.CanCollide then
-        local Start = tick();
-        local OldTransparency = Part.Transparency;
-        
-        table.insert(PartIgnore, Part);
-
-        while tick() - Start < 300 and player.Character and player.Character:FindFirstChild'HumanoidRootPart' and not input.down.f4 do
-            if tick() - Start > 1 and not IsInZone(player.Character.HumanoidRootPart, Part, true) and not IsInZone({Position = camera.CFrame.p}, Part, true) then
-                break;
-            end
-
-            Part.CanCollide = false;
-            if not gay then Part.Transparency = 0.75; end
-
-            wait(1 / 8);
-        end
-
-        table.remove(PartIgnore, GetIndex(PartIgnore, Part));
-
-        Part.Transparency = OldTransparency;
-        Part.CanCollide = true;
-    end
-end
-
-local lastSpace = 0;
 
 local function StartFlight()
-    if not fly then return end
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
 
-    local char = player.Character
-    if not char then return end
+    hum.PlatformStand = true
 
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
+    BodyGyro = Instance.new("BodyGyro")
+    BodyGyro.P = 9e4
+    BodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
+    BodyGyro.CFrame = root.CFrame
+    BodyGyro.Parent = root
 
-    if not root or not hum then return end
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+    BodyVelocity.Velocity = Vector3.zero
+    BodyVelocity.Parent = root
 
-    if not gay then
-        hum.PlatformStand = true
-    end
 
-task.spawn(function()
-    while fly do
-        local moveDirection = Vector3.zero
+    FlyConnection = RunService.RenderStepped:Connect(function()
 
-        if input.down.w then
-            moveDirection += camera.CFrame.LookVector
+        if not fly then
+            return
         end
 
-        if input.down.s then
-            moveDirection -= camera.CFrame.LookVector
+        local camera = workspace.CurrentCamera
+        local move = Vector3.zero
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            move += camera.CFrame.LookVector
         end
 
-        if input.down.a then
-            moveDirection -= camera.CFrame.RightVector
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            move -= camera.CFrame.LookVector
         end
 
-        if input.down.d then
-            moveDirection += camera.CFrame.RightVector
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            move -= camera.CFrame.RightVector
         end
 
-        if input.down.space then
-            moveDirection += Vector3.new(0, 1, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            move += camera.CFrame.RightVector
         end
 
-        if input.down.leftcontrol then
-            moveDirection -= Vector3.new(0, 1, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            move += Vector3.yAxis
         end
 
-        if ToggleAutoFallValue then
-            moveDirection -= Vector3.new(0, 0.1, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+            move -= Vector3.yAxis
         end
 
-        if moveDirection.Magnitude > 0 then
-            root.Velocity = moveDirection.Unit * flySpeed
+
+        if move.Magnitude > 0 then
+            BodyVelocity.Velocity = move.Unit * FlySpeed
         else
-            root.Velocity = Vector3.zero
+            BodyVelocity.Velocity = Vector3.zero
         end
 
-        runservice.RenderStepped:Wait()
-    end
-
-    if hum then
-        hum.PlatformStand = false
-    end
-
-    root.Velocity = Vector3.zero
-end)
-
+        BodyGyro.CFrame = camera.CFrame
+    end)
 end
-
 
 
 
 local function StopFlight()
+
     fly = false
 
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local root = player.Character.HumanoidRootPart
-        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+
+    if BodyVelocity then
+        BodyVelocity:Destroy()
+        BodyVelocity = nil
+    end
+
+    if BodyGyro then
+        BodyGyro:Destroy()
+        BodyGyro = nil
+    end
+
+
+    local char = player.Character
+
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
 
         if hum then
             hum.PlatformStand = false
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
-
-        root.Velocity = Vector3.new(0, 0, 0)
     end
 end
+
 
 
 function enableNoclip()
@@ -975,6 +956,7 @@ PlayerLeftGroupBox2:AddButton({
 
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
+local ExploitsRightGroupBox = Tabs.Exploits:AddRightGroupbox("Botting", "robot")
 local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
 
 ExploitsLeftGroupBox:AddDropdown("PlayerDropdown", {
@@ -1014,44 +996,55 @@ local ChakraPointsFolder = workspace:WaitForChild("ChakraPoints")
 
 local options = {}
 local pointMap = {}
+local selectedPoint
 
 for _, chakraPoint in ipairs(ChakraPointsFolder:GetChildren()) do
-	if chakraPoint.Name == "ChakraPoint" then
-		local stringValue = chakraPoint:FindFirstChildWhichIsA("StringValue")
-		if stringValue then
-			table.insert(options, stringValue.Value)
-		end
-	end
+    if chakraPoint.Name == "ChakraPoint" then
+        local stringValue = chakraPoint:FindFirstChildWhichIsA("StringValue")
+        if stringValue then
+            table.insert(options, stringValue.Value)
+            pointMap[stringValue.Value] = chakraPoint
+        end
+    end
 end
 
 local ChakraPointsDropdown = ExploitsLeftGroupBox:AddDropdown("ChakraDropdown", {
-	Title = "Chakra Points",
-	Values = options,
-	Multi = false,
-	Default = 1,
+    Title = "Chakra Points",
+    Values = options,
+    Multi = false,
+    Default = 1,
 })
 
 ChakraPointsDropdown:OnChanged(function(value)
-	selectedPoint = value
+    selectedPoint = value
 end)
 
 ExploitsLeftGroupBox:AddButton({
-	Text = "Teleport Point",
-	Callback = function()
-		if not selectedPoint then
-			warn("Select ")
-			return
-		end
+    Text = "Teleport Point",
+    Callback = function()
+        if not selectedPoint then
+            Library:Notify({
+                Title = "Teleport Failed",
+                Content = "Select Chakra Point",
+                Duration = 3
+            })
+            return
+        end
 
-		local point = pointMap[selectedPoint]
-		if point and point:IsA("BasePart") then
-			local character = game.Players.LocalPlayer.Character
-			if character and character:FindFirstChild("HumanoidRootPart") then
-				character.HumanoidRootPart.CFrame = point.CFrame + Vector3.new(0, 3, 0)
-			end
-		end
-	end
+        local point = pointMap[selectedPoint]
+        if not point then
+            return
+        end
+
+        local character = game:GetService("Players").LocalPlayer.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+
+        if hrp then
+            hrp.CFrame = point:GetPivot() + Vector3.new(0, 3, 0)
+        end
+    end
 })
+
 
 local function DisableKillPart(obj)
 
@@ -1119,10 +1112,151 @@ ExploitsLeftGroupBox2:AddToggle("KillBrickToggle", {
 
 end)
 
+local fruitNames = {
+	["Mango"] = true,
+	["Orange"] = true,
+	["Life Up Fruit"] = true,
+	["Chakra Fruit"] = true,
+	["Pear"] = true,
+	["Alluring Apple"] = true,
+	["Apple"] = true,
+	["Banana"] = true
+}
+
+local function getRoot()
+	local character = player.Character or player.CharacterAdded:Wait()
+	return character:WaitForChild("HumanoidRootPart")
+end
+
+local function getTrees()
+	local trees = {}
+
+	for _, tree in ipairs(workspace:GetDescendants()) do
+		if tree.Name:match("^Tree") then
+			local fruitSpawns = tree:FindFirstChild("FruitSpawns", true)
+
+			if fruitSpawns then
+				table.insert(trees, tree)
+			end
+		end
+	end
+
+	return trees
+end
+
+local function getTreePart(tree)
+	if tree:IsA("BasePart") then
+		return tree
+	end
+
+	if tree:IsA("Model") then
+		return tree.PrimaryPart or tree:FindFirstChildWhichIsA("BasePart", true)
+	end
+end
+
+local function isPlayerNearby(position)
+	for _, plr in ipairs(game.Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+			local root = plr.Character:FindFirstChild("HumanoidRootPart")
+
+			if root then
+				local distance = (position - root.Position).Magnitude
+
+				if distance <= 150 then
+					return true
+				end
+			end
+		end
+	end
+
+	return false
+end
+
+local function getFruits(position)
+	local fruits = {}
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and fruitNames[obj.Name] then
+
+			local distance = (position - obj.Position).Magnitude
+
+			if distance <= 150 then
+				table.insert(fruits, {
+					part = obj,
+					distance = distance
+				})
+			end
+		end
+	end
+
+	table.sort(fruits, function(a, b)
+		return a.distance < b.distance
+	end)
+
+	return fruits
+end
+
+local function startFarm()
+	farming = true
+
+	local root = getRoot()
+
+	for _, tree in ipairs(getTrees()) do
+		if not farming then return end
+
+		local target = getTreePart(tree)
+
+		if target then
+			
+			if isPlayerNearby(target.Position) then
+				continue
+			end
+
+			root.CFrame = target.CFrame
+
+			for i = 1, 7 do
+				if not farming then return end
+				task.wait(1)
+			end
+
+			local fruits = getFruits(target.Position)
+
+			for _, fruit in ipairs(fruits) do
+				if not farming then return end
+
+				if fruit.part and fruit.part.Parent then
+					root.CFrame = fruit.part.CFrame
+					task.wait(1)
+				end
+			end
+		end
+	end
+
+	farming = false
+end
+
+
+ExploitsRightGroupBox:AddToggle("AutoFruit", {
+	Text = "Auto Fruit",
+	Default = false,
+
+	Callback = function(Value)
+		if Value then
+			if farming then return end
+
+			task.spawn(function()
+				startFarm()
+			end)
+		else
+			farming = false
+		end
+	end
+})
 
 -- Visual Section
 
-local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "box")
+local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "eye")
+local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Extra ESP", "eye")
 local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
 local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning")
 
@@ -1311,6 +1445,113 @@ local function RemovePlayerESP()
     table.clear(PlayerESPObjects)
 
 end
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local FruitESP = {Objects = {}}
+local FruitESPEnabled = false
+
+local Fruits = {
+    Mango = Color3.fromRGB(255, 170, 0),
+    Orange = Color3.fromRGB(255, 140, 0),
+    Banana = Color3.fromRGB(255, 235, 60),
+    Apple = Color3.fromRGB(255, 70, 70),
+    ["Alluring Apple"] = Color3.fromRGB(200, 200, 200),
+    Pear = Color3.fromRGB(100, 255, 100),
+    ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255)
+}
+
+
+local function CreateESP(obj)
+    if FruitESP.Objects[obj] then return end
+
+    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "FruitESP"
+    gui.Adornee = part
+    gui.Size = UDim2.fromOffset(120, 20)
+    gui.StudsOffset = Vector3.new(0, 1.8, 0)
+    gui.AlwaysOnTop = true
+    gui.LightInfluence = 0
+    gui.Enabled = FruitESPEnabled
+    gui.Parent = part
+
+    local label = Instance.new("TextLabel")
+    label.Name = "TextLabel"
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.fromScale(1, 1)
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 13
+    label.TextStrokeTransparency = 0.4
+    label.TextStrokeColor3 = Color3.new()
+    label.TextColor3 = Fruits[obj.Name]
+    label.Parent = gui
+
+    FruitESP.Objects[obj] = gui
+end
+
+-- Sadece bir kez tara
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if Fruits[obj.Name] then
+        CreateESP(obj)
+    end
+end
+
+-- Yeni oluşanları ekle
+workspace.DescendantAdded:Connect(function(obj)
+    if Fruits[obj.Name] then
+        CreateESP(obj)
+    end
+end)
+
+function FruitESP:Update()
+    if not FruitESPEnabled then
+        return
+    end
+
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for obj, gui in pairs(self.Objects) do
+        if not obj.Parent then
+            gui:Destroy()
+            self.Objects[obj] = nil
+        else
+            local part = gui.Adornee
+            local label = gui:FindFirstChild("TextLabel")
+
+            if part and label then
+                local distance = math.floor((hrp.Position - part.Position).Magnitude)
+                label.Text = ("%s [%dm]"):format(obj.Name, distance)
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.1) do
+        FruitESP:Update()
+    end
+end)
+
+VisualLeftGroupBox2:AddToggle("FruitESP", {
+    Text = "Fruit ESP",
+    Default = false,
+    Callback = function(Value)
+        FruitESPEnabled = Value
+
+        for _, gui in pairs(FruitESP.Objects) do
+            if gui then
+                gui.Enabled = Value
+            end
+        end
+    end
+})
+
 
 
 
