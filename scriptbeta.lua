@@ -941,17 +941,16 @@ PlayerRightGroupBox:AddSlider("SpeedSlider", {
     Compact = false
 }):OnChanged(function(Value)
     SpeedValue = Value
-end)
-
-Options.SpeedSlider:OnChanged(function(Value)
-    SpeedValue = Value
 
     if SpeedEnabled then
         local player = game:GetService("Players").LocalPlayer
-        player.Data.SpeedValue.Value = Value * 10
-        player.DataOld.SpeedValue.Value = Value *10
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+
+        SpeedHumanoid.WalkSpeed = SpeedValue
     end
 end)
+
 
 
 
