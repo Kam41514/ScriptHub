@@ -1236,6 +1236,16 @@ local function isPlayerNearby(position)
 	return false
 end
 
+local function checkChakraSense()
+	local character = player.Character
+	if not character then return false end
+
+	local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+	if not torso then return false end
+
+	return torso:FindFirstChild("ChakraSense") ~= nil
+end
+
 local function getFruits(position)
 	local fruits = {}
 
@@ -1268,18 +1278,34 @@ local function startFarm()
 	for _, tree in ipairs(getTrees()) do
 		if not farming then return end
 
+		if checkChakraSense() then
+			farming = false
+			return
+		end
+
 		local target = getTreePart(tree)
 
 		if target then
-			
+
 			if isPlayerNearby(target.Position) then
 				continue
+			end
+
+			if checkChakraSense() then
+				farming = false
+				return
 			end
 
 			root.CFrame = target.CFrame
 
 			for i = 1, 12 do
 				if not farming then return end
+
+				if checkChakraSense() then
+					farming = false
+					return
+				end
+
 				task.wait(1)
 			end
 
@@ -1287,6 +1313,11 @@ local function startFarm()
 
 			for _, fruit in ipairs(fruits) do
 				if not farming then return end
+
+				if checkChakraSense() then
+					farming = false
+					return
+				end
 
 				if fruit.part and fruit.part.Parent then
 					root.CFrame = fruit.part.CFrame
