@@ -1278,7 +1278,7 @@ local function startFarm()
 
 			root.CFrame = target.CFrame
 
-			for i = 1, 7 do
+			for i = 1, 12 do
 				if not farming then return end
 				task.wait(1)
 			end
