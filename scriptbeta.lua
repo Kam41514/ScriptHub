@@ -1341,6 +1341,47 @@ local function startFarm()
 	farming = false
 end
 
+local function startDangerCheck()
+	if dangerConnection then
+		dangerConnection:Disconnect()
+	end
+
+	dangerConnection = RunService.Heartbeat:Connect(function()
+		if not farming then
+			return
+		end
+
+		local character = player.Character
+		if not character then return end
+
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		if not rootPart then return end
+
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= player and plr.Character then
+
+				local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+
+				if enemyRoot then
+					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
+
+					if distance <= dangerDistance then
+						player:BreakJoints()
+						return
+					end
+				end
+			end
+		end
+	end)
+end
+
+local function stopDangerCheck()
+	if dangerConnection then
+		dangerConnection:Disconnect()
+		dangerConnection = nil
+	end
+end
+
 
 ExploitsRightGroupBox:AddToggle("AutoFruit", {
 	Text = "Auto Fruit",
@@ -1445,47 +1486,6 @@ ExploitsLeftGroupBox3:AddToggle("AutoPick", {
 
 	end
 })
-
-local function startDangerCheck()
-	if dangerConnection then
-		dangerConnection:Disconnect()
-	end
-
-	dangerConnection = RunService.Heartbeat:Connect(function()
-		if not farming then
-			return
-		end
-
-		local character = player.Character
-		if not character then return end
-
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart then return end
-
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr ~= player and plr.Character then
-
-				local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
-
-				if enemyRoot then
-					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
-
-					if distance <= dangerDistance then
-						player:BreakJoints()
-						return
-					end
-				end
-			end
-		end
-	end)
-end
-
-local function stopDangerCheck()
-	if dangerConnection then
-		dangerConnection:Disconnect()
-		dangerConnection = nil
-	end
-end
 
 -- Visual Section
 
