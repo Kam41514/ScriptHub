@@ -175,7 +175,7 @@ end
 
 -- Window
 local Window = Library:CreateWindow({
-    Title = "Universal",
+    Title = "Bloodlines",
     Footer = "Version: 1.0",
     Icon = 93364949241311,
     NotifySide = "Left",
@@ -912,17 +912,21 @@ SpeedToggle:OnChanged(function(Value)
     SpeedEnabled = Value
 
     local player = game:GetService("Players").LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local Humanoid = character:WaitForChild("Humanoid")
+    local character = workspace:FindFirstChild(player.Name)
 
+    if character then
+        local Humanoid = character:FindFirstChild("Humanoid")
 
-
-    if Value then
-        Humanoid.WalkSpeed = SpeedValue
-    else
-        Humanoid.WalkSpeed = DefaultSpeed
+        if Humanoid then
+            if Value then
+                Humanoid.WalkSpeed = SpeedValue
+            else
+                Humanoid.WalkSpeed = DefaultSpeed
+            end
+        end
     end
 end)
+
 
 game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -942,10 +946,20 @@ PlayerRightGroupBox:AddSlider("SpeedSlider", {
 }):OnChanged(function(Value)
     SpeedValue = Value
 
-    if SpeedEnabled and Humanoid then
-        Humanoid.WalkSpeed = Value
+    if SpeedEnabled then
+        local player = game:GetService("Players").LocalPlayer
+        local character = workspace:FindFirstChild(player.Name)
+
+        if character then
+            local Humanoid = character:FindFirstChild("Humanoid")
+
+            if Humanoid then
+                Humanoid.WalkSpeed = Value
+            end
+        end
     end
 end)
+
 
 
 
