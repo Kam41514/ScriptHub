@@ -29,12 +29,20 @@ Library:Notify({
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
+local trackedCharacters = {}
+
 local function watchCharacter(player, character)
+	if trackedCharacters[character] then
+		return
+	end
+
+	trackedCharacters[character] = true
+
 	local torso = character:WaitForChild("Torso", 5) or character:WaitForChild("UpperTorso", 5)
 	if not torso then return end
 
-	local active = false
-	local timerRunning = false
+	local chakraActive = false
+	local timerId = 0
 
 	local function notify(title, description)
 		Library:Notify({
@@ -44,39 +52,38 @@ local function watchCharacter(player, character)
 		})
 	end
 
-	local function startTimer()
-		if timerRunning then return end
-		timerRunning = true
+	local function chakraStarted()
+		if chakraActive then
+			return
+		end
 
-		task.delay(10, function()
-			if active and character.Parent then
-				notify(
-					"Chakra Sense Still Active",
-					player.Name .. " is still using Chakra Sense!"
-				)
-			end
+		chakraActive = true
+		timerId += 1
 
-			timerRunning = false
-		end)
-	end
-
-	local function onChakraAdded()
-		if active then return end
-
-		active = true
+		local currentTimer = timerId
 
 		notify(
 			"Chakra Sense Detected",
 			player.Name .. " Used Chakra Sense!"
 		)
 
-		startTimer()
+		task.delay(10, function()
+			if chakraActive and currentTimer == timerId then
+				notify(
+					"Chakra Sense Still Active",
+					player.Name .. " is still using Chakra Sense!"
+				)
+			end
+		end)
 	end
 
-	local function onChakraRemoved()
-		if not active then return end
+	local function chakraEnded()
+		if not chakraActive then
+			return
+		end
 
-		active = false
+		chakraActive = false
+		timerId += 1
 
 		notify(
 			"Chakra Sense Ended",
@@ -84,22 +91,30 @@ local function watchCharacter(player, character)
 		)
 	end
 
-	local chakra = torso:FindFirstChild("ChakraSense")
+	local function checkExisting()
+		local chakra = torso:FindFirstChild("ChakraSense")
 
-	if chakra then
-		onChakraAdded()
+		if chakra then
+			chakraStarted()
+		end
 	end
+
+	checkExisting()
 
 	torso.ChildAdded:Connect(function(child)
 		if child.Name == "ChakraSense" then
-			onChakraAdded()
+			chakraStarted()
 		end
 	end)
 
 	torso.ChildRemoved:Connect(function(child)
 		if child.Name == "ChakraSense" then
-			onChakraRemoved()
+			chakraEnded()
 		end
+	end)
+
+	character.Destroying:Connect(function()
+		trackedCharacters[character] = nil
 	end)
 end
 
@@ -121,29 +136,6 @@ end
 
 for _, player in ipairs(Players:GetPlayers()) do
 	setupPlayer(player)
-end
-
-Players.PlayerAdded:Connect(setupPlayer)
-
--- Observe Notify End
-
-local function setupPlayer(player)
-    if player == LocalPlayer then
-        return
-    end
-
-    player.CharacterAdded:Connect(function(character)
-        notified[character] = nil
-        watchCharacter(player, character)
-    end)
-
-    if player.Character then
-        watchCharacter(player, player.Character)
-    end
-end
-
-for _, player in ipairs(Players:GetPlayers()) do
-    setupPlayer(player)
 end
 
 Players.PlayerAdded:Connect(setupPlayer)
