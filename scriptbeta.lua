@@ -1697,7 +1697,8 @@ local Fruits = {
     ["Alluring Apple"] = Color3.fromRGB(200, 200, 200),
     Pear = Color3.fromRGB(100, 255, 100),
     ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255),
-	["Fruit Of Forgetfulness"] = Color3.fromRGB(255, 0 ,0)
+	["Fruit Of Forgetfulness"] = Color3.fromRGB(255, 0 ,0),
+	["Life Up Fruit"] = Color3.fromRGB(0, 95 ,0)
 }
 
 
