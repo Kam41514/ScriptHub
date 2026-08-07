@@ -1366,9 +1366,11 @@ local function startDangerCheck()
 					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
 
 					if distance <= dangerDistance then
-						game.Players.LocalPlayer.Character:BreakJoints()
-						return
-					end
+                        if not checkChakraSense() then
+                            game.Players.LocalPlayer.Character:BreakJoints()
+                            return
+                        end
+                    end
 				end
 			end
 		end
