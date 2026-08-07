@@ -51,6 +51,7 @@ local SpeedToggle = nil
 local playerOptions = {}
 local KillBrickConnection
 local AutoExecute = AutoExecuteValue
+local selectedPoint
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -765,6 +766,7 @@ local function StopFlight()
     end
 end
 
+
 function enableNoclip()
     if NoclipConnection then return end
 
@@ -993,9 +995,12 @@ ExploitsLeftGroupBox:AddButton("Teleport To Player", function()
 
 end)
 
+ExploitsLeftGroupBox:AddLabel("Chakra Point Teleport")
+
 local ChakraPointsFolder = workspace:WaitForChild("ChakraPoints")
 
 local options = {}
+local pointMap = {}
 
 for _, chakraPoint in ipairs(ChakraPointsFolder:GetChildren()) do
 	if chakraPoint.Name == "ChakraPoint" then
@@ -1014,9 +1019,26 @@ local ChakraPointsDropdown = ExploitsLeftGroupBox:AddDropdown("ChakraDropdown", 
 })
 
 ChakraPointsDropdown:OnChanged(function(value)
-	
+	selectedPoint = value
 end)
 
+ExploitsLeftGroupBox:AddButton({
+	Title = "Teleport Point",
+	Callback = function()
+		if not selectedPoint then
+			warn("Select ")
+			return
+		end
+
+		local point = pointMap[selectedPoint]
+		if point and point:IsA("BasePart") then
+			local character = game.Players.LocalPlayer.Character
+			if character and character:FindFirstChild("HumanoidRootPart") then
+				character.HumanoidRootPart.CFrame = point.CFrame + Vector3.new(0, 3, 0)
+			end
+		end
+	end
+})
 
 local function DisableKillPart(obj)
 
@@ -1088,6 +1110,7 @@ end)
 -- Visual Section
 
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "box")
+local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
 local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("Notifier", "warning")
 
 local Players = game:GetService("Players")
@@ -1309,6 +1332,108 @@ VisualLeftGroupBox:AddToggle("PlayerESPToggle", {
     end
 
 end)
+
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local list = LocalPlayer.PlayerGui.ClientGui.Mainframe.PlayerList.List
+
+local observeEnabled = false
+local currentObserveTarget
+
+local connections = {}
+
+local function clearConnections()
+	for _, connection in pairs(connections) do
+		connection:Disconnect()
+	end
+
+	table.clear(connections)
+end
+
+local function setupPlayerTemplate(template)
+	if template.Name ~= "PlayerTemplate" then
+		return
+	end
+
+	local connection = template.InputBegan:Connect(function(input)
+		if not observeEnabled then
+			return
+		end
+
+		if input.UserInputType == Enum.UserInputType.MouseButton2 then
+			local playerName = template.PlayerName.Text
+			local target = Players:FindFirstChild(playerName)
+
+			if not target or not target.Character then
+				return
+			end
+
+			if currentObserveTarget == target then
+				currentObserveTarget = nil
+				Camera.CameraSubject = LocalPlayer.Character:WaitForChild("Humanoid")
+			else
+				currentObserveTarget = target
+				Camera.CameraSubject = target.Character:WaitForChild("Humanoid")
+			end
+		end
+	end)
+
+	table.insert(connections, connection)
+end
+
+local function enableObserve()
+	clearConnections()
+
+	for _, template in ipairs(list:GetChildren()) do
+		setupPlayerTemplate(template)
+	end
+end
+
+local ObserveToggle = VisualRightGroupBox:AddToggle("ObserveToggle", {
+	Text = "Leaderboard Observe",
+	Default = false,
+})
+
+ObserveToggle:OnChanged(function(value)
+	observeEnabled = value
+
+	if value then
+		enableObserve()
+	else
+		clearConnections()
+		currentObserveTarget = nil
+
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+			Camera.CameraSubject = LocalPlayer.Character.Humanoid
+		end
+	end
+end)
+
+list.ChildAdded:Connect(function(child)
+	if observeEnabled then
+		setupPlayerTemplate(child)
+	end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+	if not currentObserveTarget then
+		Camera.CameraSubject = character:WaitForChild("Humanoid")
+	end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		if currentObserveTarget == player then
+			if observeEnabled then
+				Camera.CameraSubject = character:WaitForChild("Humanoid")
+			end
+		end
+	end)
+end)
+
+
 
 
 local Players = game:GetService("Players")
