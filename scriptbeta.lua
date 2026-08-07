@@ -1186,7 +1186,8 @@ local fruitNames = {
 	["Pear"] = true,
 	["Alluring Apple"] = true,
 	["Apple"] = true,
-	["Banana"] = true
+	["Banana"] = true,
+	["Fruit Of Forgetfulness"] = true,
 }
 
 local function getRoot()
@@ -1695,7 +1696,8 @@ local Fruits = {
     Apple = Color3.fromRGB(255, 70, 70),
     ["Alluring Apple"] = Color3.fromRGB(200, 200, 200),
     Pear = Color3.fromRGB(100, 255, 100),
-    ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255)
+    ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255),
+	["Fruit Of Forgetfulness"] = Color3.fromRGB(255, 0 ,0)
 }
 
 
