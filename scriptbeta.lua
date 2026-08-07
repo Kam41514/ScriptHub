@@ -172,7 +172,7 @@ local FruitESP = false
 local farmConnection
 local farming = false
 local autoPickupConnection
-local dangerDistance = 250
+local dangerDistance = 165
 local dangerConnection
 
 local function UpdatePlayerList()
