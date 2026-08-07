@@ -957,8 +957,8 @@ PlayerLeftGroupBox2:AddButton({
 
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
-local ExploitsRightGroupBox = Tabs.Exploits:AddRightGroupbox("Botting", "robot")
-local ExploitsLeftGroupBox3 = Tabs.Exploits:AddLeftGroupbox("Automation", "robot")
+local ExploitsRightGroupBox = Tabs.Exploits:AddRightGroupbox("Botting", "bot")
+local ExploitsLeftGroupBox3 = Tabs.Exploits:AddLeftGroupbox("Automation", "bot")
 local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
 
 ExploitsLeftGroupBox:AddDropdown("PlayerDropdown", {
