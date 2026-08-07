@@ -1366,7 +1366,7 @@ local function startDangerCheck()
 					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
 
 					if distance <= dangerDistance then
-						player:BreakJoints()
+						game.Players.LocalPlayer.Character:BreakJoints()
 						return
 					end
 				end
