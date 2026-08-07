@@ -1036,7 +1036,7 @@ ChakraPointsDropdown:OnChanged(function(value)
 end)
 
 ExploitsLeftGroupBox:AddButton({
-	Title = "Teleport Point",
+	Text = "Teleport Point",
 	Callback = function()
 		if not selectedPoint then
 			warn("Select ")
