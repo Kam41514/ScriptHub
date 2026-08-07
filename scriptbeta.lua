@@ -1270,6 +1270,15 @@ local function getFruits(position)
 	return fruits
 end
 
+local function stopFarm()
+	farming = false
+
+	if Toggles.AutoFruit then
+		Toggles.AutoFruit:SetValue(false)
+	end
+end
+
+
 local function startFarm()
 	farming = true
 
@@ -1279,7 +1288,7 @@ local function startFarm()
 		if not farming then return end
 
 		if checkChakraSense() then
-			farming = false
+			stopFarm()
 			return
 		end
 
@@ -1292,7 +1301,7 @@ local function startFarm()
 			end
 
 			if checkChakraSense() then
-				farming = false
+				stopFarm()
 				return
 			end
 
@@ -1302,7 +1311,7 @@ local function startFarm()
 				if not farming then return end
 
 				if checkChakraSense() then
-					farming = false
+					stopFarm()
 					return
 				end
 
@@ -1315,7 +1324,7 @@ local function startFarm()
 				if not farming then return end
 
 				if checkChakraSense() then
-					farming = false
+					stopFarm()
 					return
 				end
 
