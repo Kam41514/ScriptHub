@@ -109,6 +109,7 @@ local selectedPoint
 local FruitESP = false
 local farmConnection
 local farming = false
+local autoPickupConnection
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -957,6 +958,7 @@ PlayerLeftGroupBox2:AddButton({
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
 local ExploitsRightGroupBox = Tabs.Exploits:AddRightGroupbox("Botting", "robot")
+local ExploitsLeftGroupBox3 = Tabs.Exploits:AddLeftGroupbox("Automation", "robot")
 local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
 
 ExploitsLeftGroupBox:AddDropdown("PlayerDropdown", {
@@ -1250,6 +1252,89 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 		else
 			farming = false
 		end
+	end
+})
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local remotes = ReplicatedStorage.Events
+local dataEvent = remotes.DataEvent
+
+local player = Players.LocalPlayer
+local pickupList = {}
+
+local function onChildAdded(obj)
+	if not obj:IsA("BasePart") then
+		return
+	end
+
+	local pickupable = obj:WaitForChild("Pickupable", 10)
+	if not pickupable then
+		return
+	end
+
+	local id = obj:WaitForChild("ID", 10)
+	if not id then
+		return
+	end
+
+	local pos = obj.Position
+	pickupList[pos] = obj
+
+	obj.Destroying:Connect(function()
+		pickupList[pos] = nil
+	end)
+end
+
+for _, child in ipairs(workspace:GetDescendants()) do
+	task.spawn(onChildAdded, child)
+end
+
+workspace.DescendantAdded:Connect(onChildAdded)
+
+
+ExploitsLeftGroupBox3:AddToggle("AutoPick", {
+	Text = "Auto Pick",
+	Default = false,
+
+	Callback = function(Value)
+
+		if not Value then
+			if autoPickupConnection then
+				autoPickupConnection:Disconnect()
+				autoPickupConnection = nil
+			end
+			return
+		end
+
+		autoPickupConnection = RunService.Heartbeat:Connect(function()
+			local character = player.Character
+			if not character then return end
+
+			local rootPart = character:FindFirstChild("HumanoidRootPart")
+			if not rootPart then return end
+
+			for pos, obj in pairs(pickupList) do
+				if obj and obj.Parent then
+
+					local distance = (rootPart.Position - pos).Magnitude
+
+					if distance < 25 then
+						local id = obj:FindFirstChild("ID")
+
+						if id then
+							dataEvent:FireServer(
+								"PickUp",
+								id.Value
+							)
+						end
+					end
+				end
+			end
+		end)
+
 	end
 })
 
