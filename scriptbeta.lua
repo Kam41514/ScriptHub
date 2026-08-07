@@ -63,14 +63,14 @@ local function watchCharacter(player, character)
 		local currentTimer = timerId
 
 		notify(
-			"Chakra Sense Detected",
+			"⚠️ Chakra Sense Detected",
 			player.Name .. " Used Chakra Sense!"
 		)
 
 		task.delay(10, function()
 			if chakraActive and currentTimer == timerId then
 				notify(
-					"Chakra Sense Still Active",
+					"⚠️ Chakra Sense Still Active",
 					player.Name .. " is still using Chakra Sense!"
 				)
 			end
@@ -172,6 +172,8 @@ local FruitESP = false
 local farmConnection
 local farming = false
 local autoPickupConnection
+local dangerDistance = 250
+local dangerConnection
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -1348,11 +1350,15 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 		if Value then
 			if farming then return end
 
+			farming = true
+			startDangerCheck()
+
 			task.spawn(function()
 				startFarm()
 			end)
 		else
 			farming = false
+			stopDangerCheck()
 		end
 	end
 })
@@ -1439,6 +1445,47 @@ ExploitsLeftGroupBox3:AddToggle("AutoPick", {
 
 	end
 })
+
+local function startDangerCheck()
+	if dangerConnection then
+		dangerConnection:Disconnect()
+	end
+
+	dangerConnection = RunService.Heartbeat:Connect(function()
+		if not farming then
+			return
+		end
+
+		local character = player.Character
+		if not character then return end
+
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		if not rootPart then return end
+
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= player and plr.Character then
+
+				local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+
+				if enemyRoot then
+					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
+
+					if distance <= dangerDistance then
+						player:BreakJoints()
+						return
+					end
+				end
+			end
+		end
+	end)
+end
+
+local function stopDangerCheck()
+	if dangerConnection then
+		dangerConnection:Disconnect()
+		dangerConnection = nil
+	end
+end
 
 -- Visual Section
 
