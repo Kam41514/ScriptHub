@@ -42,7 +42,7 @@ local function watchCharacter(player, character)
         Library:Notify({
             Title = "Chakra Sense Detected",
             Description = player.Name .. " Used Chakra Sense!.",
-            Duration = 5
+            Duration = 10
         })
     end
 
