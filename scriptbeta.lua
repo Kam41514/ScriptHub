@@ -1281,7 +1281,6 @@ local function stopFarm()
 end
 
 local chakraSafePart = workspace:GetChildren()[5519]
-local chakraWaiting = false
 
 local function isSafePartClear()
 	if not chakraSafePart then
@@ -1315,51 +1314,21 @@ local function getSafePartPosition()
 		+ Vector3.new(0, chakraSafePart.Size.Y / 2 + 3, 0)
 end
 
-local function waitForChakraSenseToEnd()
-	if chakraWaiting then
-		while chakraWaiting and checkChakraSense() do
-			task.wait(0.2)
-
-			if not farming then
-				return
-			end
-		end
-
-		return
+local function handleChakraSense()
+	if not checkChakraSense() then
+		return false
 	end
 
-	if not chakraSafePart then
-		Library:Notify("Safe Part Not Found")
-		return
-	end
-
-	local root = getRoot()
-	if not root then
-		return
-	end
-
-	chakraWaiting = true
-
-	-- Safe partın 250 stud çevresinde oyuncu yoksa ışınlan
-	if isSafePartClear() then
-		local safePosition = getSafePartPosition()
-
-		if safePosition then
-			root.CFrame = CFrame.new(safePosition)
-		end
-	end
-
-	-- ChakraSense bitene kadar bekle
+	-- ChakraSense aktifken bulunduğun yerde bekle
 	while checkChakraSense() do
-		task.wait(0.2)
-
 		if not farming then
-			chakraWaiting = false
-			return
+			return true
 		end
+
+		task.wait(0.1)
 	end
 
-	chakraWaiting = false
+	return true
 end
 
 local function teleportToSafePart()
@@ -1368,7 +1337,7 @@ local function teleportToSafePart()
 		return false
 	end
 
-	-- 250 stud içinde oyuncu varsa teleport etme
+	-- Safe partın 250 stud çevresi doluysa teleport etme
 	if not isSafePartClear() then
 		return false
 	end
@@ -1388,6 +1357,14 @@ local function teleportToSafePart()
 	return true
 end
 
+local function stopFarm()
+	farming = false
+
+	if Toggles.AutoFruit then
+		Toggles.AutoFruit:SetValue(false)
+	end
+end
+
 local function startFarm()
 	farming = true
 
@@ -1401,8 +1378,9 @@ local function startFarm()
 			return
 		end
 
+		-- ChakraSense varsa yerinde bekle
 		if checkChakraSense() then
-			waitForChakraSenseToEnd()
+			handleChakraSense()
 
 			if not farming then
 				return
@@ -1421,8 +1399,9 @@ local function startFarm()
 				continue
 			end
 
+			-- Ağaca gitmeden önce ChakraSense kontrolü
 			if checkChakraSense() then
-				waitForChakraSenseToEnd()
+				handleChakraSense()
 
 				if not farming then
 					return
@@ -1441,8 +1420,9 @@ local function startFarm()
 					return
 				end
 
+				-- Bekleme sırasında ChakraSense kontrolü
 				if checkChakraSense() then
-					waitForChakraSenseToEnd()
+					handleChakraSense()
 
 					if not farming then
 						return
@@ -1464,8 +1444,9 @@ local function startFarm()
 					return
 				end
 
+				-- Fruit toplarken ChakraSense kontrolü
 				if checkChakraSense() then
-					waitForChakraSenseToEnd()
+					handleChakraSense()
 
 					if not farming then
 						return
@@ -1508,14 +1489,13 @@ local function startDangerCheck()
 			return
 		end
 
-		-- ChakraSense algılanırsa:
-		-- 250 stud çevresi boşsa safe parta ışınlan
-		-- ve ChakraSense bitene kadar bekle
+		-- ChakraSense varsa yerinde bekle
 		if checkChakraSense() then
-			waitForChakraSenseToEnd()
+			handleChakraSense()
 			return
 		end
 
+		-- 160 stud içindeki oyuncuları kontrol et
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character then
 				local enemyRoot =
@@ -1525,10 +1505,9 @@ local function startDangerCheck()
 					local distance =
 						(rootPart.Position - enemyRoot.Position).Magnitude
 
-					if distance <= dangerDistance then
-						-- Safe partın 250 stud çevresi boşsa teleport
+					if distance <= 160 then
+						-- 250 stud çevresi boşsa safe parta ışınlan
 						teleportToSafePart()
-
 						return
 					end
 				end
@@ -1555,6 +1534,7 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 			end
 
 			farming = true
+
 			startDangerCheck()
 
 			task.spawn(function()
@@ -1566,6 +1546,8 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 		end
 	end
 })
+
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
