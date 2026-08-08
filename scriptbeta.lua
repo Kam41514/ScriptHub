@@ -1272,14 +1272,6 @@ local function getFruits(position)
 	return fruits
 end
 
-local function stopFarm()
-	farming = false
-
-	if Toggles.AutoFruit then
-		Toggles.AutoFruit:SetValue(false)
-	end
-end
-
 local chakraSafePart = workspace:GetChildren()[5519]
 
 local function isSafePartClear()
@@ -1314,42 +1306,46 @@ local function getSafePartPosition()
         + Vector3.new(0, chakraSafePart.Size.Y / 2 + 3, 0)
 end
 
-local function handleChakraSense()
-    -- ChakraSense aktif değilse devam et
-    if not checkChakraSense() then
-        return true
-    end
 
-    -- ChakraSense aktif olduğu sürece bulunduğun yerde bekle
+-- =========================================================
+-- CHAKRASENSE BEKLEME
+-- =========================================================
+
+local function waitUntilChakraSenseEnds()
     while farming and checkChakraSense() do
-        task.wait(0.1)
+        task.wait(0.05)
     end
 
-    -- Farming kapatıldıysa dur
     if not farming then
         return false
     end
 
-    -- ChakraSense tamamen bittikten sonra devam et
     return true
 end
 
-local function waitForChakraSense()
-    if not checkChakraSense() then
-        return true
-    end
 
-    return handleChakraSense()
-end
+-- =========================================================
+-- GÜVENLİ TELEPORT
+-- =========================================================
 
-local function teleportToSafePart()
-    if not chakraSafePart then
-        Library:Notify("Safe Part Not Found")
+local function safeTeleport(cframe)
+    if not farming then
         return false
     end
 
-    -- Safe partın 250 stud çevresi doluysa teleport etme
-    if not isSafePartClear() then
+    -- ChakraSense varsa TELEPORT YOK
+    if checkChakraSense() then
+        if not waitUntilChakraSenseEnds() then
+            return false
+        end
+    end
+
+    if not farming then
+        return false
+    end
+
+    -- ChakraSense kontrolünü teleporttan hemen önce tekrar yap
+    if checkChakraSense() then
         return false
     end
 
@@ -1358,15 +1354,48 @@ local function teleportToSafePart()
         return false
     end
 
+    -- Son kontrol
+    if checkChakraSense() then
+        return false
+    end
+
+    root.CFrame = cframe
+
+    return true
+end
+
+
+-- =========================================================
+-- SAFE PART TELEPORT
+-- =========================================================
+
+local function teleportToSafePart()
+    if not chakraSafePart then
+        Library:Notify("Safe Part Not Found")
+        return false
+    end
+
+    if not isSafePartClear() then
+        return false
+    end
+
+    -- ChakraSense aktifse Safe Part'a da gitme
+    if checkChakraSense() then
+        return false
+    end
+
     local safePosition = getSafePartPosition()
     if not safePosition then
         return false
     end
 
-    root.CFrame = CFrame.new(safePosition)
-
-    return true
+    return safeTeleport(CFrame.new(safePosition))
 end
+
+
+-- =========================================================
+-- STOP
+-- =========================================================
 
 local function stopFarm()
     farming = false
@@ -1375,6 +1404,11 @@ local function stopFarm()
         Toggles.AutoFruit:SetValue(false)
     end
 end
+
+
+-- =========================================================
+-- START FARM
+-- =========================================================
 
 local function startFarm()
     farming = true
@@ -1389,8 +1423,8 @@ local function startFarm()
             return
         end
 
-        -- İlk ChakraSense kontrolü
-        if not waitForChakraSense() then
+        -- ChakraSense varsa tamamen bitmesini bekle
+        if not waitUntilChakraSenseEnds() then
             return
         end
 
@@ -1402,40 +1436,54 @@ local function startFarm()
         local target = getTreePart(tree)
 
         if target then
+
             if isPlayerNearby(target.Position) then
                 continue
             end
 
-            -- Ağaca gitmeden hemen önce ChakraSense kontrolü
-            if not waitForChakraSense() then
+            -- =============================================
+            -- AĞACA GİTMEDEN ÖNCE
+            -- =============================================
+
+            if not waitUntilChakraSenseEnds() then
                 return
             end
 
-            root = getRoot()
-            if not root then
+            if not safeTeleport(target.CFrame) then
+                if not farming then
+                    return
+                end
+
+                -- ChakraSense yeniden açıldıysa bu ağacı atla
+                if checkChakraSense() then
+                    continue
+                end
+
                 return
             end
 
-            -- ChakraSense bittikten sonra teleport
-            root.CFrame = target.CFrame
+
+            -- =============================================
+            -- AĞAÇTA BEKLEME
+            -- =============================================
 
             for i = 1, 12 do
                 if not farming then
                     return
                 end
 
-                -- Beklerken ChakraSense kontrolü
-                if not waitForChakraSense() then
-                    return
-                end
-
-                root = getRoot()
-                if not root then
+                -- ChakraSense açılırsa burada bekle
+                if not waitUntilChakraSenseEnds() then
                     return
                 end
 
                 task.wait(1)
             end
+
+
+            -- =============================================
+            -- FRUITS
+            -- =============================================
 
             local fruits = getFruits(target.Position)
 
@@ -1444,36 +1492,41 @@ local function startFarm()
                     return
                 end
 
-                -- Fruit toplarken ChakraSense kontrolü
-                if not waitForChakraSense() then
+                if not fruit.part or not fruit.part.Parent then
+                    continue
+                end
+
+                -- ChakraSense aktifse tamamen bitmesini bekle
+                if not waitUntilChakraSenseEnds() then
                     return
                 end
 
-                root = getRoot()
-                if not root then
-                    return
+                if not fruit.part or not fruit.part.Parent then
+                    continue
                 end
 
-                if fruit.part and fruit.part.Parent then
-                    -- Teleporttan hemen önce tekrar kontrol
-                    if not waitForChakraSense() then
+                -- Fruit'e gitmeden önce güvenli teleport
+                if not safeTeleport(fruit.part.CFrame) then
+                    if not farming then
                         return
                     end
 
-                    root = getRoot()
-                    if not root then
-                        return
+                    -- ChakraSense açıldıysa tekrar kontrol et
+                    if checkChakraSense() then
+                        continue
                     end
 
-                    root.CFrame = fruit.part.CFrame
-                    task.wait(1)
+                    continue
                 end
+
+                task.wait(1)
             end
         end
     end
 
     farming = false
 end
+
 
 
 local function startDangerCheck()
