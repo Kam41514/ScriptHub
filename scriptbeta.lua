@@ -1186,8 +1186,7 @@ local fruitNames = {
 	["Pear"] = true,
 	["Alluring Apple"] = true,
 	["Apple"] = true,
-	["Banana"] = true,
-	["Fruit Of Forgetfulness"] = true,
+	["Banana"] = true
 }
 
 local function getRoot()
@@ -1281,41 +1280,178 @@ local function stopFarm()
 	end
 end
 
+local chakraSafePart = workspace:GetChildren()[5519]
+local chakraWaiting = false
+
+local function isSafePartClear()
+	if not chakraSafePart then
+		return false
+	end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+			local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+
+			if enemyRoot then
+				local distance =
+					(enemyRoot.Position - chakraSafePart.Position).Magnitude
+
+				if distance <= 250 then
+					return false
+				end
+			end
+		end
+	end
+
+	return true
+end
+
+local function getSafePartPosition()
+	if not chakraSafePart then
+		return nil
+	end
+
+	return chakraSafePart.Position
+		+ Vector3.new(0, chakraSafePart.Size.Y / 2 + 3, 0)
+end
+
+local function waitForChakraSenseToEnd()
+	if chakraWaiting then
+		while chakraWaiting and checkChakraSense() do
+			task.wait(0.2)
+
+			if not farming then
+				return
+			end
+		end
+
+		return
+	end
+
+	if not chakraSafePart then
+		Library:Notify("Safe Part Not Found")
+		return
+	end
+
+	local root = getRoot()
+	if not root then
+		return
+	end
+
+	chakraWaiting = true
+
+	-- Safe partın 250 stud çevresinde oyuncu yoksa ışınlan
+	if isSafePartClear() then
+		local safePosition = getSafePartPosition()
+
+		if safePosition then
+			root.CFrame = CFrame.new(safePosition)
+		end
+	end
+
+	-- ChakraSense bitene kadar bekle
+	while checkChakraSense() do
+		task.wait(0.2)
+
+		if not farming then
+			chakraWaiting = false
+			return
+		end
+	end
+
+	chakraWaiting = false
+end
+
+local function teleportToSafePart()
+	if not chakraSafePart then
+		Library:Notify("Safe Part Not Found")
+		return false
+	end
+
+	-- 250 stud içinde oyuncu varsa teleport etme
+	if not isSafePartClear() then
+		return false
+	end
+
+	local root = getRoot()
+	if not root then
+		return false
+	end
+
+	local safePosition = getSafePartPosition()
+	if not safePosition then
+		return false
+	end
+
+	root.CFrame = CFrame.new(safePosition)
+
+	return true
+end
 
 local function startFarm()
 	farming = true
 
 	local root = getRoot()
+	if not root then
+		return
+	end
 
 	for _, tree in ipairs(getTrees()) do
-		if not farming then return end
+		if not farming then
+			return
+		end
 
 		if checkChakraSense() then
-			stopFarm()
-			return
+			waitForChakraSenseToEnd()
+
+			if not farming then
+				return
+			end
+
+			root = getRoot()
+			if not root then
+				return
+			end
 		end
 
 		local target = getTreePart(tree)
 
 		if target then
-
 			if isPlayerNearby(target.Position) then
 				continue
 			end
 
 			if checkChakraSense() then
-				stopFarm()
-				return
+				waitForChakraSenseToEnd()
+
+				if not farming then
+					return
+				end
+
+				root = getRoot()
+				if not root then
+					return
+				end
 			end
 
 			root.CFrame = target.CFrame
 
 			for i = 1, 12 do
-				if not farming then return end
+				if not farming then
+					return
+				end
 
 				if checkChakraSense() then
-					stopFarm()
-					return
+					waitForChakraSenseToEnd()
+
+					if not farming then
+						return
+					end
+
+					root = getRoot()
+					if not root then
+						return
+					end
 				end
 
 				task.wait(1)
@@ -1324,11 +1460,21 @@ local function startFarm()
 			local fruits = getFruits(target.Position)
 
 			for _, fruit in ipairs(fruits) do
-				if not farming then return end
+				if not farming then
+					return
+				end
 
 				if checkChakraSense() then
-					stopFarm()
-					return
+					waitForChakraSenseToEnd()
+
+					if not farming then
+						return
+					end
+
+					root = getRoot()
+					if not root then
+						return
+					end
 				end
 
 				if fruit.part and fruit.part.Parent then
@@ -1353,25 +1499,38 @@ local function startDangerCheck()
 		end
 
 		local character = player.Character
-		if not character then return end
+		if not character then
+			return
+		end
 
 		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart then return end
+		if not rootPart then
+			return
+		end
+
+		-- ChakraSense algılanırsa:
+		-- 250 stud çevresi boşsa safe parta ışınlan
+		-- ve ChakraSense bitene kadar bekle
+		if checkChakraSense() then
+			waitForChakraSenseToEnd()
+			return
+		end
 
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character then
-
-				local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+				local enemyRoot =
+					plr.Character:FindFirstChild("HumanoidRootPart")
 
 				if enemyRoot then
-					local distance = (rootPart.Position - enemyRoot.Position).Magnitude
+					local distance =
+						(rootPart.Position - enemyRoot.Position).Magnitude
 
 					if distance <= dangerDistance then
-                        if not checkChakraSense() then
-                            game.Players.LocalPlayer.Character:BreakJoints()
-                            return
-                        end
-                    end
+						-- Safe partın 250 stud çevresi boşsa teleport
+						teleportToSafePart()
+
+						return
+					end
 				end
 			end
 		end
@@ -1385,14 +1544,15 @@ local function stopDangerCheck()
 	end
 end
 
-
 ExploitsRightGroupBox:AddToggle("AutoFruit", {
 	Text = "Auto Fruit",
 	Default = false,
 
 	Callback = function(Value)
 		if Value then
-			if farming then return end
+			if farming then
+				return
+			end
 
 			farming = true
 			startDangerCheck()
@@ -1406,7 +1566,6 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 		end
 	end
 })
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1696,9 +1855,7 @@ local Fruits = {
     Apple = Color3.fromRGB(255, 70, 70),
     ["Alluring Apple"] = Color3.fromRGB(200, 200, 200),
     Pear = Color3.fromRGB(100, 255, 100),
-    ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255),
-	["Fruit Of Forgetfulness"] = Color3.fromRGB(255, 0 ,0),
-	["Life Up Fruit"] = Color3.fromRGB(0, 95 ,0)
+    ["Chakra Fruit"] = Color3.fromRGB(170, 0, 255)
 }
 
 
