@@ -1474,7 +1474,6 @@ local function startFarm()
 
     farming = false
 end
-```
 
 
 local function startDangerCheck()
