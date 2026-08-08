@@ -1178,141 +1178,165 @@ ExploitsLeftGroupBox2:AddToggle("KillBrickToggle", {
 
 end)
 
+```lua
 local fruitNames = {
-	["Mango"] = true,
-	["Orange"] = true,
-	["Life Up Fruit"] = true,
-	["Chakra Fruit"] = true,
-	["Pear"] = true,
-	["Alluring Apple"] = true,
-	["Apple"] = true,
-	["Banana"] = true
+    ["Mango"] = true,
+    ["Orange"] = true,
+    ["Life Up Fruit"] = true,
+    ["Chakra Fruit"] = true,
+    ["Pear"] = true,
+    ["Alluring Apple"] = true,
+    ["Apple"] = true,
+    ["Banana"] = true
 }
 
+
+-- =========================================================
+-- ROOT
+-- =========================================================
+
 local function getRoot()
-	local character = player.Character or player.CharacterAdded:Wait()
-	return character:WaitForChild("HumanoidRootPart")
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
 end
+
+
+-- =========================================================
+-- TREES
+-- =========================================================
 
 local function getTrees()
-	local trees = {}
+    local trees = {}
 
-	for _, tree in ipairs(workspace:GetDescendants()) do
-		if tree.Name:match("^Tree") then
-			local fruitSpawns = tree:FindFirstChild("FruitSpawns", true)
+    for _, tree in ipairs(workspace:GetDescendants()) do
+        if tree.Name:match("^Tree") then
+            local fruitSpawns = tree:FindFirstChild("FruitSpawns", true)
 
-			if fruitSpawns then
-				table.insert(trees, tree)
-			end
-		end
-	end
-
-	return trees
-end
-
-local function getTreePart(tree)
-	if tree:IsA("BasePart") then
-		return tree
-	end
-
-	if tree:IsA("Model") then
-		return tree.PrimaryPart or tree:FindFirstChildWhichIsA("BasePart", true)
-	end
-end
-
-local function isPlayerNearby(position)
-	for _, plr in ipairs(game.Players:GetPlayers()) do
-		if plr ~= player and plr.Character then
-			local root = plr.Character:FindFirstChild("HumanoidRootPart")
-
-			if root then
-				local distance = (position - root.Position).Magnitude
-
-				if distance <= 250 then
-					return true
-				end
-			end
-		end
-	end
-
-	return false
-end
-
-local function checkChakraSense()
-	local character = player.Character
-	if not character then return false end
-
-	local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-	if not torso then return false end
-
-	return torso:FindFirstChild("ChakraSense") ~= nil
-end
-
-local function getFruits(position)
-	local fruits = {}
-
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and fruitNames[obj.Name] then
-
-			local distance = (position - obj.Position).Magnitude
-
-			if distance <= 200 then
-				table.insert(fruits, {
-					part = obj,
-					distance = distance
-				})
-			end
-		end
-	end
-
-	table.sort(fruits, function(a, b)
-		return a.distance < b.distance
-	end)
-
-	return fruits
-end
-
-local chakraSafePart = workspace:GetChildren()[5519]
-
-local function isSafePartClear()
-    if not chakraSafePart then
-        return false
+            if fruitSpawns then
+                table.insert(trees, tree)
+            end
+        end
     end
 
+    return trees
+end
+
+
+local function getTreePart(tree)
+    if tree:IsA("BasePart") then
+        return tree
+    end
+
+    if tree:IsA("Model") then
+        return tree.PrimaryPart
+            or tree:FindFirstChildWhichIsA("BasePart", true)
+    end
+
+    return nil
+end
+
+
+-- =========================================================
+-- PLAYER CHECK
+-- =========================================================
+
+local function isPlayerNearby(position)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
-            local enemyRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+            local root =
+                plr.Character:FindFirstChild("HumanoidRootPart")
 
-            if enemyRoot then
+            if root then
                 local distance =
-                    (enemyRoot.Position - chakraSafePart.Position).Magnitude
+                    (position - root.Position).Magnitude
 
                 if distance <= 250 then
-                    return false
+                    return true
                 end
             end
         end
     end
 
-    return true
+    return false
 end
 
-local function getSafePartPosition()
-    if not chakraSafePart then
-        return nil
+
+-- =========================================================
+-- CHAKRA CHECK
+-- =========================================================
+
+local function checkChakraSense()
+    local character = player.Character
+
+    if not character then
+        return false
     end
 
-    return chakraSafePart.Position
-        + Vector3.new(0, chakraSafePart.Size.Y / 2 + 3, 0)
+    local torso =
+        character:FindFirstChild("Torso")
+        or character:FindFirstChild("UpperTorso")
+
+    if not torso then
+        return false
+    end
+
+    return torso:FindFirstChild("ChakraSense") ~= nil
 end
 
 
 -- =========================================================
--- CHAKRASENSE BEKLEME
+-- FRUITS
 -- =========================================================
 
-local function waitUntilChakraSenseEnds()
-    while farming and checkChakraSense() do
+local function getFruits(position)
+    local fruits = {}
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and fruitNames[obj.Name] then
+
+            local distance =
+                (position - obj.Position).Magnitude
+
+            if distance <= 200 then
+                table.insert(fruits, {
+                    part = obj,
+                    distance = distance
+                })
+            end
+        end
+    end
+
+    table.sort(fruits, function(a, b)
+        return a.distance < b.distance
+    end)
+
+    return fruits
+end
+
+
+-- =========================================================
+-- CHAKRA SENSE HANDLER
+--
+-- chakraStarted() / chakraEnded()
+-- FONKSİYONLARINA DOKUNULMUYOR.
+--
+-- chakraStarted()
+--     -> chakraActive = true
+--
+-- chakraEnded()
+--     -> chakraActive = false
+--
+-- =========================================================
+
+local function handleChakraSense()
+
+    -- Chakra aktif değilse devam
+    if not chakraActive then
+        return true
+    end
+
+    -- chakraEnded() gelene kadar bekle
+    while farming and chakraActive do
         task.wait(0.05)
     end
 
@@ -1325,39 +1349,57 @@ end
 
 
 -- =========================================================
--- GÜVENLİ TELEPORT
+-- SAFE TELEPORT
 -- =========================================================
 
 local function safeTeleport(cframe)
+
     if not farming then
         return false
     end
 
-    -- ChakraSense varsa TELEPORT YOK
-    if checkChakraSense() then
-        if not waitUntilChakraSenseEnds() then
+
+    -- =====================================================
+    -- CHAKRA AKTİFSE BEKLE
+    -- =====================================================
+
+    if chakraActive then
+        if not handleChakraSense() then
             return false
         end
     end
 
+
     if not farming then
         return false
     end
 
-    -- ChakraSense kontrolünü teleporttan hemen önce tekrar yap
-    if checkChakraSense() then
+
+    -- =====================================================
+    -- TELEPORTTAN HEMEN ÖNCE KONTROL
+    -- =====================================================
+
+    if chakraActive then
         return false
     end
 
+
     local root = getRoot()
+
     if not root then
         return false
     end
 
-    -- Son kontrol
-    if checkChakraSense() then
+
+    -- =====================================================
+    -- SON KONTROL
+    -- CFrame'den hemen önce başka işlem yok
+    -- =====================================================
+
+    if chakraActive then
         return false
     end
+
 
     root.CFrame = cframe
 
@@ -1366,38 +1408,48 @@ end
 
 
 -- =========================================================
--- SAFE PART TELEPORT
+-- SAFE PART
 -- =========================================================
 
 local function teleportToSafePart()
+
     if not chakraSafePart then
         Library:Notify("Safe Part Not Found")
         return false
     end
 
+
+    -- Chakra aktifse kesinlikle Safe Part'a gitme
+    if chakraActive then
+        return false
+    end
+
+
     if not isSafePartClear() then
         return false
     end
 
-    -- ChakraSense aktifse Safe Part'a da gitme
-    if checkChakraSense() then
-        return false
-    end
 
     local safePosition = getSafePartPosition()
+
     if not safePosition then
         return false
     end
 
-    return safeTeleport(CFrame.new(safePosition))
+
+    -- safeTeleport kendi Chakra kontrolünü de yapıyor
+    return safeTeleport(
+        CFrame.new(safePosition)
+    )
 end
 
 
 -- =========================================================
--- STOP
+-- STOP FARM
 -- =========================================================
 
 local function stopFarm()
+
     farming = false
 
     if Toggles.AutoFruit then
@@ -1411,201 +1463,332 @@ end
 -- =========================================================
 
 local function startFarm()
+
     farming = true
 
     local root = getRoot()
+
     if not root then
+        farming = false
         return
     end
 
+
     for _, tree in ipairs(getTrees()) do
+
         if not farming then
             return
         end
 
-        -- ChakraSense varsa tamamen bitmesini bekle
-        if not waitUntilChakraSenseEnds() then
+
+        -- =================================================
+        -- CHAKRA SENSE
+        -- =================================================
+
+        if chakraActive then
+            if not handleChakraSense() then
+                return
+            end
+        end
+
+
+        if not farming then
             return
         end
 
+
         root = getRoot()
+
         if not root then
             return
         end
 
+
         local target = getTreePart(tree)
 
+
         if target then
+
+            -- =================================================
+            -- PLAYER NEARBY
+            -- =================================================
 
             if isPlayerNearby(target.Position) then
                 continue
             end
 
-            -- =============================================
-            -- AĞACA GİTMEDEN ÖNCE
-            -- =============================================
 
-            if not waitUntilChakraSenseEnds() then
+            -- =================================================
+            -- AĞACA GİTMEDEN ÖNCE CHAKRA
+            -- =================================================
+
+            if chakraActive then
+                if not handleChakraSense() then
+                    return
+                end
+            end
+
+
+            if not farming then
                 return
             end
+
+
+            root = getRoot()
+
+            if not root then
+                return
+            end
+
+
+            -- =================================================
+            -- TREE TELEPORT
+            -- =================================================
 
             if not safeTeleport(target.CFrame) then
-                if not farming then
-                    return
-                end
-
-                -- ChakraSense yeniden açıldıysa bu ağacı atla
-                if checkChakraSense() then
-                    continue
-                end
-
-                return
+                continue
             end
 
 
-            -- =============================================
-            -- AĞAÇTA BEKLEME
-            -- =============================================
+            -- =================================================
+            -- TREE WAIT
+            -- =================================================
 
             for i = 1, 12 do
+
                 if not farming then
                     return
                 end
 
-                -- ChakraSense açılırsa burada bekle
-                if not waitUntilChakraSenseEnds() then
+
+                -- Chakra başladıysa burada bekle
+                if chakraActive then
+                    if not handleChakraSense() then
+                        return
+                    end
+                end
+
+
+                if not farming then
                     return
                 end
+
 
                 task.wait(1)
             end
 
 
-            -- =============================================
+            -- =================================================
             -- FRUITS
-            -- =============================================
+            -- =================================================
 
-            local fruits = getFruits(target.Position)
+            local fruits =
+                getFruits(target.Position)
+
 
             for _, fruit in ipairs(fruits) do
+
                 if not farming then
                     return
                 end
 
-                if not fruit.part or not fruit.part.Parent then
-                    continue
-                end
 
-                -- ChakraSense aktifse tamamen bitmesini bekle
-                if not waitUntilChakraSenseEnds() then
-                    return
-                end
+                if fruit.part and fruit.part.Parent then
 
-                if not fruit.part or not fruit.part.Parent then
-                    continue
-                end
+                    -- =================================================
+                    -- FRUIT ÖNCESİ CHAKRA
+                    -- =================================================
 
-                -- Fruit'e gitmeden önce güvenli teleport
-                if not safeTeleport(fruit.part.CFrame) then
+                    if chakraActive then
+                        if not handleChakraSense() then
+                            return
+                        end
+                    end
+
+
                     if not farming then
                         return
                     end
 
-                    -- ChakraSense açıldıysa tekrar kontrol et
-                    if checkChakraSense() then
-                        continue
+
+                    if fruit.part and fruit.part.Parent then
+
+                        -- =================================================
+                        -- FRUIT TELEPORT
+                        -- =================================================
+
+                        if not safeTeleport(
+                            fruit.part.CFrame
+                        ) then
+                            continue
+                        end
+
+
+                        task.wait(1)
                     end
-
-                    continue
                 end
-
-                task.wait(1)
             end
         end
     end
+
 
     farming = false
 end
 
 
+-- =========================================================
+-- DANGER CHECK
+-- =========================================================
 
 local function startDangerCheck()
-	if dangerConnection then
-		dangerConnection:Disconnect()
-	end
 
-	dangerConnection = RunService.Heartbeat:Connect(function()
-		if not farming then
-			return
-		end
+    if dangerConnection then
+        dangerConnection:Disconnect()
+        dangerConnection = nil
+    end
 
-		local character = player.Character
-		if not character then
-			return
-		end
 
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart then
-			return
-		end
+    dangerConnection =
+        RunService.Heartbeat:Connect(function()
 
-		-- ChakraSense varsa yerinde bekle
-		if checkChakraSense() then
-			handleChakraSense()
-			return
-		end
+        if not farming then
+            return
+        end
 
-		-- 160 stud içindeki oyuncuları kontrol et
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr ~= player and plr.Character then
-				local enemyRoot =
-					plr.Character:FindFirstChild("HumanoidRootPart")
 
-				if enemyRoot then
-					local distance =
-						(rootPart.Position - enemyRoot.Position).Magnitude
+        -- =================================================
+        -- CHAKRA AKTİFSE BU HEARTBEAT'TE HİÇBİR ŞEY YAPMA
+        -- =================================================
 
-					if distance <= 160 then
-						-- 250 stud çevresi boşsa safe parta ışınlan
-						teleportToSafePart()
-						return
-					end
-				end
-			end
-		end
-	end)
+        if chakraActive then
+            return
+        end
+
+
+        local character = player.Character
+
+        if not character then
+            return
+        end
+
+
+        local rootPart =
+            character:FindFirstChild("HumanoidRootPart")
+
+        if not rootPart then
+            return
+        end
+
+
+        -- =================================================
+        -- EK CHAKRA KONTROLÜ
+        -- =================================================
+
+        if chakraActive then
+            return
+        end
+
+
+        -- =================================================
+        -- 160 STUD İÇİNDE OYUNCU KONTROLÜ
+        -- =================================================
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+
+            if plr ~= player and plr.Character then
+
+                local enemyRoot =
+                    plr.Character:FindFirstChild(
+                        "HumanoidRootPart"
+                    )
+
+
+                if enemyRoot then
+
+                    local distance =
+                        (
+                            rootPart.Position
+                            - enemyRoot.Position
+                        ).Magnitude
+
+
+                    if distance <= 160 then
+
+                        -- Chakra bu anda başladıysa
+                        -- Safe Part teleportu yapma
+                        if chakraActive then
+                            return
+                        end
+
+
+                        teleportToSafePart()
+
+                        return
+                    end
+                end
+            end
+        end
+    end)
 end
+
+
+-- =========================================================
+-- STOP DANGER CHECK
+-- =========================================================
 
 local function stopDangerCheck()
-	if dangerConnection then
-		dangerConnection:Disconnect()
-		dangerConnection = nil
-	end
+
+    if dangerConnection then
+        dangerConnection:Disconnect()
+        dangerConnection = nil
+    end
 end
 
+
+-- =========================================================
+-- AUTO FRUIT TOGGLE
+-- =========================================================
+
 ExploitsRightGroupBox:AddToggle("AutoFruit", {
-	Text = "Auto Fruit",
-	Default = false,
 
-	Callback = function(Value)
-		if Value then
-			if farming then
-				return
-			end
+    Text = "Auto Fruit",
 
-			farming = true
+    Default = false,
 
-			startDangerCheck()
 
-			task.spawn(function()
-				startFarm()
-			end)
-		else
-			farming = false
-			stopDangerCheck()
-		end
-	end
+    Callback = function(Value)
+
+        if Value then
+
+            if farming then
+                return
+            end
+
+
+            farming = true
+
+
+            startDangerCheck()
+
+
+            task.spawn(function()
+
+                startFarm()
+
+            end)
+
+
+        else
+
+            farming = false
+
+            stopDangerCheck()
+
+        end
+    end
 })
+```
+
 
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
