@@ -1313,29 +1313,48 @@ local function getFruits(position)
 end
 
 
+```lua
 -- =========================================================
--- CHAKRA SENSE HANDLER
---
--- chakraStarted() / chakraEnded()
--- FONKSİYONLARINA DOKUNULMUYOR.
---
--- chakraStarted()
---     -> chakraActive = true
---
--- chakraEnded()
---     -> chakraActive = false
---
+-- CHAKRA SENSE - GERÇEK ANLIK KONTROL
+-- =========================================================
+
+local function isChakraCurrentlyActive()
+    -- Öncelik mevcut chakraActive değişkeninde
+    if chakraActive then
+        return true
+    end
+
+    -- Ayrıca karakterdeki gerçek ChakraSense objesini kontrol et
+    local character = player.Character
+    if not character then
+        return false
+    end
+
+    local torso =
+        character:FindFirstChild("Torso")
+        or character:FindFirstChild("UpperTorso")
+
+    if not torso then
+        return false
+    end
+
+    return torso:FindFirstChild("ChakraSense") ~= nil
+end
+
+
+-- =========================================================
+-- CHAKRA BEKLEME
 -- =========================================================
 
 local function handleChakraSense()
 
-    -- Chakra aktif değilse devam
-    if not chakraActive then
+    -- Chakra yoksa direkt devam
+    if not isChakraCurrentlyActive() then
         return true
     end
 
-    -- chakraEnded() gelene kadar bekle
-    while farming and chakraActive do
+    -- Chakra gerçekten bitene kadar bekle
+    while farming and isChakraCurrentlyActive() do
         task.wait(0.05)
     end
 
@@ -1359,10 +1378,10 @@ local function safeTeleport(cframe)
 
 
     -- =====================================================
-    -- CHAKRA AKTİFSE BEKLE
+    -- CHAKRA AKTİFSE TP YOK
     -- =====================================================
 
-    if chakraActive then
+    if isChakraCurrentlyActive() then
         if not handleChakraSense() then
             return false
         end
@@ -1375,10 +1394,10 @@ local function safeTeleport(cframe)
 
 
     -- =====================================================
-    -- TELEPORTTAN HEMEN ÖNCE KONTROL
+    -- TP'DEN HEMEN ÖNCE GERÇEK KONTROL
     -- =====================================================
 
-    if chakraActive then
+    if isChakraCurrentlyActive() then
         return false
     end
 
@@ -1391,11 +1410,10 @@ local function safeTeleport(cframe)
 
 
     -- =====================================================
-    -- SON KONTROL
-    -- CFrame'den hemen önce başka işlem yok
+    -- CFRAME'DEN HEMEN ÖNCE SON KONTROL
     -- =====================================================
 
-    if chakraActive then
+    if isChakraCurrentlyActive() then
         return false
     end
 
@@ -1418,8 +1436,8 @@ local function teleportToSafePart()
     end
 
 
-    -- Chakra aktifse kesinlikle Safe Part'a gitme
-    if chakraActive then
+    -- Chakra aktifken Safe Part TP YOK
+    if isChakraCurrentlyActive() then
         return false
     end
 
@@ -1436,7 +1454,7 @@ local function teleportToSafePart()
     end
 
 
-    -- safeTeleport kendi Chakra kontrolünü de yapıyor
+    -- TP fonksiyonunda tekrar kontrol ediliyor
     return safeTeleport(
         CFrame.new(safePosition)
     )
@@ -1481,10 +1499,10 @@ local function startFarm()
 
 
         -- =================================================
-        -- CHAKRA SENSE
+        -- CHAKRA
         -- =================================================
 
-        if chakraActive then
+        if isChakraCurrentlyActive() then
             if not handleChakraSense() then
                 return
             end
@@ -1518,10 +1536,10 @@ local function startFarm()
 
 
             -- =================================================
-            -- AĞACA GİTMEDEN ÖNCE CHAKRA
+            -- AĞACA GİTMEDEN ÖNCE
             -- =================================================
 
-            if chakraActive then
+            if isChakraCurrentlyActive() then
                 if not handleChakraSense() then
                     return
                 end
@@ -1541,7 +1559,7 @@ local function startFarm()
 
 
             -- =================================================
-            -- TREE TELEPORT
+            -- TREE TP
             -- =================================================
 
             if not safeTeleport(target.CFrame) then
@@ -1560,8 +1578,8 @@ local function startFarm()
                 end
 
 
-                -- Chakra başladıysa burada bekle
-                if chakraActive then
+                -- Chakra başlarsa burada DUR
+                if isChakraCurrentlyActive() then
                     if not handleChakraSense() then
                         return
                     end
@@ -1598,7 +1616,7 @@ local function startFarm()
                     -- FRUIT ÖNCESİ CHAKRA
                     -- =================================================
 
-                    if chakraActive then
+                    if isChakraCurrentlyActive() then
                         if not handleChakraSense() then
                             return
                         end
@@ -1613,7 +1631,7 @@ local function startFarm()
                     if fruit.part and fruit.part.Parent then
 
                         -- =================================================
-                        -- FRUIT TELEPORT
+                        -- FRUIT TP
                         -- =================================================
 
                         if not safeTeleport(
@@ -1656,10 +1674,10 @@ local function startDangerCheck()
 
 
         -- =================================================
-        -- CHAKRA AKTİFSE BU HEARTBEAT'TE HİÇBİR ŞEY YAPMA
+        -- CHAKRA AKTİFKEN BU FONKSİYON HİÇBİR TP YAPMAZ
         -- =================================================
 
-        if chakraActive then
+        if isChakraCurrentlyActive() then
             return
         end
 
@@ -1680,16 +1698,16 @@ local function startDangerCheck()
 
 
         -- =================================================
-        -- EK CHAKRA KONTROLÜ
+        -- TEKRAR GERÇEK CHAKRA KONTROLÜ
         -- =================================================
 
-        if chakraActive then
+        if isChakraCurrentlyActive() then
             return
         end
 
 
         -- =================================================
-        -- 160 STUD İÇİNDE OYUNCU KONTROLÜ
+        -- 160 STUD PLAYER CHECK
         -- =================================================
 
         for _, plr in ipairs(Players:GetPlayers()) do
@@ -1713,9 +1731,11 @@ local function startDangerCheck()
 
                     if distance <= 160 then
 
-                        -- Chakra bu anda başladıysa
-                        -- Safe Part teleportu yapma
-                        if chakraActive then
+                        -- =================================================
+                        -- TP'DEN HEMEN ÖNCE GERÇEK CHAKRA KONTROLÜ
+                        -- =================================================
+
+                        if isChakraCurrentlyActive() then
                             return
                         end
 
@@ -1745,7 +1765,7 @@ end
 
 
 -- =========================================================
--- AUTO FRUIT TOGGLE
+-- AUTO FRUIT
 -- =========================================================
 
 ExploitsRightGroupBox:AddToggle("AutoFruit", {
@@ -1771,9 +1791,7 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
 
 
             task.spawn(function()
-
                 startFarm()
-
             end)
 
 
@@ -1786,6 +1804,8 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
         end
     end
 })
+
+
 
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
