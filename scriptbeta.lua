@@ -1178,7 +1178,6 @@ ExploitsLeftGroupBox2:AddToggle("KillBrickToggle", {
 
 end)
 
-```lua
 local fruitNames = {
     ["Mango"] = true,
     ["Orange"] = true,
@@ -1787,8 +1786,6 @@ ExploitsRightGroupBox:AddToggle("AutoFruit", {
         end
     end
 })
-```
-
 
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
