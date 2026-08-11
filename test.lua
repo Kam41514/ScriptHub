@@ -50,6 +50,15 @@ local function Disconnect(name)
     end
 end
 
+local function DisconnectPrefix(prefix)
+    for name in pairs(MainConnections) do
+        if string.sub(name, 1, #prefix) == prefix then
+            Disconnect(name)
+        end
+    end
+end
+
+
 local function DisconnectAll()
     for name, connection in pairs(MainConnections) do
         if connection then
@@ -129,6 +138,7 @@ local State = {
     FlySpeed = 125,
     WalkSpeed = 16,
     ToggleAutoFallValue = false,
+    AutoPick = false,
 
     SpeedEnabled = false,
     Humanoid = nil,
@@ -1829,32 +1839,28 @@ State.PlayerESPEnabled = false
 
 local function RemovePlayerESPFromPlayer(plr)
 
-    local data =
-        State.PlayerESPObjects[plr]
+    local data = State.PlayerESPObjects[plr]
 
-    if not data then
-        return
+    if data then
+        if data.RenderConnectionName then
+            Disconnect(data.RenderConnectionName)
+        end
+
+        if data.Highlight then
+            data.Highlight:Destroy()
+        end
+
+        if data.Billboard then
+            data.Billboard:Destroy()
+        end
+
+        State.PlayerESPObjects[plr] = nil
     end
 
-
-    if data.RenderConnectionName then
-        Disconnect(data.RenderConnectionName)
-    end
-
-
-    if data.Highlight then
-        data.Highlight:Destroy()
-    end
-
-
-    if data.Billboard then
-        data.Billboard:Destroy()
-    end
-
-
-    State.PlayerESPObjects[plr] = nil
+    Disconnect(
+        "PlayerESP_Character_" .. plr.UserId
+    )
 end
-
 
 local function CreatePlayerESP(plr)
 
@@ -1862,18 +1868,15 @@ local function CreatePlayerESP(plr)
         return
     end
 
-
     if State.PlayerESPObjects[plr] then
         return
     end
-
 
     local function SetupCharacter(char)
 
         if not State.PlayerESPEnabled then
             return
         end
-
 
         local root =
             char:WaitForChild(
@@ -1887,11 +1890,9 @@ local function CreatePlayerESP(plr)
                 5
             )
 
-
         if not root or not humanoid then
             return
         end
-
 
         local highlight =
             Instance.new("Highlight")
@@ -1907,7 +1908,6 @@ local function CreatePlayerESP(plr)
 
         highlight.Parent = char
 
-
         local billboard =
             Instance.new("BillboardGui")
 
@@ -1920,7 +1920,6 @@ local function CreatePlayerESP(plr)
 
         billboard.AlwaysOnTop = true
         billboard.Parent = root
-
 
         local text =
             Instance.new("TextLabel")
@@ -1939,10 +1938,8 @@ local function CreatePlayerESP(plr)
 
         text.Parent = billboard
 
-
         local renderConnectionName =
             "PlayerESP_Render_" .. plr.UserId
-
 
         Connect(
             renderConnectionName,
@@ -1954,18 +1951,15 @@ local function CreatePlayerESP(plr)
                     return
                 end
 
-
                 if not char.Parent then
                     Disconnect(renderConnectionName)
                     return
                 end
 
-
                 if humanoid.Health <= 0 then
                     Disconnect(renderConnectionName)
                     return
                 end
-
 
                 local localCharacter =
                     Services.LocalPlayer.Character
@@ -1976,9 +1970,7 @@ local function CreatePlayerESP(plr)
                         "HumanoidRootPart"
                     )
 
-
                 local distance = 0
-
 
                 if localRoot then
 
@@ -1990,7 +1982,6 @@ local function CreatePlayerESP(plr)
                     )
 
                 end
-
 
                 text.Text =
                     plr.Name
@@ -2009,7 +2000,6 @@ local function CreatePlayerESP(plr)
             end
         )
 
-
         State.PlayerESPObjects[plr] = {
             Highlight = highlight,
             Billboard = billboard,
@@ -2020,11 +2010,13 @@ local function CreatePlayerESP(plr)
     end
 
 
+    -- Mevcut karakter
     if plr.Character then
         SetupCharacter(plr.Character)
     end
 
 
+    -- Karakter reset / respawn
     Connect(
         "PlayerESP_Character_" .. plr.UserId,
         plr.CharacterAdded,
@@ -2032,20 +2024,43 @@ local function CreatePlayerESP(plr)
 
             task.wait(1)
 
-
             if not State.PlayerESPEnabled then
                 return
             end
 
+            -- Eski ESP'yi temizle
+            if State.PlayerESPObjects[plr] then
 
-            RemovePlayerESPFromPlayer(plr)
+                local old =
+                    State.PlayerESPObjects[plr]
 
+                if old.RenderConnectionName then
+                    Disconnect(
+                        old.RenderConnectionName
+                    )
+                end
+
+                if old.Highlight then
+                    old.Highlight:Destroy()
+                end
+
+                if old.Billboard then
+                    old.Billboard:Destroy()
+                end
+
+                State.PlayerESPObjects[plr] = nil
+
+            end
+
+            -- Yeni karaktere ESP
             SetupCharacter(char)
 
         end
     )
 
 end
+
+
 
 
 local function RemovePlayerESP()
@@ -2059,19 +2074,7 @@ local function RemovePlayerESP()
     end
 
 
-    for name in pairs(Connections) do
-
-        if string.sub(
-            name,
-            1,
-            20
-        ) == "PlayerESP_Character_" then
-
-            Disconnect(name)
-
-        end
-
-    end
+    DisconnectPrefix("PlayerESP_Character_")
 
 end
 
@@ -2441,48 +2444,40 @@ VisualLeftGroupBox2:AddToggle(
 State.ObserveEnabled = true
 State.CurrentObserveTarget = nil
 
-
-local Camera =
-    workspace.CurrentCamera
+Services.Camera = workspace.CurrentCamera
 
 
 local function getPlayerList()
 
     local playerGui =
-        Services.LocalPlayer:FindFirstChild(
-            "PlayerGui"
-        )
+        Services.LocalPlayer:FindFirstChild("PlayerGui")
 
     if not playerGui then
         return nil
     end
 
-
     local clientGui =
-        playerGui:FindFirstChild(
-            "ClientGui"
-        )
+        playerGui:FindFirstChild("ClientGui")
 
+    if not clientGui then
+        return nil
+    end
 
     local mainframe =
-        clientGui
-        and clientGui:FindFirstChild(
-            "Mainframe"
-        )
+        clientGui:FindFirstChild("Mainframe")
 
+    if not mainframe then
+        return nil
+    end
 
     local playerList =
-        mainframe
-        and mainframe:FindFirstChild(
-            "PlayerList"
-        )
+        mainframe:FindFirstChild("PlayerList")
 
+    if not playerList then
+        return nil
+    end
 
-    return playerList
-        and playerList:FindFirstChild(
-            "List"
-        )
-
+    return playerList:FindFirstChild("List")
 end
 
 
@@ -2490,37 +2485,32 @@ local function resetCamera()
 
     State.CurrentObserveTarget = nil
 
+    local camera =
+        workspace.CurrentCamera
+
+    if not camera then
+        return
+    end
 
     local character =
         Services.LocalPlayer.Character
 
-
     local humanoid =
         character
-        and character:FindFirstChild(
-            "Humanoid"
-        )
-
+        and character:FindFirstChildOfClass("Humanoid")
 
     if humanoid then
-        Camera.CameraSubject = humanoid
+        camera.CameraSubject = humanoid
     end
-
 end
 
 
 local function clearObserveConnections()
 
-    for name in pairs(Connections) do
+    for name in pairs(MainConnections) do
 
-        if string.sub(
-            name,
-            1,
-            8
-        ) == "Observe_" then
-
+        if string.sub(name, 1, 8) == "Observe_" then
             Disconnect(name)
-
         end
 
     end
@@ -2530,15 +2520,13 @@ end
 
 local function setupPlayerTemplate(template)
 
-    if template.Name ~= "PlayerTemplate" then
+    if not template
+        or template.Name ~= "PlayerTemplate" then
         return
     end
 
-
     local connectionName =
-        "Observe_Template_" ..
-        tostring(template)
-
+        "Observe_Template_" .. tostring(template:GetDebugId())
 
     Connect(
         connectionName,
@@ -2549,49 +2537,55 @@ local function setupPlayerTemplate(template)
                 return
             end
 
-
             if input.UserInputType
                 ~= Enum.UserInputType.MouseButton2 then
                 return
             end
 
-
             local playerNameObject =
-                template:FindFirstChild(
-                    "PlayerName"
-                )
-
+                template:FindFirstChild("PlayerName")
 
             if not playerNameObject then
                 return
             end
 
+            local playerName =
+                playerNameObject.Text
 
-            local target =
-                Services.Players:FindFirstChild(
-                    playerNameObject.Text
-                )
-
-
-            if not target
-                or not target.Character then
+            if not playerName
+                or playerName == "" then
                 return
             end
 
+            local target =
+                Services.Players:FindFirstChild(playerName)
+
+            if not target then
+                return
+            end
+
+            local character =
+                target.Character
+
+            if not character then
+                return
+            end
 
             local humanoid =
-                target.Character:FindFirstChild(
-                    "Humanoid"
-                )
-
+                character:FindFirstChildOfClass("Humanoid")
 
             if not humanoid then
                 return
             end
 
+            local camera =
+                workspace.CurrentCamera
 
-            if State.CurrentObserveTarget
-                == target then
+            if not camera then
+                return
+            end
+
+            if State.CurrentObserveTarget == target then
 
                 resetCamera()
 
@@ -2600,7 +2594,7 @@ local function setupPlayerTemplate(template)
                 State.CurrentObserveTarget =
                     target
 
-                Camera.CameraSubject =
+                camera.CameraSubject =
                     humanoid
 
             end
@@ -2613,35 +2607,46 @@ end
 
 local function enableObserve()
 
-    clearObserveConnections()
+    if not State.ObserveEnabled then
+        return
+    end
 
+    clearObserveConnections()
 
     local list =
         getPlayerList()
-
 
     if not list then
         return
     end
 
-
-    for _, template in ipairs(
-        list:GetChildren()
-    ) do
-
+    for _, template in ipairs(list:GetChildren()) do
         setupPlayerTemplate(template)
-
     end
-
 
     Connect(
         "Observe_PlayerListChildAdded",
         list.ChildAdded,
         function(child)
 
-            if State.ObserveEnabled then
-                setupPlayerTemplate(child)
+            if not State.ObserveEnabled then
+                return
             end
+
+            if child.Name ~= "PlayerTemplate" then
+                return
+            end
+
+            task.defer(function()
+
+                if State.ObserveEnabled
+                    and child.Parent == list then
+
+                    setupPlayerTemplate(child)
+
+                end
+
+            end)
 
         end
     )
@@ -2659,26 +2664,23 @@ local ObserveToggle =
     )
 
 
-ObserveToggle:OnChanged(
-    function(value)
+ObserveToggle:OnChanged(function(value)
 
-        State.ObserveEnabled = value
+    State.ObserveEnabled = value
 
+    if value then
 
-        if value then
+        enableObserve()
 
-            enableObserve()
+    else
 
-        else
-
-            clearObserveConnections()
-
-            resetCamera()
-
-        end
+        clearObserveConnections()
+        resetCamera()
 
     end
-)
+
+end)
+
 
 Connect(
     "Observe_LocalCharacterAdded",
@@ -2687,22 +2689,30 @@ Connect(
 
         State.CurrentObserveTarget = nil
 
-
         local humanoid =
             character:WaitForChild(
-                "Humanoid"
+                "Humanoid",
+                10
             )
 
+        if humanoid then
 
-        Camera.CameraSubject =
-            humanoid
+            local camera =
+                workspace.CurrentCamera
 
+            if camera then
+                camera.CameraSubject = humanoid
+            end
+
+        end
 
         if State.ObserveEnabled then
 
             task.wait(1)
 
-            enableObserve()
+            if State.ObserveEnabled then
+                enableObserve()
+            end
 
         end
 
@@ -2711,9 +2721,7 @@ Connect(
 
 
 local playerGui =
-    Services.LocalPlayer:WaitForChild(
-        "PlayerGui"
-    )
+    Services.LocalPlayer:WaitForChild("PlayerGui")
 
 
 Connect(
@@ -2721,69 +2729,143 @@ Connect(
     playerGui.ChildAdded,
     function(child)
 
-        if child.Name == "ClientGui"
-            and State.ObserveEnabled then
-
-            task.wait(0.5)
-
-            enableObserve()
-
+        if child.Name ~= "ClientGui" then
+            return
         end
-
-    end
-)
-
-Connect(
-    "Observe_WorkspaceCharacterAdded",
-    workspace.ChildAdded,
-    function(character)
 
         if not State.ObserveEnabled then
             return
         end
 
+        task.wait(0.5)
 
-        local target =
-            State.CurrentObserveTarget
-
-
-        if not target then
-            return
-        end
-
-
-        if character.Name ~= target.Name then
-            return
-        end
-
-
-        local humanoid =
-            character:WaitForChild(
-                "Humanoid",
-                5
-            )
-
-
-        if not humanoid then
-            return
-        end
-
-
-        if State.CurrentObserveTarget
-            == target then
-
-            Camera.CameraSubject =
-                humanoid
-
+        if State.ObserveEnabled then
+            enableObserve()
         end
 
     end
 )
 
-if State.ObserveEnabled then
-    enableObserve()
+
+Connect(
+    "Observe_PlayerAdded",
+    Services.Players.PlayerAdded,
+    function(player)
+
+        Connect(
+            "Observe_TargetCharacter_" .. player.UserId,
+            player.CharacterAdded,
+            function(character)
+
+                if not State.ObserveEnabled then
+                    return
+                end
+
+                if State.CurrentObserveTarget
+                    ~= player then
+                    return
+                end
+
+                local humanoid =
+                    character:WaitForChild(
+                        "Humanoid",
+                        10
+                    )
+
+                if not humanoid then
+                    return
+                end
+
+                local camera =
+                    workspace.CurrentCamera
+
+                if not camera then
+                    return
+                end
+
+                if State.CurrentObserveTarget
+                    == player then
+
+                    camera.CameraSubject =
+                        humanoid
+
+                end
+
+            end
+        )
+
+    end
+)
+
+
+Connect(
+    "Observe_PlayerRemoving",
+    Services.Players.PlayerRemoving,
+    function(player)
+
+        if State.CurrentObserveTarget
+            == player then
+
+            resetCamera()
+
+        end
+
+        Disconnect(
+            "Observe_TargetCharacter_" ..
+            player.UserId
+        )
+
+    end
+)
+
+
+for _, player in ipairs(
+    Services.Players:GetPlayers()
+) do
+
+    Connect(
+        "Observe_TargetCharacter_" .. player.UserId,
+        player.CharacterAdded,
+        function(character)
+
+            if not State.ObserveEnabled then
+                return
+            end
+
+            if State.CurrentObserveTarget
+                ~= player then
+                return
+            end
+
+            local humanoid =
+                character:WaitForChild(
+                    "Humanoid",
+                    10
+                )
+
+            if not humanoid then
+                return
+            end
+
+            local camera =
+                workspace.CurrentCamera
+
+            if camera then
+                camera.CameraSubject =
+                    humanoid
+            end
+
+        end
+    )
+
 end
 
+
+if State.ObserveEnabled then
+    task.defer(function()
+        enableObserve()
+    end)
+end
 
 
 
@@ -2792,47 +2874,85 @@ end
 local AutomationLeftGroupBox = Tabs.Automation:AddLeftGroupbox("Automation")
 
 AutomationLeftGroupBox:AddToggle("AutoPick", {
-	Text = "Auto Pick",
-	Default = false,
+    Text = "Auto Pick",
+    Default = false,
 
-	Callback = function(Value)
+    Callback = function(Value)
 
-		if not Value then
-			if autoPickupConnection then
-				autoPickupConnection:Disconnect()
-				autoPickupConnection = nil
-			end
-			return
-		end
+        State.AutoPick = Value
 
-		autoPickupConnection = RunService.Heartbeat:Connect(function()
-			local character = player.Character
-			if not character then return end
+        Disconnect("AutoPick_Heartbeat")
 
-			local rootPart = character:FindFirstChild("HumanoidRootPart")
-			if not rootPart then return end
+        if not Value then
+            return
+        end
 
-			for pos, obj in pairs(pickupList) do
-				if obj and obj.Parent then
+        Connect(
+            "AutoPick_Heartbeat",
+            Services.RunService.Heartbeat,
+            function()
 
-					local distance = (rootPart.Position - pos).Magnitude
+                if not State.AutoPick then
+                    Disconnect("AutoPick_Heartbeat")
+                    return
+                end
 
-					if distance < 25 then
-						local id = obj:FindFirstChild("ID")
+                local character =
+                    Services.LocalPlayer.Character
 
-						if id then
-							dataEvent:FireServer(
-								"PickUp",
-								id.Value
-							)
-						end
-					end
-				end
-			end
-		end)
+                if not character then
+                    return
+                end
 
-	end
+                local rootPart =
+                    character:FindFirstChild(
+                        "HumanoidRootPart"
+                    )
+
+                if not rootPart then
+                    return
+                end
+
+                for pos, obj in pairs(State.PickupList) do
+
+                    if obj and obj.Parent then
+
+                        local distance =
+                            (
+                                rootPart.Position
+                                - pos
+                            ).Magnitude
+
+                        if distance < 25 then
+
+                            local id =
+                                obj:FindFirstChild("ID")
+
+                            if id then
+
+                                State.DataEvent:FireServer(
+                                    "PickUp",
+                                    id.Value
+                                )
+
+                            end
+
+                        end
+
+                    else
+
+                        State.PickupList[pos] = nil
+
+                    end
+
+                end
+
+            end
+        )
+
+    end
 })
+
 
 -- Botting
 
