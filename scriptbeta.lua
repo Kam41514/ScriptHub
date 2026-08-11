@@ -48,7 +48,6 @@ local function CheckModerator(player)
     end)
 end
 
--- Halihazırda serverda olanlar
 for _, player in ipairs(Players:GetPlayers()) do
     if player ~= Players.LocalPlayer then
         CheckModerator(player)
@@ -389,7 +388,6 @@ RightGroupBox:AddButton({
 
 RightGroupBox2:AddButton("Unload", function()
 
-    -- Toggle'ları kapat
     if Toggles.FlyToggle then
         Toggles.FlyToggle:SetValue(false)
     end
@@ -1157,50 +1155,67 @@ ExploitsLeftGroupBox:AddButton({
     end
 })
 
+local SafePointPositions = {
+    Vector3.new(-2431.339, 418.692, -1281.255), -- Example Vector3.new(X1, Y1, Z1)
+    Vector3.new(868.431, 288.574, -1757.482),
+    Vector3.new(528.921, 285.689, 1318.243)
+}
+
 local function getClosestSafePoint(position)
-    local points = {
-        workspace:GetChildren()[5527],
-        workspace:GetChildren()[13321],
-        workspace:GetChildren()[14398],
-        workspace:GetChildren()[5550],
-        workspace:GetChildren()[5910],
-        workspace:GetChildren()[2787].Soil,
-        workspace:GetChildren()[19318]
-    }
+    local validPoints = {}
 
-    local closestPoint
-    local closestDistance = math.huge
-
-    for _, point in ipairs(points) do
-        if point and point:IsA("BasePart") then
-            local distance = (point.Position - position).Magnitude
-
-            if distance < closestDistance then
-                closestDistance = distance
-                closestPoint = point
-            end
-        end
+    for _, pointPosition in ipairs(SafePointPositions) do
+        table.insert(validPoints, {
+            Position = pointPosition,
+            Distance = (pointPosition - position).Magnitude
+        })
     end
 
-    return closestPoint
+    table.sort(validPoints, function(a, b)
+        return a.Distance < b.Distance
+    end)
+
+    return validPoints
 end
 
 local function getSafePoint(position)
-    local point = getClosestSafePoint(position)
-    if not point then return nil end
+    local sortedPoints = getClosestSafePoint(position)
 
-    local topCenter = point.Position + Vector3.new(0, point.Size.Y / 2, 0)
+    for _, data in ipairs(sortedPoints) do
+        local pointPosition = data.Position
 
-    for _, player in ipairs(game.Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if (player.Character.HumanoidRootPart.Position - topCenter).Magnitude <= 250 then
-                return nil
+        -- Safe point'in merkez/top noktası
+        local topCenter = pointPosition
+
+        local playerNearby = false
+
+        for _, otherPlayer in ipairs(Players:GetPlayers()) do
+            if otherPlayer ~= LocalPlayer then
+                local character = otherPlayer.Character
+                local hrp =
+                    character
+                    and character:FindFirstChild("HumanoidRootPart")
+
+                if hrp
+                    and (hrp.Position - topCenter).Magnitude <= 200 then
+
+                    playerNearby = true
+                    break
+                end
             end
+        end
+
+        -- Bu noktada oyuncu yoksa kullan
+        if not playerNearby then
+            return topCenter
         end
     end
 
-    return topCenter
+    return nil
 end
+
+
+
 
 local character = game.Players.LocalPlayer.Character
 local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -1451,7 +1466,6 @@ local function CreatePlayerESP(plr)
 
 
 
-        -- Yazı
 
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "PlayerESPText"
@@ -1642,14 +1656,12 @@ local function CreateESP(obj)
     FruitESP.Objects[obj] = gui
 end
 
--- Sadece bir kez tara
 for _, obj in ipairs(workspace:GetDescendants()) do
     if Fruits[obj.Name] then
         CreateESP(obj)
     end
 end
 
--- Yeni oluşanları ekle
 workspace.DescendantAdded:Connect(function(obj)
     if Fruits[obj.Name] then
         CreateESP(obj)
@@ -1995,48 +2007,7 @@ local function isPlayerWithinDistance(position, distance)
     return false
 end
 
-local function getSafePoint(position)
-    local points = {
-        workspace:GetChildren()[5527],
-        workspace:GetChildren()[13321],
-        workspace:GetChildren()[14398]
-    }
 
-    local closestPoint
-    local closestDistance = math.huge
-
-    for _, point in ipairs(points) do
-        if point and point:IsA("BasePart") then
-            local distance = (point.Position - position).Magnitude
-
-            if distance < closestDistance then
-                closestDistance = distance
-                closestPoint = point
-            end
-        end
-    end
-
-    if not closestPoint then
-        return nil
-    end
-
-    local targetPosition =
-        closestPoint.Position +
-        Vector3.new(0, closestPoint.Size.Y / 2, 0)
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            local hrp = character and character:FindFirstChild("HumanoidRootPart")
-
-            if hrp and (hrp.Position - targetPosition).Magnitude <= 250 then
-                return nil
-            end
-        end
-    end
-
-    return targetPosition
-end
 
 local function teleportToSafePoint()
     local hrp = getHRP()
@@ -2054,6 +2025,10 @@ local function teleportToSafePoint()
         task.wait(0.05)
 
         if hrp.Parent and (hrp.Position - safePoint).Magnitude <= 5 then
+
+            -- Safe point'e gelince noclip'i kapat
+            noClip(false)
+
             updateStatus(
                 "Moved To Safe Point",
                 Color3.fromRGB(90, 220, 130),
@@ -2085,6 +2060,9 @@ local function teleportToSafePoint()
         return false
     end
 
+    -- 2. denemede de noclip'i kapat
+    noClip(false)
+
     updateStatus(
         "Moved To Safe Point",
         Color3.fromRGB(90, 220, 130),
@@ -2093,6 +2071,7 @@ local function teleportToSafePoint()
 
     return true
 end
+
 
 
 
@@ -2133,12 +2112,13 @@ local function teleportToTree(treeData)
 
     local mainBranch = treeData.MainBranch
 
-    if not mainBranch or not mainBranch.Parent then
+    if not mainBranch
+        or not mainBranch.Parent
+        or not mainBranch:IsA("BasePart") then
         return false
     end
 
-    local targetCFrame = mainBranch:GetPivot()
-    local targetPosition = targetCFrame.Position
+    local targetPosition = mainBranch.Position
 
     if isPlayerWithinDistance(targetPosition, 275) then
         return false
@@ -2148,12 +2128,9 @@ local function teleportToTree(treeData)
         return false
     end
 
-    -- Center'ın 10 stud üstüne ışınlan
-    local targetPosition = targetCFrame.Position + Vector3.new(0, 10, 0)
-
     hrp.CFrame = CFrame.new(targetPosition)
 
-    -- Ağaç üzerinde float halinde sabit kal
+    -- Ağaç içinde float halinde sabit kal
     if TreeFloatVelocity then
         TreeFloatVelocity:Destroy()
         TreeFloatVelocity = nil
@@ -2169,7 +2146,6 @@ local function teleportToTree(treeData)
     TreeFloatVelocity.Velocity = Vector3.zero
     TreeFloatVelocity.Parent = hrp
 
-    -- Fizik yüzünden dışarı kayarsa tekrar merkeze al
     task.wait(0.05)
 
     if not getgenv().TreeFarmEnabled then
@@ -2424,11 +2400,33 @@ local function getCurrentFruits()
         if allowed[obj.Name] then
             local position = getFruitPosition(obj)
 
-            if position and (position - currentPosition).Magnitude <= 300 then
-                table.insert(result, {
-                    Object = obj,
-                    Position = position
-                })
+            if position
+                and (position - currentPosition).Magnitude <= 300 then
+
+                local playerNearby = false
+
+                for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                    if otherPlayer ~= LocalPlayer then
+                        local character = otherPlayer.Character
+                        local otherHRP =
+                            character
+                            and character:FindFirstChild("HumanoidRootPart")
+
+                        if otherHRP
+                            and (otherHRP.Position - position).Magnitude <= 50 then
+
+                            playerNearby = true
+                            break
+                        end
+                    end
+                end
+
+                if not playerNearby then
+                    table.insert(result, {
+                        Object = obj,
+                        Position = position
+                    })
+                end
             end
         end
     end
@@ -2695,6 +2693,14 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
         getgenv().TreeFarmEnabled = Value
 
         if not Value then
+
+            noClip(false)
+
+            if TreeFloatVelocity then
+                TreeFloatVelocity:Destroy()
+                TreeFloatVelocity = nil
+            end
+
             hideStatusGui()
 
             if autoPickupConnection then
@@ -2702,13 +2708,10 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
                 autoPickupConnection = nil
             end
 
-            if TreeFloatVelocity then
-                TreeFloatVelocity:Destroy()
-                TreeFloatVelocity = nil
-            end
-
             return
         end
+
+        noClip(true)
 
         createStatusGui()
 
@@ -2757,7 +2760,6 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
         end)
 
         task.spawn(function()
-
             local firstCheck = true
 
             while getgenv().TreeFarmEnabled do
@@ -2818,10 +2820,30 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
                 autoPickupConnection = nil
             end
 
+            noClip(false)
+
+            if TreeFloatVelocity then
+                TreeFloatVelocity:Destroy()
+                TreeFloatVelocity = nil
+            end
+
             hideStatusGui()
         end)
     end
 })
+
+TreeFarmToggle:AddKeyPicker(
+    "TreeFarmKeybind",
+    {
+        Default = "None",
+        SyncToggleState = true,
+
+        Callback = function(key)
+            CurrentTreeFarmKey = key
+        end
+    }
+)
+
 
 TreeFarmToggle:AddKeyPicker(
     "TreeFarmKeybind",
@@ -3288,7 +3310,6 @@ NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
     Callback = function(Value)
         getgenv().RareItemWebhookEnabled = Value
 
-        -- Eski bağlantıları temizle
         for _, connection in ipairs(RareInventoryConnections) do
             connection:Disconnect()
         end
@@ -3318,8 +3339,7 @@ NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
                 return
             end
 
-            -- Toggle açıldığında mevcut itemi kaydet,
-            -- mevcut item için webhook gönderme.
+
             local lastText = slotText.Text
 
             local connection =
@@ -3349,12 +3369,10 @@ NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
             )
         end
 
-        -- Mevcut slotları izle
         for _, slot in ipairs(inventory:GetChildren()) do
             watchSlot(slot)
         end
 
-        -- Sonradan oluşan slotları izle
         table.insert(
             RareInventoryConnections,
             inventory.ChildAdded:Connect(function(slot)
@@ -3573,8 +3591,6 @@ local function UpdateChakraSenseUI()
         ChakraSenseLabel.TextColor3 =
             Color3.fromRGB(170, 170, 170)
 
-        -- TÜM CHAKRA SENSELER BİTTİ
-        -- OBSERVED YAZISINI KAPAT
 
         if MyChakraTitle then
             MyChakraTitle.Visible = false
@@ -3608,10 +3624,6 @@ local function SetupBeingObservedDetector()
     local MySettings =
         Settings:WaitForChild(LocalPlayer.Name)
 
-
-    -- ÖNEMLİ:
-    -- Buradaki mevcut BeingObservedBy'ları kontrol etmiyoruz.
-    -- SADECE YENİ EKLENEN StringValue'ları yakalıyoruz.
 
     BeingObservedConnection =
         MySettings.ChildAdded:Connect(function(child)
