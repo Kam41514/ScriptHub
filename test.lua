@@ -132,11 +132,9 @@ Connect(
 -- Updates:
 
 local State = {
-    -- Player
     SelectedPlayer = "",
     PlayerList = {},
 
-    -- Movement
     FlySpeed = 125,
     WalkSpeed = 16,
     ToggleAutoFallValue = false,
@@ -151,44 +149,33 @@ local State = {
     NoclipEnabled = false,
     FlyBodyVelocity = nil,
 
-    -- NPC
     SelectedNPC = nil,
     AutoFloatNPC = false,
 
-    -- ESP
     ESPEnabled = false,
     FruitESP = false,
 
-    -- Keybinds
     CurrentSpeedToggleKey = nil,
     CurrentNoclipKey = nil,
     CurrentFlyKey = nil,
     CurrentTreeFarmKey = nil,
 
-    -- Auto Execute
     AutoExecute = true,
 
-    -- Player selection / points
     SelectedPoint = nil,
 
-    -- Farming
     Farming = false,
-    PickupList = {},
 
-    -- Proximity / Safety
     DangerDistance = 165,
     ProximityDistance = 375,
     ProximityCheck = false,
     TreePlayerRange = 150,
 
-    -- Auto Log
     AutoLog = false,
     AutoLogDistance = 50,
 
-    -- Misc
     JoinNotifier = true,
 
-    -- Kill Bricks
     KillBricks = {},
     NoKillBricks = false,
 
@@ -197,14 +184,12 @@ local State = {
         "Void"
     },
 
-    -- Safe Points
     SafePointPositions = {
         Vector3.new(-2431.339, 418.692, -1281.255),
         Vector3.new(868.431, 288.574, -1757.482),
         Vector3.new(528.921, 285.689, 1318.243)
     },
 
-    -- Fruits
     FruitNames = {
         ["Mango"] = true,
         ["Orange"] = true,
@@ -216,33 +201,45 @@ local State = {
         ["Banana"] = true
     },
 
-    -- Player ESP
     PlayerESPObjects = {},
     PlayerESPEnabled = false,
 
-    -- Observe
     ObserveEnabled = true,
     CurrentObserveTarget = nil,
 
-    -- Tree / Fruit Farm
     TreeFarmEnabled = false,
     TreeFloatVelocity = nil,
-    AutoPickupConnectionName = nil,
     TreeFarmRunId = 0,
+    TreeFarmPreviousNoFallState = false,
 
-    -- No Fall
+    -- Auto Pickup
+    PickupList = {},
+    AutoPickupConnection = nil,
+    AutoPickupEnabled = false,
+    AutoPick = false,
+
+    FruitPickRange = 50,
+    TreeFarmAutoPickLastRun = 0,
+    TreeFarmPickupChildAdded = nil,
+
+    AutoPickupConnectionName = nil,
+
     NoFallEnabled = false,
     NoFallOldNamecall = nil,
 
-    -- Auto Pickup
-    AutoPickupEnabled = false,
-
-    -- GUI / Status
     TreeFarmStatusGui = nil,
     TreeFarmStatusFrame = nil,
     TreeFarmStatusLabel = nil,
     TreeFarmTreeLabel = nil,
     TreeFarmStatusDot = nil,
+
+    noFogConnection = nil,
+    oldFogEnd = nil,
+
+    OldBrightness = Services.Lighting.Brightness,
+    FullBrightConnection = nil,
+    BrightnessLevel = 2,
+    FullBrightEnabled = false,
 }
 
 
@@ -770,138 +767,6 @@ RightGroupBox:AddButton({
     end
 })
 
-
-RightGroupBox2:AddButton("Unload", function()
-
-    if Toggles.FlyToggle then
-        Toggles.FlyToggle:SetValue(false)
-    end
-
-    if Toggles.NoclipToggle then
-        Toggles.NoclipToggle:SetValue(false)
-    end
-
-    if Toggles.AutoFallToggle then
-        Toggles.AutoFallToggle:SetValue(false)
-    end
-
-    if Toggles.SpeedToggle then
-        Toggles.SpeedToggle:SetValue(false)
-    end
-
-    if Toggles.AutoLogToggle then
-        Toggles.AutoLogToggle:SetValue(false)
-    end
-
-    if Toggles.ProximityCheck then
-        Toggles.ProximityCheck:SetValue(false)
-    end
-
-    if Toggles.AutoPick then
-        Toggles.AutoPick:SetValue(false)
-    end
-
-    if Toggles.FruitESP then
-        Toggles.FruitESP:SetValue(false)
-    end
-
-    if Toggles.PlayerESPToggle then
-        Toggles.PlayerESPToggle:SetValue(false)
-    end
-
-    if Toggles.ObserveToggle then
-        Toggles.ObserveToggle:SetValue(false)
-    end
-
-    if Toggles.NoKillBricks then
-        Toggles.NoKillBricks:SetValue(false)
-    end
-
-    if Toggles.ChakraSenseStatus then
-        Toggles.ChakraSenseStatus:SetValue(false)
-    end
-
-    if Toggles.JoinNotifier then
-        Toggles.JoinNotifier:SetValue(false)
-    end
-
-    if Toggles.AutoExecute then
-        Toggles.AutoExecute:SetValue(false)
-    end
-
-
-    -- Manuel olarak tuttuğun connection'lar
-    if FlyConnection then
-        FlyConnection:Disconnect()
-        FlyConnection = nil
-    end
-
-    if NoclipConnection then
-        NoclipConnection:Disconnect()
-        NoclipConnection = nil
-    end
-
-    if autoPickupConnection then
-        autoPickupConnection:Disconnect()
-        autoPickupConnection = nil
-    end
-
-    if farmConnection then
-        farmConnection:Disconnect()
-        farmConnection = nil
-    end
-
-    if dangerConnection then
-        dangerConnection:Disconnect()
-        dangerConnection = nil
-    end
-
-    ClearBeingObservedConnections()
-
-    table.clear(TrackedCharacters)
-    table.clear(ChakraStates)
-    table.clear(PlayerConnections)
-    table.clear(CharacterConnections)
-
-    BeingObservedTriggered = false
-
-
-
-    -- Chakra UI
-    if ChakraSenseGui then
-        ChakraSenseGui:Destroy()
-        ChakraSenseGui = nil
-        ChakraSenseLabel = nil
-        MyChakraTitle = nil
-        MyChakraDescription = nil
-    end
-
-
-    if UI.ProximityGui then
-        UI.ProximityGui:Destroy()
-        UI.ProximityGui = nil
-        UI.ProximityLabel = nil
-    end
-
-
-
-    -- Player ESP
-    if RemovePlayerESP then
-        RemovePlayerESP()
-    end
-
-
-    if State.FlyBodyVelocity then
-        State.FlyBodyVelocity:Destroy()
-        State.FlyBodyVelocity = nil
-    end
-
-
-
-
-    Library:Unload()
-
-end)
 
 RightGroupBox2:AddLabel("Menu bind")
     :AddKeyPicker("MenuKeybind", {
@@ -1529,58 +1394,68 @@ Connect(
     end
 )
 
-local NewNoFallToggle = PlayerLeftGroupBox3:AddToggle(
-    "NewNoFallToggle",
-    {
-        Text = "No Fall Damage",
-        Default = false,
+getgenv().NewNoFallEnabled = false
 
-        Callback = function(Value)
+if not getgenv().NewNoFallHookInstalled then
 
-            getgenv().NewNoFallEnabled = Value
+    local oldNamecall
 
-            if Value then
+    oldNamecall = hookmetamethod(
+        game,
+        "__namecall",
+        function(self, ...)
 
-                if getgenv().NewNoFallHookInstalled then
-                    return
+            local method =
+                getnamecallmethod()
+
+            if method == "FindFirstChild"
+                and getgenv().NewNoFallEnabled then
+
+                local args = {...}
+
+                if args[1] == "NegateFall" then
+                    return true
                 end
+            end
 
-                local oldNamecall
+            return oldNamecall(
+                self,
+                ...
+            )
+        end
+    )
 
-                oldNamecall = hookmetamethod(
-                    game,
-                    "__namecall",
-                    function(self, ...)
+    getgenv().NewNoFallOldNamecall =
+        oldNamecall
 
-                        local method = getnamecallmethod()
+    getgenv().NewNoFallHookInstalled =
+        true
+end
 
-                        if method == "FindFirstChild"
-                            and getgenv().NewNoFallEnabled then
 
-                            local args = {...}
+local NewNoFallToggle =
+    PlayerLeftGroupBox3:AddToggle(
+        "NewNoFallToggle",
+        {
+            Text = "No Fall Damage",
+            Default = false,
 
-                            if args[1] == "NegateFall" then
-                                return true
-                            end
-                        end
+            Callback = function(Value)
 
-                        return oldNamecall(self, ...)
-                    end
-                )
-
-                getgenv().NewNoFallOldNamecall =
-                    oldNamecall
-
-                getgenv().NewNoFallHookInstalled =
-                    true
+                getgenv().NewNoFallEnabled =
+                    Value
 
             end
-        end
-    }
-)
+        }
+    )
+
 
 
 -- End Of Player Tab
+
+-- Wait To Not Crash
+task.wait(0.02)
+
 
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
@@ -2143,6 +2018,7 @@ Connect(
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "eye")
 local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Extra ESP", "eye")
 local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
+local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("World Settings", "globe")
 
 
 State.PlayerESPObjects = State.PlayerESPObjects or {}
@@ -3178,89 +3054,173 @@ if State.ObserveEnabled then
     end)
 end
 
+function funcs.fullBright(state)
+    State.FullBrightEnabled = state
+
+    if State.FullBrightConnection then
+        State.FullBrightConnection:Disconnect()
+        State.FullBrightConnection = nil
+    end
+
+    if not state then
+        Services.Lighting.Brightness = State.OldBrightness
+        return
+    end
+
+    State.FullBrightConnection =
+        Services.RunService.RenderStepped:Connect(function()
+            Services.Lighting.Brightness =
+                State.BrightnessLevel
+        end)
+end
+
+VisualRightGroupBox2:AddSlider("BrightnessLevel", {
+    Text = "Brightness",
+    Default = 2,
+    Min = 0,
+    Max = 10,
+    Rounding = 1,
+
+    Callback = function(Value)
+        State.BrightnessLevel = Value
+
+        if State.FullBrightEnabled then
+            Services.Lighting.Brightness = Value
+        end
+    end
+})
+
+VisualRightGroupBox2:AddToggle("FullBright", {
+    Text = "Full Bright",
+    Default = false,
+
+    Callback = function(Value)
+        funcs.fullBright(Value)
+    end
+})
+
+VisualRightGroupBox2:AddToggle("NoFog", {
+    Text = "No Fog",
+    Default = false,
+    Callback = function(state)
+        if State.noFogConnection then
+            State.noFogConnection:Disconnect()
+            State.noFogConnection = nil
+        end
+
+        if state then
+            State.oldFogEnd = Services.Lighting.FogEnd
+
+            State.noFogConnection = Services.RunService.RenderStepped:Connect(function()
+                Services.Lighting.FogEnd = 9999999999
+            end)
+        else
+            if State.oldFogEnd ~= nil then
+                Services.Lighting.FogEnd = State.oldFogEnd
+                State.oldFogEnd = nil
+            end
+        end
+    end
+})
+
 
 
 -- Automation
 
 local AutomationLeftGroupBox = Tabs.Automation:AddLeftGroupbox("Automation")
 
-AutomationLeftGroupBox:AddToggle("AutoPick", {
-    Text = "Auto Pick",
+local remotes = Services.ReplicatedStorage:WaitForChild("Events")
+local dataEvent = remotes:WaitForChild("DataEvent")
+local player = Services.Players.LocalPlayer
+
+local function onChildAdded(obj)
+    if not obj:IsA("BasePart") then
+        return
+    end
+
+    local pickupable = obj:WaitForChild("Pickupable", 10)
+    if not pickupable then
+        return
+    end
+
+    local id = obj:WaitForChild("ID", 10)
+    if not id then
+        return
+    end
+
+    local pos = obj.Position
+    State.PickupList[pos] = obj
+
+    obj.Destroying:Connect(function()
+        if State.PickupList[pos] == obj then
+            State.PickupList[pos] = nil
+        end
+    end)
+end
+
+for _, child in ipairs(workspace:GetDescendants()) do
+    task.spawn(onChildAdded, child)
+end
+
+workspace.DescendantAdded:Connect(onChildAdded)
+
+AutomationLeftGroupBox:AddToggle("AutoPickup", {
+    Text = "Auto Pickup",
     Default = false,
 
-    Callback = function(Value)
+    Callback = function(state)
+        State.AutoPick = state
+        State.AutoPickupEnabled = state
 
-        State.AutoPick = Value
+        if State.AutoPickupConnection then
+            State.AutoPickupConnection:Disconnect()
+            State.AutoPickupConnection = nil
+        end
 
-        Disconnect("AutoPick_Heartbeat")
-
-        if not Value then
+        if not state then
             return
         end
 
-        Connect(
-            "AutoPick_Heartbeat",
-            Services.RunService.Heartbeat,
-            function()
-
-                if not State.AutoPick then
-                    Disconnect("AutoPick_Heartbeat")
-                    return
-                end
+        State.AutoPickupConnection =
+            Services.RunService.Heartbeat:Connect(function()
 
                 local character =
-                    Services.LocalPlayer.Character
+                    Services.Players.LocalPlayer.Character
 
                 if not character then
                     return
                 end
 
                 local rootPart =
-                    character:FindFirstChild(
-                        "HumanoidRootPart"
-                    )
+                    character:FindFirstChild("HumanoidRootPart")
 
                 if not rootPart then
                     return
                 end
 
                 for pos, obj in pairs(State.PickupList) do
-
                     if obj and obj.Parent then
 
                         local distance =
-                            (
-                                rootPart.Position
-                                - pos
-                            ).Magnitude
+                            (rootPart.Position - pos).Magnitude
 
-                        if distance < 25 then
-
+                        if distance < State.FruitPickRange then
                             local id =
                                 obj:FindFirstChild("ID")
 
                             if id then
-
-                                State.DataEvent:FireServer(
+                                dataEvent:FireServer(
                                     "PickUp",
                                     id.Value
                                 )
-
                             end
-
                         end
 
                     else
-
                         State.PickupList[pos] = nil
-
                     end
-
                 end
-
-            end
-        )
-
+            end)
     end
 })
 
@@ -3298,13 +3258,10 @@ State.TreeFarmPreviousNoFallState =
 State.TreeFarmNoFallOldNamecall =
     State.TreeFarmNoFallOldNamecall or nil
 
-
-
 local Players = Services.Players
 local LocalPlayer = Services.LocalPlayer
 local RunService = Services.RunService
 local ReplicatedStorage = Services.ReplicatedStorage
-
 
 funcs.getCharacter = function()
 
@@ -3318,7 +3275,6 @@ funcs.getCharacter = function()
     return LocalPlayer.CharacterAdded:Wait()
 
 end
-
 
 funcs.getHRP = function()
 
@@ -3369,7 +3325,6 @@ funcs.GetActiveChakraPlayers = function()
 
 end
 
-
 funcs.isAnyActiveChakraUser = function()
 
     return #funcs.GetActiveChakraPlayers() > 0
@@ -3419,6 +3374,15 @@ funcs.teleportToSafePoint = function()
         noClip(false)
     end
 
+    if funcs.fly then
+        funcs.fly(false)
+    elseif fly then
+        fly(false)
+    end
+
+    if State.FlyEnabled then
+        State.FlyEnabled = false
+    end
 
     if State.TreeFloatVelocity then
 
@@ -3428,7 +3392,6 @@ funcs.teleportToSafePoint = function()
 
     end
 
-
     local hrp =
         funcs.getHRP()
 
@@ -3436,77 +3399,181 @@ funcs.teleportToSafePoint = function()
         return false
     end
 
+    local safePoints =
+        State.SafePointPositions
 
-    local safePoint =
-        funcs.getSafePoint(
-            hrp.Position
-        )
+    if not safePoints then
+        return false
+    end
 
-    if safePoint then
+    local playerRange =
+        State.TreePlayerRange or 150
 
-        hrp.CFrame =
-            CFrame.new(
+    local currentPosition =
+        hrp.Position
+
+    local nearestSafePoint = nil
+    local nearestDistance = math.huge
+
+    for _, safePoint in pairs(
+        safePoints
+    ) do
+
+        local pointPosition = nil
+
+        if typeof(safePoint) == "Vector3" then
+
+            pointPosition =
                 safePoint
-            )
 
-        task.wait(0.05)
+        elseif typeof(safePoint) == "CFrame" then
 
+            pointPosition =
+                safePoint.Position
 
-        if hrp.Parent
-            and (
-                hrp.Position - safePoint
-            ).Magnitude <= 5 then
+        elseif typeof(safePoint) == "table" then
 
-            if funcs.updateStatus then
-                funcs.updateStatus(
-                    "Moved To Safe Point",
-                    Color3.fromRGB(
-                        90,
-                        220,
-                        130
-                    ),
-                    "Safety mode active"
-                )
+            if typeof(safePoint.Position) == "Vector3" then
+
+                pointPosition =
+                    safePoint.Position
+
+            elseif typeof(safePoint.CFrame) == "CFrame" then
+
+                pointPosition =
+                    safePoint.CFrame.Position
+
+            elseif safePoint[1]
+                and typeof(safePoint[1]) == "number"
+                and safePoint[2]
+                and typeof(safePoint[2]) == "number"
+                and safePoint[3]
+                and typeof(safePoint[3]) == "number" then
+
+                pointPosition =
+                    Vector3.new(
+                        safePoint[1],
+                        safePoint[2],
+                        safePoint[3]
+                    )
+
             end
+        end
 
-            return true
+        if pointPosition then
 
+            local playerNearby =
+                funcs.isPlayerWithinDistance(
+                    pointPosition,
+                    playerRange
+                )
+
+            if not playerNearby then
+
+                local distance =
+                    (
+                        pointPosition
+                        - currentPosition
+                    ).Magnitude
+
+                if distance < nearestDistance then
+
+                    nearestDistance =
+                        distance
+
+                    nearestSafePoint =
+                        pointPosition
+
+                end
+            end
         end
     end
 
+    if not nearestSafePoint then
 
-    task.wait(0.05)
+        if funcs.updateStatus then
 
+            funcs.updateStatus(
+                "   Safe Point",
+                Color3.fromRGB(
+                    255,
+                    90,
+                    90
+                ),
+                "All safe points have nearby players"
+            )
 
-    if not hrp.Parent then
+        end
+
         return false
     end
 
+    local humanoid =
+        hrp.Parent:FindFirstChildOfClass("Humanoid")
 
-    safePoint =
-        funcs.getSafePoint(
-            hrp.Position
+    local targetPosition =
+        nearestSafePoint + Vector3.new(0, 3, 0)
+
+    if humanoid then
+        humanoid:ChangeState(
+            Enum.HumanoidStateType.Physics
         )
-
-    if not safePoint then
-        return false
     end
 
+    hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.zero
 
     hrp.CFrame =
         CFrame.new(
-            safePoint
+            targetPosition
         )
 
-    task.wait(0.05)
-
+    task.wait(0.1)
 
     if not hrp.Parent then
         return false
     end
 
+    hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.zero
+
+    if (
+        hrp.Position
+        - targetPosition
+    ).Magnitude > 5 then
+
+        hrp.CFrame =
+            CFrame.new(
+                targetPosition
+            )
+
+        task.wait(0.1)
+
+        if not hrp.Parent then
+            return false
+        end
+
+        hrp.AssemblyLinearVelocity =
+            Vector3.zero
+
+        hrp.AssemblyAngularVelocity =
+            Vector3.zero
+    end
+
+    if humanoid then
+        humanoid:ChangeState(
+            Enum.HumanoidStateType.GettingUp
+        )
+    end
 
     if funcs.updateStatus then
+
         funcs.updateStatus(
             "Moved To Safe Point",
             Color3.fromRGB(
@@ -3514,13 +3581,12 @@ funcs.teleportToSafePoint = function()
                 220,
                 130
             ),
-            "Safety mode active"
+            "Nearest safe point selected"
         )
+
     end
 
-
     return true
-
 end
 
 funcs.getTrees = function()
@@ -3562,7 +3628,6 @@ funcs.getTrees = function()
         end
     end
 
-
     table.sort(
         trees,
         function(a, b)
@@ -3572,7 +3637,6 @@ funcs.getTrees = function()
 
         end
     )
-
 
     return trees
 
@@ -3586,7 +3650,6 @@ funcs.teleportToTree = function(
         return false
     end
 
-
     local hrp =
         funcs.getHRP()
 
@@ -3594,10 +3657,8 @@ funcs.teleportToTree = function(
         return false
     end
 
-
     local mainBranch =
         treeData.MainBranch
-
 
     if not mainBranch
         or not mainBranch.Parent
@@ -3607,17 +3668,12 @@ funcs.teleportToTree = function(
 
     end
 
-
     local targetPosition =
         mainBranch.Position
 
-
-    -- Slider değerini kullan
     local playerRange =
         State.TreePlayerRange or 150
 
-
-    -- Ağaca gitmeden önce oyuncu kontrolü
     if funcs.isPlayerWithinDistance(
         targetPosition,
         playerRange
@@ -3627,27 +3683,21 @@ funcs.teleportToTree = function(
 
     end
 
-
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-
-    -- Ağaca giderken noclip
     if funcs.noClip then
         funcs.noClip(true)
     elseif noClip then
         noClip(true)
     end
 
-
     hrp.CFrame =
         CFrame.new(
             targetPosition
         )
 
-
-    -- Eski float temizle
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
@@ -3656,8 +3706,6 @@ funcs.teleportToTree = function(
 
     end
 
-
-    -- Tree float
     State.TreeFloatVelocity =
         Instance.new("BodyVelocity")
 
@@ -3677,36 +3725,28 @@ funcs.teleportToTree = function(
     State.TreeFloatVelocity.Parent =
         hrp
 
-
     task.wait(0.05)
-
 
     if not State.TreeFarmEnabled then
         return false
     end
 
-
     if not hrp.Parent then
         return false
     end
-
 
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-
-    -- Tekrar merkezle
     hrp.CFrame =
         CFrame.new(
             targetPosition
         )
 
-
     return true
 
 end
-
 
 funcs.checkNearbyPlayerAfterTeleport =
     function()
@@ -3717,7 +3757,6 @@ funcs.checkNearbyPlayerAfterTeleport =
         if not hrp then
             return false
         end
-
 
         if funcs.isAnyActiveChakraUser() then
 
@@ -3733,17 +3772,14 @@ funcs.checkNearbyPlayerAfterTeleport =
                 )
             end
 
-
             funcs.teleportToSafePoint()
 
             return true
 
         end
 
-
         local playerRange =
             State.TreePlayerRange or 150
-
 
         if not funcs.isPlayerWithinDistance(
             hrp.Position,
@@ -3753,7 +3789,6 @@ funcs.checkNearbyPlayerAfterTeleport =
             return false
 
         end
-
 
         if funcs.updateStatus then
             funcs.updateStatus(
@@ -3766,7 +3801,6 @@ funcs.checkNearbyPlayerAfterTeleport =
                 "Moving to nearest safe point..."
             )
         end
-
 
         funcs.teleportToSafePoint()
 
@@ -3789,7 +3823,6 @@ State.TreeFarmTreeLabel =
 State.TreeFarmStatusDot =
     State.TreeFarmStatusDot or nil
 
-
 funcs.createStatusGui = function()
 
     if State.TreeFarmScreenGui then
@@ -3800,7 +3833,6 @@ funcs.createStatusGui = function()
         return
 
     end
-
 
     local ScreenGui =
         Instance.new("ScreenGui")
@@ -3819,10 +3851,8 @@ funcs.createStatusGui = function()
             "PlayerGui"
         )
 
-
     State.TreeFarmScreenGui =
         ScreenGui
-
 
     local MainFrame =
         Instance.new("Frame")
@@ -3869,10 +3899,8 @@ funcs.createStatusGui = function()
     MainFrame.Parent =
         ScreenGui
 
-
     State.TreeFarmMainFrame =
         MainFrame
-
 
     local Corner =
         Instance.new("UICorner")
@@ -3885,7 +3913,6 @@ funcs.createStatusGui = function()
 
     Corner.Parent =
         MainFrame
-
 
     local Gradient =
         Instance.new("UIGradient")
@@ -3917,7 +3944,6 @@ funcs.createStatusGui = function()
     Gradient.Parent =
         MainFrame
 
-
     local Stroke =
         Instance.new("UIStroke")
 
@@ -3936,7 +3962,6 @@ funcs.createStatusGui = function()
 
     Stroke.Parent =
         MainFrame
-
 
     local Shadow =
         Instance.new("ImageLabel")
@@ -3997,7 +4022,6 @@ funcs.createStatusGui = function()
     Shadow.Parent =
         MainFrame
 
-
     local Content =
         Instance.new("Frame")
 
@@ -4018,7 +4042,6 @@ funcs.createStatusGui = function()
 
     Content.Parent =
         MainFrame
-
 
     local Padding =
         Instance.new("UIPadding")
@@ -4049,7 +4072,6 @@ funcs.createStatusGui = function()
 
     Padding.Parent =
         Content
-
 
     local Header =
         Instance.new("TextLabel")
@@ -4090,7 +4112,6 @@ funcs.createStatusGui = function()
     Header.Parent =
         Content
 
-
     local StatusDot =
         Instance.new("Frame")
 
@@ -4124,7 +4145,6 @@ funcs.createStatusGui = function()
     StatusDot.Parent =
         Content
 
-
     local DotCorner =
         Instance.new("UICorner")
 
@@ -4137,10 +4157,8 @@ funcs.createStatusGui = function()
     DotCorner.Parent =
         StatusDot
 
-
     State.TreeFarmStatusDot =
         StatusDot
-
 
     local Status =
         Instance.new("TextLabel")
@@ -4190,10 +4208,8 @@ funcs.createStatusGui = function()
     Status.Parent =
         Content
 
-
     State.TreeFarmStatus =
         Status
-
 
     local TreeLabel =
         Instance.new("TextLabel")
@@ -4243,12 +4259,10 @@ funcs.createStatusGui = function()
     TreeLabel.Parent =
         Content
 
-
     State.TreeFarmTreeLabel =
         TreeLabel
 
 end
-
 
 funcs.hideStatusGui = function()
 
@@ -4260,7 +4274,6 @@ funcs.hideStatusGui = function()
     end
 
 end
-
 
 funcs.updateStatus = function(
     text,
@@ -4275,16 +4288,13 @@ funcs.updateStatus = function(
         return
     end
 
-
     status.Text =
         text
-
 
     if color then
 
         status.TextColor3 =
             color
-
 
         if State.TreeFarmStatusDot then
 
@@ -4294,7 +4304,6 @@ funcs.updateStatus = function(
         end
 
     end
-
 
     if treeText
         and State.TreeFarmTreeLabel then
@@ -4317,28 +4326,22 @@ funcs.getFruitPosition = function(
 
     end
 
-
     if fruit:IsA("BasePart") then
         return fruit.Position
     end
-
 
     if fruit:IsA("Model") then
         return fruit:GetPivot().Position
     end
 
-
     return nil
 
 end
 
-
 funcs.getCurrentFruits = function()
 
     local result = {}
-
     local allowed = {}
-
 
     if State.FruitNames then
 
@@ -4371,7 +4374,6 @@ funcs.getCurrentFruits = function()
 
     end
 
-
     local hrp =
         funcs.getHRP()
 
@@ -4379,10 +4381,8 @@ funcs.getCurrentFruits = function()
         return result
     end
 
-
     local currentPosition =
         hrp.Position
-
 
     for _, obj in ipairs(
         workspace:GetDescendants()
@@ -4395,7 +4395,6 @@ funcs.getCurrentFruits = function()
                     obj
                 )
 
-
             if position
                 and (
                     position
@@ -4407,7 +4406,6 @@ funcs.getCurrentFruits = function()
                         position,
                         50
                     )
-
 
                 if not playerNearby then
 
@@ -4425,11 +4423,9 @@ funcs.getCurrentFruits = function()
         end
     end
 
-
     return result
 
 end
-
 
 funcs.teleportToFruit = function(
     fruitData
@@ -4439,14 +4435,12 @@ funcs.teleportToFruit = function(
         return false
     end
 
-
     local hrp =
         funcs.getHRP()
 
     if not hrp then
         return false
     end
-
 
     local position =
         funcs.getFruitPosition(
@@ -4457,15 +4451,12 @@ funcs.teleportToFruit = function(
         return false
     end
 
-
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-
     hrp.CFrame =
         CFrame.new(position)
-
 
     return true
 
@@ -4480,15 +4471,12 @@ funcs.waitForTreeFruits = function(
     local startTime =
         tick()
 
-
     local currentRunId =
         State.TreeFarmRunId
-
 
     while State.TreeFarmEnabled
         and currentRunId
             == State.TreeFarmRunId do
-
 
         if funcs.isAnyActiveChakraUser() then
 
@@ -4502,9 +4490,7 @@ funcs.waitForTreeFruits = function(
                 "Moving to nearest safe point..."
             )
 
-
             funcs.teleportToSafePoint()
-
 
             repeat
                 task.wait(0.25)
@@ -4514,7 +4500,6 @@ funcs.waitForTreeFruits = function(
                 or currentRunId
                     ~= State.TreeFarmRunId
 
-
             if not State.TreeFarmEnabled
                 or currentRunId
                     ~= State.TreeFarmRunId then
@@ -4523,16 +4508,13 @@ funcs.waitForTreeFruits = function(
 
             end
 
-
             startTime =
                 tick()
 
         end
 
-
         local currentFruits =
             funcs.getCurrentFruits()
-
 
         if #currentFruits > 0 then
 
@@ -4546,9 +4528,7 @@ funcs.waitForTreeFruits = function(
                 "Waiting 1 second..."
             )
 
-
             task.wait(1)
-
 
             if not State.TreeFarmEnabled
                 or currentRunId
@@ -4557,7 +4537,6 @@ funcs.waitForTreeFruits = function(
                 return {}
 
             end
-
 
             if funcs.isAnyActiveChakraUser() then
 
@@ -4571,9 +4550,7 @@ funcs.waitForTreeFruits = function(
                     "Moving to nearest safe point..."
                 )
 
-
                 funcs.teleportToSafePoint()
-
 
                 repeat
                     task.wait(0.25)
@@ -4582,7 +4559,6 @@ funcs.waitForTreeFruits = function(
                     or not State.TreeFarmEnabled
                     or currentRunId
                         ~= State.TreeFarmRunId
-
 
                 if not State.TreeFarmEnabled
                     or currentRunId
@@ -4594,16 +4570,13 @@ funcs.waitForTreeFruits = function(
 
             end
 
-
             return funcs.getCurrentFruits()
 
         end
 
-
         if tick() - startTime >= timeout then
             return {}
         end
-
 
         funcs.updateStatus(
             "Waiting For Fruit",
@@ -4615,11 +4588,9 @@ funcs.waitForTreeFruits = function(
             treeData.Tree.Name
         )
 
-
         task.wait(0.25)
 
     end
-
 
     return {}
 
@@ -4629,7 +4600,6 @@ funcs.runTreeFarm = function()
 
     local trees =
         funcs.getTrees()
-
 
     if #trees == 0 then
 
@@ -4647,10 +4617,53 @@ funcs.runTreeFarm = function()
 
     end
 
-
     local currentRunId =
         State.TreeFarmRunId
 
+    local Players =
+        game:GetService("Players")
+
+    local function isPlayerNearFruit(position)
+
+        for _, player in ipairs(
+            Players:GetPlayers()
+        ) do
+
+            if player ~= Services.LocalPlayer then
+
+                local character =
+                    player.Character
+
+                if character then
+
+                    local rootPart =
+                        character:FindFirstChild(
+                            "HumanoidRootPart"
+                        )
+
+                    if rootPart then
+
+                        local distance =
+                            (
+                                rootPart.Position
+                                - position
+                            ).Magnitude
+
+                        if distance <= 75 then
+                            return true
+                        end
+
+                    end
+
+                end
+
+            end
+
+        end
+
+        return false
+
+    end
 
     for index, treeData in ipairs(
         trees
@@ -4664,7 +4677,6 @@ funcs.runTreeFarm = function()
 
         end
 
-
         if funcs.isAnyActiveChakraUser() then
 
             funcs.updateStatus(
@@ -4677,9 +4689,7 @@ funcs.runTreeFarm = function()
                 "Moving to nearest safe point..."
             )
 
-
             funcs.teleportToSafePoint()
-
 
             repeat
                 task.wait(0.25)
@@ -4688,7 +4698,6 @@ funcs.runTreeFarm = function()
                 or not State.TreeFarmEnabled
                 or currentRunId
                     ~= State.TreeFarmRunId
-
 
             if not State.TreeFarmEnabled
                 or currentRunId
@@ -4699,7 +4708,6 @@ funcs.runTreeFarm = function()
             end
 
         end
-
 
         funcs.updateStatus(
             "Checking Tree",
@@ -4716,17 +4724,14 @@ funcs.runTreeFarm = function()
             )
         )
 
-
         if funcs.isAnyActiveChakraUser() then
             continue
         end
-
 
         local teleported =
             funcs.teleportToTree(
                 treeData
             )
-
 
         if not teleported then
 
@@ -4744,16 +4749,13 @@ funcs.runTreeFarm = function()
                 )
             )
 
-
             task.wait(0.15)
 
             continue
 
         end
 
-
         task.wait(0.25)
-
 
         if funcs.checkNearbyPlayerAfterTeleport() then
 
@@ -4763,12 +4765,10 @@ funcs.runTreeFarm = function()
 
         end
 
-
         local currentFruits =
             funcs.waitForTreeFruits(
                 treeData
             )
-
 
         if not State.TreeFarmEnabled
             or currentRunId
@@ -4777,7 +4777,6 @@ funcs.runTreeFarm = function()
             return
 
         end
-
 
         for fruitIndex, fruitData in ipairs(
             currentFruits
@@ -4791,7 +4790,6 @@ funcs.runTreeFarm = function()
 
             end
 
-
             if funcs.isAnyActiveChakraUser() then
 
                 funcs.updateStatus(
@@ -4804,9 +4802,7 @@ funcs.runTreeFarm = function()
                     "Moving to nearest safe point..."
                 )
 
-
                 funcs.teleportToSafePoint()
-
 
                 repeat
                     task.wait(0.25)
@@ -4815,7 +4811,6 @@ funcs.runTreeFarm = function()
                     or not State.TreeFarmEnabled
                     or currentRunId
                         ~= State.TreeFarmRunId
-
 
                 if not State.TreeFarmEnabled
                     or currentRunId
@@ -4827,16 +4822,39 @@ funcs.runTreeFarm = function()
 
             end
 
-
             if funcs.checkNearbyPlayerAfterTeleport() then
-
                 break
-
             end
-
 
             if fruitData.Object
                 and fruitData.Object.Parent then
+
+                local fruitPosition =
+                    fruitData.Object.Position
+
+                if isPlayerNearFruit(
+                    fruitPosition
+                ) then
+
+                    funcs.updateStatus(
+                        "Fruit Skipped",
+                        Color3.fromRGB(
+                            255,
+                            190,
+                            80
+                        ),
+                        string.format(
+                            "%d / %d  •  Player within 75 studs",
+                            fruitIndex,
+                            #currentFruits
+                        )
+                    )
+
+                    task.wait(0.15)
+
+                    continue
+
+                end
 
                 funcs.updateStatus(
                     "Collecting Fruit",
@@ -4853,31 +4871,49 @@ funcs.runTreeFarm = function()
                     )
                 )
 
-
                 if not funcs.isAnyActiveChakraUser() then
 
-                    funcs.teleportToFruit(
-                        fruitData
-                    )
+                    if not isPlayerNearFruit(
+                        fruitPosition
+                    ) then
+
+                        funcs.teleportToFruit(
+                            fruitData
+                        )
+
+                    else
+
+                        funcs.updateStatus(
+                            "Fruit Skipped",
+                            Color3.fromRGB(
+                                255,
+                                190,
+                                80
+                            ),
+                            "Player within 75 studs"
+                        )
+
+                        task.wait(0.15)
+
+                        continue
+
+                    end
 
                 end
 
-
                 task.wait(0.25)
-
 
                 if funcs.checkNearbyPlayerAfterTeleport() then
                     break
                 end
 
             end
-        end
 
+        end
 
         task.wait(0.25)
 
     end
-
 
     if State.TreeFarmEnabled
         and currentRunId
@@ -4910,14 +4946,11 @@ funcs.startAutoPickup = function()
 
     end
 
-
     local connectionName =
         "TreeFarm_AutoPickup"
 
-
     State.AutoPickupConnectionName =
         connectionName
-
 
     Connect(
         connectionName,
@@ -4928,14 +4961,12 @@ funcs.startAutoPickup = function()
                 return
             end
 
-
             local character =
                 LocalPlayer.Character
 
             if not character then
                 return
             end
-
 
             local rootPart =
                 character:FindFirstChild(
@@ -4946,14 +4977,12 @@ funcs.startAutoPickup = function()
                 return
             end
 
-
             local pickupList =
                 State.PickupList
 
             if not pickupList then
                 return
             end
-
 
             local dataEvent =
                 ReplicatedStorage
@@ -4963,11 +4992,9 @@ funcs.startAutoPickup = function()
                     "DataEvent"
                 )
 
-
             if not dataEvent then
                 return
             end
-
 
             for pos, obj in pairs(
                 pickupList
@@ -4982,14 +5009,12 @@ funcs.startAutoPickup = function()
                             - pos
                         ).Magnitude
 
-
                     if distance < 25 then
 
                         local id =
                             obj:FindFirstChild(
                                 "ID"
                             )
-
 
                         if id then
 
@@ -5007,7 +5032,6 @@ funcs.startAutoPickup = function()
     )
 
 end
-
 
 funcs.stopAutoPickup = function()
 
@@ -5034,19 +5058,15 @@ funcs.setTreeFarmNoFall = function(
             return
         end
 
-
         State.TreeFarmPreviousNoFallState =
             false
-
 
         getgenv().NoFallEnabled =
             true
 
-
         if not State.TreeFarmNoFallOldNamecall then
 
             local oldNamecall
-
 
             oldNamecall =
                 hookmetamethod(
@@ -5057,13 +5077,11 @@ funcs.setTreeFarmNoFall = function(
                         local method =
                             getnamecallmethod()
 
-
                         if method
                             == "FindFirstChild" then
 
                             local args =
                                 {...}
-
 
                             if args[1]
                                 == "NegateFall"
@@ -5074,7 +5092,6 @@ funcs.setTreeFarmNoFall = function(
                             end
                         end
 
-
                         return oldNamecall(
                             self,
                             ...
@@ -5082,7 +5099,6 @@ funcs.setTreeFarmNoFall = function(
 
                     end
                 )
-
 
             State.TreeFarmNoFallOldNamecall =
                 oldNamecall
@@ -5094,7 +5110,6 @@ funcs.setTreeFarmNoFall = function(
         getgenv().NoFallEnabled =
             false
 
-
         if State.TreeFarmNoFallOldNamecall then
 
             hookmetamethod(
@@ -5102,7 +5117,6 @@ funcs.setTreeFarmNoFall = function(
                 "__namecall",
                 State.TreeFarmNoFallOldNamecall
             )
-
 
             State.TreeFarmNoFallOldNamecall =
                 nil
@@ -5122,30 +5136,509 @@ local TreeFarmToggle =
         }
     )
 
+TreeFarmToggle:OnChanged(function(Value)
 
-TreeFarmToggle:OnChanged(
-    function(Value)
+    State.TreeFarmEnabled =
+        Value
 
-        State.TreeFarmEnabled =
-            Value
+    State.TreeFarmRunId =
+        State.TreeFarmRunId + 1
 
+    if not Value then
 
-        -- Her toggle değişiminde eski loop'u geçersiz yap
-        State.TreeFarmRunId =
-            State.TreeFarmRunId + 1
+        State.AutoPick = false
 
+        Disconnect(
+            "TreeFarm_AutoPick_Heartbeat"
+        )
 
-        if not Value then
+        if State.TreeFarmPickupChildAdded then
 
-            funcs.stopAutoPickup()
+            State.TreeFarmPickupChildAdded:Disconnect()
 
+            State.TreeFarmPickupChildAdded =
+                nil
+
+        end
+
+        if State.TreeFarmAnimationTrack then
+
+            State.TreeFarmAnimationTrack:Stop()
+            State.TreeFarmAnimationTrack:Destroy()
+
+            State.TreeFarmAnimationTrack =
+                nil
+
+        end
+
+        if State.TreeFarmAnimation then
+
+            State.TreeFarmAnimation:Destroy()
+
+            State.TreeFarmAnimation =
+                nil
+
+        end
+
+        if funcs.noClip then
+            funcs.noClip(false)
+        elseif noClip then
+            noClip(false)
+        end
+
+        if State.TreeFloatVelocity then
+
+            State.TreeFloatVelocity:Destroy()
+
+            State.TreeFloatVelocity =
+                nil
+
+        end
+
+        if not State.TreeFarmPreviousNoFallState then
+            funcs.setTreeFarmNoFall(false)
+        end
+
+        funcs.hideStatusGui()
+
+        return
+    end
+
+    State.TreeFarmPreviousNoFallState =
+        getgenv().NoFallEnabled == true
+
+    if not State.TreeFarmPreviousNoFallState then
+        funcs.setTreeFarmNoFall(true)
+    end
+
+    if funcs.noClip then
+        funcs.noClip(true)
+    elseif noClip then
+        noClip(true)
+    end
+
+    funcs.createStatusGui()
+
+    funcs.updateStatus(
+        "Checking Active Chakra Users...",
+        Color3.fromRGB(
+            100,
+            180,
+            255
+        ),
+        "Scanning..."
+    )
+
+    -- TREE FARM ANIMATION
+    do
+
+        local player =
+            Services.Players.LocalPlayer
+
+        local character =
+            player.Character
+            or player.CharacterAdded:Wait()
+
+        local humanoid =
+            character:FindFirstChildOfClass(
+                "Humanoid"
+            )
+
+        if humanoid then
+
+            local animator =
+                humanoid:FindFirstChildOfClass(
+                    "Animator"
+                )
+
+            if not animator then
+
+                animator =
+                    Instance.new(
+                        "Animator"
+                    )
+
+                animator.Parent =
+                    humanoid
+
+            end
+
+            local animation =
+                Instance.new(
+                    "Animation"
+                )
+
+            animation.AnimationId =
+                "rbxassetid://122919972398961"
+
+            local track =
+                animator:LoadAnimation(
+                    animation
+                )
+
+            track.Looped = true
+
+            track:Play()
+
+            State.TreeFarmAnimation =
+                animation
+
+            State.TreeFarmAnimationTrack =
+                track
+
+        end
+
+    end
+
+    -- AUTO PICK
+    State.PickupList =
+        State.PickupList or {}
+
+    local function onPickupAdded(obj)
+
+        if not obj:IsA("BasePart") then
+            return
+        end
+
+        local pickupable =
+            obj:FindFirstChild(
+                "Pickupable"
+            )
+
+        if not pickupable then
+            return
+        end
+
+        local id =
+            obj:FindFirstChild(
+                "ID"
+            )
+
+        if not id then
+            return
+        end
+
+        local pos =
+            obj.Position
+
+        State.PickupList[pos] =
+            obj
+
+        obj.Destroying:Connect(
+            function()
+
+                if State.PickupList[pos] == obj then
+
+                    State.PickupList[pos] =
+                        nil
+
+                end
+
+            end
+        )
+
+    end
+
+    for _, child in next,
+        workspace:GetChildren() do
+
+        task.spawn(
+            onPickupAdded,
+            child
+        )
+
+    end
+
+    if State.TreeFarmPickupChildAdded then
+
+        State.TreeFarmPickupChildAdded:Disconnect()
+
+        State.TreeFarmPickupChildAdded =
+            nil
+
+    end
+
+    State.TreeFarmPickupChildAdded =
+        workspace.ChildAdded:Connect(
+            onPickupAdded
+        )
+
+    State.AutoPick =
+        true
+
+    State.TreeFarmAutoPickLastRun =
+        0
+
+    Disconnect(
+        "TreeFarm_AutoPick_Heartbeat"
+    )
+
+    Connect(
+        "TreeFarm_AutoPick_Heartbeat",
+        Services.RunService.Heartbeat,
+        function()
+
+            if not State.AutoPick
+                or not State.TreeFarmEnabled then
+
+                Disconnect(
+                    "TreeFarm_AutoPick_Heartbeat"
+                )
+
+                return
+            end
+
+            local character =
+                Services.Players.LocalPlayer.Character
+
+            if not character then
+                return
+            end
+
+            local rootPart =
+                character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
+            if not rootPart then
+                return
+            end
+
+            local currentTime =
+                tick()
+
+            if currentTime
+                - State.TreeFarmAutoPickLastRun
+                < 0.1 then
+
+                return
+            end
+
+            State.TreeFarmAutoPickLastRun =
+                currentTime
+
+            local myPosition =
+                rootPart.Position
+
+            local pickRange =
+                State.FruitPickRange or 50
+
+            for pos, obj in next,
+                State.PickupList do
+
+                if obj
+                    and obj.Parent then
+
+                    local distance =
+                        (
+                            myPosition
+                            - pos
+                        ).Magnitude
+
+                    if distance <= pickRange then
+
+                        local id =
+                            obj:FindFirstChild(
+                                "ID"
+                            )
+
+                        if id then
+
+                            Services.ReplicatedStorage
+                                :WaitForChild(
+                                    "Events"
+                                )
+                                :WaitForChild(
+                                    "DataEvent"
+                                )
+                                :FireServer(
+                                    "PickUp",
+                                    id.Value
+                                )
+
+                        end
+
+                    end
+
+                else
+
+                    State.PickupList[pos] =
+                        nil
+
+                end
+
+            end
+
+        end
+    )
+
+    local currentRunId =
+        State.TreeFarmRunId
+
+    task.spawn(
+        function()
+
+            local firstCheck =
+                true
+
+            while State.TreeFarmEnabled
+                and currentRunId
+                    == State.TreeFarmRunId do
+
+                local activePlayers =
+                    funcs.GetActiveChakraPlayers()
+
+                if #activePlayers > 0 then
+
+                    -- CHAKRA ALGILANDI: ANIMASYONU BOZ
+                    if State.TreeFarmAnimationTrack
+                        and State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Stop()
+
+                    end
+
+                    funcs.updateStatus(
+                        "Active Chakra Users",
+                        Color3.fromRGB(
+                            255,
+                            180,
+                            70
+                        ),
+                        string.format(
+                            "%d user(s) detected",
+                            #activePlayers
+                        )
+                    )
+
+                    if not firstCheck then
+
+                        local hrp =
+                            funcs.getHRP()
+
+                        if hrp then
+                            funcs.teleportToSafePoint()
+                        end
+
+                    else
+
+                        funcs.updateStatus(
+                            "Active Chakra Users",
+                            Color3.fromRGB(
+                                255,
+                                180,
+                                70
+                            ),
+                            "Waiting at current position..."
+                        )
+
+                    end
+
+                    repeat
+
+                        task.wait(0.25)
+
+                        activePlayers =
+                            funcs.GetActiveChakraPlayers()
+
+                    until #activePlayers == 0
+                        or not State.TreeFarmEnabled
+                        or currentRunId
+                            ~= State.TreeFarmRunId
+
+                    if not State.TreeFarmEnabled
+                        or currentRunId
+                            ~= State.TreeFarmRunId then
+
+                        break
+
+                    end
+
+                    -- CHAKRA BİTTİ: ANİMASYONU TEKRAR OYNAT
+                    if State.TreeFarmAnimationTrack
+                        and not State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Play()
+
+                    end
+
+                    funcs.updateStatus(
+                        "No Active Chakra Users",
+                        Color3.fromRGB(
+                            90,
+                            220,
+                            130
+                        ),
+                        "Starting fruit farm..."
+                    )
+
+                    task.wait(0.5)
+
+                end
+
+                firstCheck =
+                    false
+
+                if funcs.GetActiveChakraPlayers
+                    and #funcs.GetActiveChakraPlayers()
+                        == 0 then
+
+                    -- NORMAL FARM: ANİMASYON ÇALIŞIYOR
+                    if State.TreeFarmAnimationTrack
+                        and not State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Play()
+
+                    end
+
+                    funcs.runTreeFarm()
+
+                end
+
+                task.wait(0.5)
+
+            end
+
+            State.AutoPick =
+                false
+
+            Disconnect(
+                "TreeFarm_AutoPick_Heartbeat"
+            )
+
+            if State.TreeFarmPickupChildAdded then
+
+                State.TreeFarmPickupChildAdded:Disconnect()
+
+                State.TreeFarmPickupChildAdded =
+                    nil
+
+            end
+
+            if State.TreeFarmAnimationTrack then
+
+                State.TreeFarmAnimationTrack:Stop()
+                State.TreeFarmAnimationTrack:Destroy()
+
+                State.TreeFarmAnimationTrack =
+                    nil
+
+            end
+
+            if State.TreeFarmAnimation then
+
+                State.TreeFarmAnimation:Destroy()
+
+                State.TreeFarmAnimation =
+                    nil
+
+            end
 
             if funcs.noClip then
                 funcs.noClip(false)
             elseif noClip then
                 noClip(false)
             end
-
 
             if State.TreeFloatVelocity then
 
@@ -5156,203 +5649,17 @@ TreeFarmToggle:OnChanged(
 
             end
 
-
             if not State.TreeFarmPreviousNoFallState then
                 funcs.setTreeFarmNoFall(false)
             end
 
-
             funcs.hideStatusGui()
 
-            return
-
         end
+    )
 
+end)
 
-        -- Tree Farm açılmadan önceki No Fall durumu
-        State.TreeFarmPreviousNoFallState =
-            getgenv().NoFallEnabled == true
-
-
-        if not State.TreeFarmPreviousNoFallState then
-            funcs.setTreeFarmNoFall(true)
-        end
-
-
-        if funcs.noClip then
-            funcs.noClip(true)
-        elseif noClip then
-            noClip(true)
-        end
-
-
-        funcs.createStatusGui()
-
-
-        funcs.updateStatus(
-            "Checking Active Chakra Users...",
-            Color3.fromRGB(
-                100,
-                180,
-                255
-            ),
-            "Scanning..."
-        )
-
-
-        funcs.startAutoPickup()
-
-
-        local currentRunId =
-            State.TreeFarmRunId
-
-
-        task.spawn(
-            function()
-
-                local firstCheck =
-                    true
-
-
-                while State.TreeFarmEnabled
-                    and currentRunId
-                        == State.TreeFarmRunId do
-
-
-                    local activePlayers =
-                        funcs.GetActiveChakraPlayers()
-
-
-                    if #activePlayers > 0 then
-
-                        funcs.updateStatus(
-                            "Active Chakra Users",
-                            Color3.fromRGB(
-                                255,
-                                180,
-                                70
-                            ),
-                            string.format(
-                                "%d user(s) detected",
-                                #activePlayers
-                            )
-                        )
-
-
-                        if not firstCheck then
-
-                            local hrp =
-                                funcs.getHRP()
-
-
-                            if hrp then
-                                funcs.teleportToSafePoint()
-                            end
-
-                        else
-
-                            funcs.updateStatus(
-                                "Active Chakra Users",
-                                Color3.fromRGB(
-                                    255,
-                                    180,
-                                    70
-                                ),
-                                "Waiting at current position..."
-                            )
-
-                        end
-
-
-                        repeat
-
-                            task.wait(0.25)
-
-                            activePlayers =
-                                funcs.GetActiveChakraPlayers()
-
-                        until #activePlayers == 0
-                            or not State.TreeFarmEnabled
-                            or currentRunId
-                                ~= State.TreeFarmRunId
-
-
-                        if not State.TreeFarmEnabled
-                            or currentRunId
-                                ~= State.TreeFarmRunId then
-
-                            break
-
-                        end
-
-
-                        funcs.updateStatus(
-                            "No Active Chakra Users",
-                            Color3.fromRGB(
-                                90,
-                                220,
-                                130
-                            ),
-                            "Starting fruit farm..."
-                        )
-
-
-                        task.wait(0.5)
-
-                    end
-
-
-                    firstCheck =
-                        false
-
-
-                    if funcs.GetActiveChakraPlayers
-                        and #funcs.GetActiveChakraPlayers()
-                            == 0 then
-
-                        funcs.runTreeFarm()
-
-                    end
-
-
-                    task.wait(0.5)
-
-                end
-
-
-                -- Loop kapanınca cleanup
-                funcs.stopAutoPickup()
-
-
-                if funcs.noClip then
-                    funcs.noClip(false)
-                elseif noClip then
-                    noClip(false)
-                end
-
-
-                if State.TreeFloatVelocity then
-
-                    State.TreeFloatVelocity:Destroy()
-
-                    State.TreeFloatVelocity =
-                        nil
-
-                end
-
-
-                if not State.TreeFarmPreviousNoFallState then
-                    funcs.setTreeFarmNoFall(false)
-                end
-
-
-                funcs.hideStatusGui()
-
-            end
-        )
-
-    end
-)
 
 TreeFarmToggle:AddKeyPicker(
     "TreeFarmKeybind",
@@ -5395,6 +5702,11 @@ BottingLeftGroupBox:AddSlider(
 )
 
 
+
+
+
+
+
 -- Notifications
 local NotificationsLeftGroupBox = Tabs.Notifications:AddLeftGroupbox("Discord Webhook")
 local NotificationsRightGroupBox = Tabs.Notifications:AddRightGroupbox("Notifier")
@@ -5407,7 +5719,6 @@ NotificationsLeftGroupBox:AddInput("WebhookURL", {
     ClearTextOnFocus = false,
     Placeholder = "Discord Webhook URL...",
 })
-
 
 local importantItems = {
     ["Life Up Fruit"] = true,
@@ -5425,14 +5736,20 @@ local importantItems = {
 }
 
 local function SendInventory()
+    local player = Services.LocalPlayer
 
-    
-    local player =
-        Services.LocalPlayer
+    if not player then
+        Library:Notify({
+            Title = "Inventory Logger",
+            Description = "LocalPlayer bulunamadı.",
+            Duration = 4,
+        })
+        return
+    end
 
     local webhook = Options.WebhookURL.Value
 
-    if webhook == nil or webhook == "" then
+    if type(webhook) ~= "string" or webhook == "" then
         Library:Notify({
             Title = "Inventory Logger",
             Description = "Please enter a Webhook URL.",
@@ -5441,8 +5758,21 @@ local function SendInventory()
         return
     end
 
-    local loadout = player.PlayerGui.ClientGui.Mainframe.Loadout
-    local scroll = loadout.Inventory.InventoryScroll
+    local playerGui = player:FindFirstChildOfClass("PlayerGui")
+    local clientGui = playerGui and playerGui:FindFirstChild("ClientGui")
+    local mainframe = clientGui and clientGui:FindFirstChild("Mainframe")
+    local loadout = mainframe and mainframe:FindFirstChild("Loadout")
+    local inventoryGui = loadout and loadout:FindFirstChild("Inventory")
+    local scroll = inventoryGui and inventoryGui:FindFirstChild("InventoryScroll")
+
+    if not scroll or not loadout then
+        Library:Notify({
+            Title = "Inventory Logger",
+            Description = "Inventory bulunamadı.",
+            Duration = 4,
+        })
+        return
+    end
 
     local inventory = {}
     local importantInventory = {}
@@ -5451,19 +5781,14 @@ local function SendInventory()
     local RED = "\27[2;31m"
     local RESET = "\27[0m"
 
-    --------------------------------------------------
-    -- ITEM EKLEME
-    --------------------------------------------------
-
     local function addItem(itemName, amount)
-
-        if itemName == "" then
+        if not itemName or itemName == "" then
             return
         end
 
         local line
 
-        if amount ~= "" then
+        if amount and amount ~= "" then
             line = amount .. " " .. itemName
         else
             line = itemName
@@ -5474,7 +5799,6 @@ local function SendInventory()
             or itemName:match("Schematics$")
 
         if isImportant then
-
             table.insert(
                 inventory,
                 RED .. line .. RESET
@@ -5485,26 +5809,18 @@ local function SendInventory()
                 RED .. line .. RESET
             )
 
-            importantCount = importantCount + 1
-
+            importantCount =
+                importantCount + 1
         else
-
             table.insert(
                 inventory,
                 line
             )
-
         end
     end
 
-    --------------------------------------------------
-    -- INVENTORY
-    --------------------------------------------------
-
     for _, slot in ipairs(scroll:GetChildren()) do
-
         if slot.Name:match("^InvSlot%d+$") then
-
             local slotText =
                 slot:FindFirstChild("SlotText")
 
@@ -5521,34 +5837,30 @@ local function SendInventory()
                 local amount = ""
 
                 if itemNumber then
-
                     local number =
                         itemNumber:FindFirstChild("Number")
 
                     if number
                         and number:IsA("TextLabel") then
 
-                        amount = number.Text
-
+                        amount =
+                            number.Text
                     end
                 end
 
-                addItem(itemName, amount)
+                addItem(
+                    itemName,
+                    amount
+                )
             end
         end
     end
 
-    --------------------------------------------------
-    -- HOTBAR 1-12
-    --------------------------------------------------
-
     for i = 1, 12 do
-
         local slot =
             loadout:FindFirstChild("Slot" .. i)
 
         if slot then
-
             local slotText =
                 slot:FindFirstChild("SlotText")
 
@@ -5559,15 +5871,14 @@ local function SendInventory()
             local amount = ""
 
             if itemNumber then
-
                 local number =
                     itemNumber:FindFirstChild("Number")
 
                 if number
                     and number:IsA("TextLabel") then
 
-                    amount = number.Text
-
+                    amount =
+                        number.Text
                 end
             end
 
@@ -5576,67 +5887,65 @@ local function SendInventory()
 
                 itemName =
                     slotText.Text
-
             end
 
-            addItem(itemName, amount)
+            addItem(
+                itemName,
+                amount
+            )
         end
     end
 
-    --------------------------------------------------
-    -- TEXT
-    --------------------------------------------------
-
     local inventoryText =
-        table.concat(inventory, "\n")
+        table.concat(
+            inventory,
+            "\n"
+        )
 
     if inventoryText == "" then
         inventoryText = "Empty"
     end
 
     local importantText =
-        table.concat(importantInventory, "\n")
+        table.concat(
+            importantInventory,
+            "\n"
+        )
 
     if importantText == "" then
         importantText = "None"
     end
 
-    --------------------------------------------------
-    -- ACCOUNT NAME
-    --------------------------------------------------
-
     local playerName =
         player.Name
 
     local half =
-        math.ceil(#playerName / 2)
+        math.ceil(
+            #playerName / 2
+        )
 
     local shortName =
-        string.sub(playerName, 1, half) .. "..."
-
-    --------------------------------------------------
-    -- WEBHOOK
-    --------------------------------------------------
+        string.sub(
+            playerName,
+            1,
+            half
+        ) .. "..."
 
     local data = {
-
         username = "Inventory Logger",
 
         embeds = {
-
             {
-
                 title = "Inventory Logger",
 
                 description =
                     "Important Items Found: **"
-                    .. importantCount
+                    .. tostring(importantCount)
                     .. "**",
 
                 color = 0x2ECC71,
 
                 fields = {
-
                     {
                         name = "🎒 Current Inventory",
 
@@ -5658,7 +5967,6 @@ local function SendInventory()
 
                         inline = false
                     }
-
                 },
 
                 footer = {
@@ -5675,32 +5983,23 @@ local function SendInventory()
         }
     }
 
-    --------------------------------------------------
-    -- REQUEST
-    --------------------------------------------------
-
-    local request =
+    local requestFunction =
         request
         or http_request
-        or syn.request
+        or (syn and syn.request)
 
-    if not request then
-
+    if not requestFunction then
         Library:Notify({
             Title = "Error",
-            Description =
-                "HTTP requests not supported.",
+            Description = "HTTP requests not supported.",
             Duration = 5,
         })
-
         return
     end
 
     local success, response =
         pcall(function()
-
-            return request({
-
+            return requestFunction({
                 Url = webhook,
 
                 Method = "POST",
@@ -5711,68 +6010,47 @@ local function SendInventory()
                 },
 
                 Body =
-                    HttpService:JSONEncode(data)
+                    Services.HttpService:JSONEncode(data)
             })
-
         end)
 
-    if not success then
-
+    if not success or not response then
         Library:Notify({
             Title = "Webhook Error",
-            Description =
-                "Failed to send inventory.",
-            Duration = 5,
+            Description = "Failed to send inventory.",
+            Duration = 5
         })
 
         warn(response)
         return
     end
 
-if not success or not response then
+    local statusCode =
+        tonumber(response.StatusCode)
 
-    Library:Notify({
-        Title = "Webhook Error",
-        Description = "Failed to send inventory.",
-        Duration = 5
-    })
+    if statusCode
+        and statusCode >= 200
+        and statusCode < 300 then
 
-    warn(response)
-    return
+        Library:Notify({
+            Title = "Inventory Logger",
+            Description = "Inventory successfully sent!",
+            Duration = 4
+        })
+    else
+        Library:Notify({
+            Title = "Webhook Error",
+            Description =
+                "Status Code: "
+                .. tostring(
+                    response.StatusCode
+                ),
+            Duration = 5
+        })
+
+        warn(response.Body)
+    end
 end
-
-local statusCode =
-    tonumber(response.StatusCode)
-
-if statusCode
-    and statusCode >= 200
-    and statusCode < 300 then
-
-    Library:Notify({
-        Title = "Inventory Logger",
-        Description = "Inventory successfully sent!",
-        Duration = 4
-    })
-
-else
-
-    Library:Notify({
-        Title = "Webhook Error",
-        Description =
-            "Status Code: "
-            .. tostring(
-                response.StatusCode
-            ),
-        Duration = 5
-    })
-
-    warn(
-        response.Body
-    )
-end
-
-
-
 
 local RareItems = {
     ["Life Up Fruit"] = true,
@@ -5786,9 +6064,17 @@ local RareItems = {
 }
 
 local function SendRareItemWebhook(itemName)
-    local webhook = Options.WebhookURL.Value
+    local player =
+        Services.LocalPlayer
+
+    local webhook =
+        Options.WebhookURL.Value
 
     if not webhook or webhook == "" then
+        return
+    end
+
+    if not player then
         return
     end
 
@@ -5807,43 +6093,46 @@ local function SendRareItemWebhook(itemName)
                 color = 0xFFD700,
 
                 footer = {
-                    text = "Account: " .. player.Name
+                    text =
+                        "Account: "
+                        .. player.Name
                 },
 
                 timestamp =
-                    os.date("!%Y-%m-%dT%H:%M:%SZ")
+                    os.date(
+                        "!%Y-%m-%dT%H:%M:%SZ"
+                    )
             }
         }
     }
 
-    local request =
+    local requestFunction =
         request
         or http_request
-        or syn.request
+        or (syn and syn.request)
 
-    if not request then
+    if not requestFunction then
         return
     end
 
     pcall(function()
-        request({
+        requestFunction({
             Url = webhook,
 
             Method = "POST",
 
             Headers = {
-                ["Content-Type"] = "application/json"
+                ["Content-Type"] =
+                    "application/json"
             },
 
-            Body = HttpService:JSONEncode(data)
+            Body =
+                HttpService:JSONEncode(data)
         })
     end)
 end
 
 local RareInventoryConnections = {}
-
-
-
 
 NotificationsLeftGroupBox:AddButton({
     Text = "Send Inventory",
@@ -5858,85 +6147,122 @@ NotificationsLeftGroupBox:AddButton({
         "Scan inventory and hotbar, then send to webhook.",
 })
 
-NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
-    Text = "Rare Item Webhook",
-    Default = false,
+NotificationsLeftGroupBox:AddToggle(
+    "RareItemWebhookToggle",
+    {
+        Text = "Rare Item Webhook",
 
-    Callback = function(Value)
-        getgenv().RareItemWebhookEnabled = Value
+        Default = false,
 
-        for _, connection in ipairs(RareInventoryConnections) do
-            connection:Disconnect()
-        end
+        Callback = function(Value)
+            getgenv().RareItemWebhookEnabled =
+                Value
 
-        table.clear(RareInventoryConnections)
+            for _, connection in
+                ipairs(RareInventoryConnections) do
 
-        if not Value then
-            return
-        end
+                if connection then
+                    connection:Disconnect()
+                end
+            end
 
-        local loadout =
-            player.PlayerGui.ClientGui.Mainframe.Loadout
+            table.clear(
+                RareInventoryConnections
+            )
 
-        local inventory =
-            loadout.Inventory.InventoryScroll
-
-        local function watchSlot(slot)
-            if not slot.Name:match("^InvSlot%d+$") then
+            if not Value then
                 return
             end
 
-            local slotText =
-                slot:FindFirstChild("SlotText")
+            local player =
+                Services.LocalPlayer
 
-            if not slotText
-                or not slotText:IsA("TextLabel") then
+            if not player then
                 return
             end
 
+            local loadout =
+                player.PlayerGui.ClientGui.Mainframe.Loadout
 
-            local lastText = slotText.Text
+            local inventory =
+                loadout.Inventory.InventoryScroll
 
-            local connection =
-                slotText:GetPropertyChangedSignal("Text"):Connect(function()
+            local function watchSlot(slot)
+                if not slot.Name:match(
+                    "^InvSlot%d+$"
+                ) then
+                    return
+                end
 
-                    if not getgenv().RareItemWebhookEnabled then
-                        return
-                    end
+                local slotText =
+                    slot:FindFirstChild(
+                        "SlotText"
+                    )
 
-                    local itemName = slotText.Text
+                if not slotText
+                    or not slotText:IsA(
+                        "TextLabel"
+                    ) then
+                    return
+                end
 
-                    if itemName == ""
-                        or itemName == lastText then
-                        return
-                    end
+                local lastText =
+                    slotText.Text
 
-                    lastText = itemName
+                local connection =
+                    slotText:GetPropertyChangedSignal(
+                        "Text"
+                    ):Connect(function()
 
-                    if RareItems[itemName] then
-                        SendRareItemWebhook(itemName)
-                    end
-                end)
+                        if not getgenv().RareItemWebhookEnabled then
+                            return
+                        end
+
+                        local itemName =
+                            slotText.Text
+
+                        if itemName == ""
+                            or itemName == lastText then
+                            return
+                        end
+
+                        lastText =
+                            itemName
+
+                        if RareItems[itemName] then
+                            SendRareItemWebhook(
+                                itemName
+                            )
+                        end
+                    end)
+
+                table.insert(
+                    RareInventoryConnections,
+                    connection
+                )
+            end
+
+            for _, slot in
+                ipairs(inventory:GetChildren()) do
+
+                watchSlot(slot)
+            end
 
             table.insert(
                 RareInventoryConnections,
-                connection
+
+                inventory.ChildAdded:Connect(
+                    function(slot)
+
+                        task.wait(0.1)
+
+                        watchSlot(slot)
+                    end
+                )
             )
         end
-
-        for _, slot in ipairs(inventory:GetChildren()) do
-            watchSlot(slot)
-        end
-
-        table.insert(
-            RareInventoryConnections,
-            inventory.ChildAdded:Connect(function(slot)
-                task.wait(0.1)
-                watchSlot(slot)
-            end)
-        )
-    end
-})
+    }
+)
 
 
 State.ChakraSenseUIEnabled =
@@ -5988,20 +6314,37 @@ local function CreateChakraSenseUI()
         return
     end
 
+    local player =
+        Services.LocalPlayer
+
+    if not player then
+        return
+    end
+
     local playerGui =
-        Services.LocalPlayer:WaitForChild(
-            "PlayerGui"
-        )
+        player:WaitForChild("PlayerGui")
 
-    ChakraSenseGui = Instance.new("ScreenGui")
-    ChakraSenseGui.Name = "ChakraSenseStatus"
-    ChakraSenseGui.ResetOnSpawn = false
-    ChakraSenseGui.IgnoreGuiInset = true
-    ChakraSenseGui.Parent = playerGui
+    ChakraSenseGui =
+        Instance.new("ScreenGui")
+
+    ChakraSenseGui.Name =
+        "ChakraSenseStatus"
+
+    ChakraSenseGui.ResetOnSpawn =
+        false
+
+    ChakraSenseGui.IgnoreGuiInset =
+        true
+
+    ChakraSenseGui.Parent =
+        playerGui
 
 
-    ChakraSenseLabel = Instance.new("TextLabel")
-    ChakraSenseLabel.Name = "Status"
+    ChakraSenseLabel =
+        Instance.new("TextLabel")
+
+    ChakraSenseLabel.Name =
+        "Status"
 
     ChakraSenseLabel.AnchorPoint =
         Vector2.new(0.5, 0)
@@ -6018,17 +6361,20 @@ local function CreateChakraSenseUI()
     ChakraSenseLabel.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    ChakraSenseLabel.BackgroundTransparency = 1
+    ChakraSenseLabel.BackgroundTransparency =
+        1
 
     ChakraSenseLabel.Font =
         Enum.Font.GothamSemibold
 
-    ChakraSenseLabel.TextSize = 24
+    ChakraSenseLabel.TextSize =
+        24
 
     ChakraSenseLabel.TextColor3 =
         Color3.fromRGB(190, 100, 255)
 
-    ChakraSenseLabel.TextStrokeTransparency = 0.35
+    ChakraSenseLabel.TextStrokeTransparency =
+        0.35
 
     ChakraSenseLabel.Text =
         "Chakra Sense Active: 0"
@@ -6055,12 +6401,14 @@ local function CreateChakraSenseUI()
     MyChakraTitle.Size =
         UDim2.new(0, 500, 0, 45)
 
-    MyChakraTitle.BackgroundTransparency = 1
+    MyChakraTitle.BackgroundTransparency =
+        1
 
     MyChakraTitle.Font =
         Enum.Font.GothamBold
 
-    MyChakraTitle.TextSize = 30
+    MyChakraTitle.TextSize =
+        30
 
     MyChakraTitle.TextColor3 =
         Color3.fromRGB(255, 40, 40)
@@ -6068,7 +6416,8 @@ local function CreateChakraSenseUI()
     MyChakraTitle.TextStrokeColor3 =
         Color3.fromRGB(0, 0, 0)
 
-    MyChakraTitle.TextStrokeTransparency = 0
+    MyChakraTitle.TextStrokeTransparency =
+        0
 
     MyChakraTitle.Text =
         "You Are Getting Observed"
@@ -6079,7 +6428,8 @@ local function CreateChakraSenseUI()
     MyChakraTitle.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    MyChakraTitle.Visible = false
+    MyChakraTitle.Visible =
+        false
 
     MyChakraTitle.Parent =
         ChakraSenseGui
@@ -6100,12 +6450,14 @@ local function CreateChakraSenseUI()
     MyChakraDescription.Size =
         UDim2.new(0, 500, 0, 35)
 
-    MyChakraDescription.BackgroundTransparency = 1
+    MyChakraDescription.BackgroundTransparency =
+        1
 
     MyChakraDescription.Font =
         Enum.Font.GothamSemibold
 
-    MyChakraDescription.TextSize = 22
+    MyChakraDescription.TextSize =
+        22
 
     MyChakraDescription.TextColor3 =
         Color3.fromRGB(255, 80, 80)
@@ -6113,7 +6465,8 @@ local function CreateChakraSenseUI()
     MyChakraDescription.TextStrokeColor3 =
         Color3.fromRGB(0, 0, 0)
 
-    MyChakraDescription.TextStrokeTransparency = 0
+    MyChakraDescription.TextStrokeTransparency =
+        0
 
     MyChakraDescription.Text =
         "Waiting For All Chakra Sense Users"
@@ -6124,7 +6477,8 @@ local function CreateChakraSenseUI()
     MyChakraDescription.TextYAlignment =
         Enum.TextYAlignment.Center
 
-    MyChakraDescription.Visible = false
+    MyChakraDescription.Visible =
+        false
 
     MyChakraDescription.Parent =
         ChakraSenseGui
@@ -6208,21 +6562,25 @@ local function UpdateChakraSenseUI()
 
     if not State.ChakraSenseUIEnabled then
 
-        ChakraSenseLabel.Visible = false
+        ChakraSenseLabel.Visible =
+            false
 
         if MyChakraTitle then
-            MyChakraTitle.Visible = false
+            MyChakraTitle.Visible =
+                false
         end
 
         if MyChakraDescription then
-            MyChakraDescription.Visible = false
+            MyChakraDescription.Visible =
+                false
         end
 
         return
     end
 
 
-    ChakraSenseLabel.Visible = true
+    ChakraSenseLabel.Visible =
+        true
 
 
     local activePlayers =
@@ -6240,12 +6598,20 @@ local function UpdateChakraSenseUI()
     if count == 0 then
 
         ChakraSenseLabel.TextColor3 =
-            Color3.fromRGB(170, 170, 170)
+            Color3.fromRGB(
+                170,
+                170,
+                170
+            )
 
     else
 
         ChakraSenseLabel.TextColor3 =
-            Color3.fromRGB(170, 85, 255)
+            Color3.fromRGB(
+                170,
+                85,
+                255
+            )
     end
 end
 
@@ -6258,8 +6624,10 @@ local function SetObservedUI(visible)
 
 
     if MyChakraTitle then
+
         MyChakraTitle.Visible =
             visible
+
     end
 
 
@@ -6286,12 +6654,12 @@ local function UpdateObservedState()
 
     else
 
-        BeingObservedTriggered = false
+        BeingObservedTriggered =
+            false
 
         SetObservedUI(false)
     end
 end
-
 
 
 local function ClearBeingObservedConnections()
@@ -6304,7 +6672,6 @@ local function ClearBeingObservedConnections()
             connection:Disconnect()
         end
     end
-
 
     table.clear(
         BeingObservedConnections
@@ -6325,14 +6692,24 @@ local function SetupBeingObservedDetector()
         return
     end
 
+
+    local player =
+        Services.LocalPlayer
+
+    if not player then
+        return
+    end
+
+
     local mySettings =
         settings:FindFirstChild(
-            Services.LocalPlayer.Name
+            player.Name
         )
 
     if not mySettings then
         return
     end
+
 
     table.insert(
         BeingObservedConnections,
@@ -6340,19 +6717,31 @@ local function SetupBeingObservedDetector()
         mySettings.ChildAdded:Connect(
             function(child)
 
-                if child.Name ~= "BeingObservedBy" then
+                if child.Name ~=
+                    "BeingObservedBy" then
+
                     return
                 end
 
-                if not child:IsA("StringValue") then
+
+                if not child:IsA(
+                    "StringValue"
+                ) then
+
                     return
                 end
 
-                BeingObservedTriggered = true
+
+                BeingObservedTriggered =
+                    true
+
 
                 if HasActiveChakraSense() then
+
                     SetObservedUI(true)
+
                 end
+
 
                 ChakraNotify(
                     "⚠️ You Are Being Observed",
@@ -6361,9 +6750,6 @@ local function SetupBeingObservedDetector()
             end
         )
     )
-end
-
-
 
 
     table.insert(
@@ -6374,6 +6760,7 @@ end
 
                 if child.Name ~=
                     "BeingObservedBy" then
+
                     return
                 end
 
@@ -6388,14 +6775,17 @@ end
             end
         )
     )
-
-
+end
 
 
 local function WatchCharacter(
     player,
     character
 )
+
+    if not player then
+        return
+    end
 
     if not character then
         return
@@ -6407,8 +6797,11 @@ local function WatchCharacter(
     end
 
 
-    TrackedCharacters[character] = true
-    ChakraStates[character] = false
+    TrackedCharacters[character] =
+        true
+
+    ChakraStates[character] =
+        false
 
 
     local torso =
@@ -6438,8 +6831,11 @@ local function WatchCharacter(
 
     if not torso then
 
-        TrackedCharacters[character] = nil
-        ChakraStates[character] = nil
+        TrackedCharacters[character] =
+            nil
+
+        ChakraStates[character] =
+            nil
 
         return
     end
@@ -6452,7 +6848,8 @@ local function WatchCharacter(
         end
 
 
-        ChakraStates[character] = true
+        ChakraStates[character] =
+            true
 
 
         ChakraNotify(
@@ -6481,7 +6878,6 @@ local function WatchCharacter(
                     player.Name
                     .. " is still using Chakra Sense!"
                 )
-
             end
         )
 
@@ -6501,7 +6897,10 @@ local function WatchCharacter(
             return
         end
 
-        ChakraStates[character] = false
+
+        ChakraStates[character] =
+            false
+
 
         ChakraNotify(
             "Chakra Sense Ended",
@@ -6509,10 +6908,10 @@ local function WatchCharacter(
             .. " stopped using Chakra Sense!"
         )
 
+
         UpdateChakraSenseUI()
         UpdateObservedState()
     end
-
 
 
     if torso:FindFirstChild(
@@ -6520,6 +6919,7 @@ local function WatchCharacter(
     ) then
 
         ChakraStarted()
+
     end
 
 
@@ -6529,12 +6929,12 @@ local function WatchCharacter(
 
                 if child.Name ~=
                     "ChakraSense" then
+
                     return
                 end
 
 
                 ChakraStarted()
-
             end
         )
 
@@ -6545,12 +6945,12 @@ local function WatchCharacter(
 
                 if child.Name ~=
                     "ChakraSense" then
+
                     return
                 end
 
 
                 ChakraEnded()
-
             end
         )
 
@@ -6560,24 +6960,37 @@ local function WatchCharacter(
             function()
 
                 if addedConnection then
+
                     addedConnection:Disconnect()
-                    addedConnection = nil
+
+                    addedConnection =
+                        nil
                 end
+
 
                 if removedConnection then
+
                     removedConnection:Disconnect()
-                    removedConnection = nil
+
+                    removedConnection =
+                        nil
                 end
 
-                TrackedCharacters[character] = nil
-                ChakraStates[character] = nil
-                CharacterConnections[character] = nil
+
+                TrackedCharacters[character] =
+                    nil
+
+                ChakraStates[character] =
+                    nil
+
+                CharacterConnections[character] =
+                    nil
+
 
                 UpdateChakraSenseUI()
                 UpdateObservedState()
             end
         )
-
 
 
     CharacterConnections[character] = {
@@ -6599,8 +7012,14 @@ end
 
 local function SetupPlayer(player)
 
+    if not player then
+        return
+    end
+
+
     if player ==
         Services.LocalPlayer then
+
         return
     end
 
@@ -6614,7 +7033,6 @@ local function SetupPlayer(player)
                     player,
                     player.Character
                 )
-
             end
         )
     end
@@ -6643,7 +7061,6 @@ local function SetupPlayer(player)
 
                 UpdateChakraSenseUI()
                 UpdateObservedState()
-
             end
         )
 end
@@ -6669,53 +7086,71 @@ Services.Players.PlayerAdded:Connect(
 
         UpdateChakraSenseUI()
         UpdateObservedState()
-
     end
 )
 
 
-    Services.Players.PlayerRemoving:Connect(
-        function(player)
+Services.Players.PlayerRemoving:Connect(
+    function(player)
 
-            if PlayerConnections[player] then
-                PlayerConnections[player]:Disconnect()
-                PlayerConnections[player] = nil
-            end
+        if PlayerConnections[player] then
 
-            if player.Character then
+            PlayerConnections[player]:Disconnect()
 
-                local character =
-                    player.Character
+            PlayerConnections[player] =
+                nil
+        end
 
-                local connections =
-                    CharacterConnections[character]
 
-                if connections then
+        if player.Character then
 
-                    if connections.Added then
-                        connections.Added:Disconnect()
-                    end
+            local character =
+                player.Character
 
-                    if connections.Removed then
-                        connections.Removed:Disconnect()
-                    end
+            local connections =
+                CharacterConnections[character]
 
-                    if connections.Destroying then
-                        connections.Destroying:Disconnect()
-                    end
 
-                    CharacterConnections[character] = nil
+            if connections then
+
+                if connections.Added then
+
+                    connections.Added:Disconnect()
+
                 end
 
-                TrackedCharacters[character] = nil
-                ChakraStates[character] = nil
+
+                if connections.Removed then
+
+                    connections.Removed:Disconnect()
+
+                end
+
+
+                if connections.Destroying then
+
+                    connections.Destroying:Disconnect()
+
+                end
+
+
+                CharacterConnections[character] =
+                    nil
             end
 
-            UpdateChakraSenseUI()
-            UpdateObservedState()
-        end
-    )
 
+            TrackedCharacters[character] =
+                nil
+
+            ChakraStates[character] =
+                nil
+        end
+
+
+        UpdateChakraSenseUI()
+        UpdateObservedState()
+    end
+)
 
 
 CreateChakraSenseUI()
@@ -6735,7 +7170,6 @@ Services.LocalPlayer.CharacterAdded:Connect(
 
         UpdateChakraSenseUI()
         UpdateObservedState()
-
     end
 )
 
@@ -6827,7 +7261,148 @@ Services.Players.PlayerAdded:Connect(
     end
 )
 
--- Addons
+-- Unload
+
+RightGroupBox2:AddButton("Unload", function()
+
+    if Toggles.FlyToggle then
+        Toggles.FlyToggle:SetValue(false)
+    end
+
+    if Toggles.NoclipToggle then
+        Toggles.NoclipToggle:SetValue(false)
+    end
+
+    if Toggles.AutoFallToggle then
+        Toggles.AutoFallToggle:SetValue(false)
+    end
+
+    if Toggles.SpeedToggle then
+        Toggles.SpeedToggle:SetValue(false)
+    end
+
+    if Toggles.AutoLogToggle then
+        Toggles.AutoLogToggle:SetValue(false)
+    end
+
+    if Toggles.ProximityCheck then
+        Toggles.ProximityCheck:SetValue(false)
+    end
+
+    if Toggles.AutoPick then
+        Toggles.AutoPick:SetValue(false)
+    end
+
+    if Toggles.FruitESP then
+        Toggles.FruitESP:SetValue(false)
+    end
+
+    if Toggles.PlayerESPToggle then
+        Toggles.PlayerESPToggle:SetValue(false)
+    end
+
+    if Toggles.ObserveToggle then
+        Toggles.ObserveToggle:SetValue(false)
+    end
+
+    if Toggles.NoKillBricks then
+        Toggles.NoKillBricks:SetValue(false)
+    end
+
+    if Toggles.ChakraSenseStatus then
+        Toggles.ChakraSenseStatus:SetValue(false)
+    end
+
+    if Toggles.JoinNotifier then
+        Toggles.JoinNotifier:SetValue(false)
+    end
+
+    if Toggles.AutoExecute then
+        Toggles.AutoExecute:SetValue(false)
+    end
+
+
+    -- Manuel olarak tuttuğun connection'lar
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+        NoclipConnection = nil
+    end
+
+    if autoPickupConnection then
+        autoPickupConnection:Disconnect()
+        autoPickupConnection = nil
+    end
+
+    if farmConnection then
+        farmConnection:Disconnect()
+        farmConnection = nil
+    end
+
+    if dangerConnection then
+        dangerConnection:Disconnect()
+        dangerConnection = nil
+    end
+
+    ClearBeingObservedConnections()
+
+    table.clear(TrackedCharacters)
+    table.clear(ChakraStates)
+    table.clear(PlayerConnections)
+    table.clear(CharacterConnections)
+
+    BeingObservedTriggered = false
+
+
+
+    -- Chakra UI
+    if ChakraSenseGui then
+        ChakraSenseGui:Destroy()
+        ChakraSenseGui = nil
+        ChakraSenseLabel = nil
+        MyChakraTitle = nil
+        MyChakraDescription = nil
+    end
+
+
+    if UI.ProximityGui then
+        UI.ProximityGui:Destroy()
+        UI.ProximityGui = nil
+        UI.ProximityLabel = nil
+    end
+
+
+
+    -- Player ESP
+    if RemovePlayerESP then
+        RemovePlayerESP()
+    end
+
+
+    if State.FlyBodyVelocity then
+        State.FlyBodyVelocity:Destroy()
+        State.FlyBodyVelocity = nil
+    end
+
+        if State.noFogConnection then
+        State.noFogConnection:Disconnect()
+        State.noFogConnection = nil
+    end
+
+    if State.oldFogEnd ~= nil then
+        Services.Lighting.FogEnd = State.oldFogEnd
+        State.oldFogEnd = nil
+    end
+
+
+
+    Library:Unload()
+
+end)
 
 -- Auto Execute System
 
@@ -6894,9 +7469,9 @@ SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
-SaveManager:SetSubFolder("specific-place")
+ThemeManager:SetFolder("Themes")
+SaveManager:SetFolder("PermaDeathEnjoyer/Configs")
+SaveManager:SetSubFolder("Bloodlines")
 
 -- Config System
 
