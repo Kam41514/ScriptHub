@@ -8,6 +8,6 @@ if game.PlaceId == 76606442853797 then
 if game.PlaceId == 10266164381 then
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/refs/heads/main/scriptbeta.lua"))()
 else
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/refs/heads/main/scriptbeta.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/refs/heads/main/universal.lua"))()
     end
 end
