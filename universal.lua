@@ -1372,46 +1372,6 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
-
-
--- Addons
-
-print(SaveManager.BuildConfigSection)
-
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
-SaveManager:SetSubFolder("specific-place")
-
--- Config System
-
-SaveManager:BuildConfigSection(Tabs.Config)
-
-ThemeManager:ApplyToTab(Tabs.Config)
-
-SaveManager:LoadAutoloadConfig()
-
-
--- Events
-Players.PlayerAdded:Connect(function()
-    task.wait(1)
-    UpdatePlayerList()
-end)
-
-Players.PlayerRemoving:Connect(function()
-    task.wait(1)
-    UpdatePlayerList()
-end)
-
-UpdateOnCharacterReset()
-
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
 local AutoRejoinGame = false
 
 RightGroupBox2:AddToggle("AutoRejoinGame", {
@@ -1440,27 +1400,44 @@ RightGroupBox2:AddToggle("AutoRejoinGame", {
     end
 })
 
-RightGroupBox2:AddToggle("AutoExecute", {
-    Text = "Auto Execute on Teleport",
-    Default = true,
+-- Events
+Players.PlayerAdded:Connect(function()
+    task.wait(1)
+    UpdatePlayerList()
+end)
 
-    Callback = function(AutoExecuteValue)
-        AutoExecute = AutoExecuteValue
+Players.PlayerRemoving:Connect(function()
+    task.wait(1)
+    UpdatePlayerList()
+end)
 
-        if AutoExecute and queue_on_teleport then
-            queue_on_teleport([[
-                repeat task.wait() until game:IsLoaded()
+UpdateOnCharacterReset()
 
-                if game.PlaceId == 76606442853797 then
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/script.lua"))()
-                      else
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/main/universal.lua"))()
-                end
-            ]])
+-- Addons
 
-            print("Queue Added")
-        end
-    end
-})
+print(SaveManager.BuildConfigSection)
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
+ThemeManager:SetFolder("Themes")
+SaveManager:SetFolder("PermaDeathEnjoyer/Everything")
+SaveManager:SetSubFolder("Universal")
+
+-- Config System
+
+SaveManager:BuildConfigSection(Tabs.Config)
+
+ThemeManager:ApplyToTab(Tabs.Config)
+
+SaveManager:LoadAutoloadConfig()
+
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
+
+
 
 
