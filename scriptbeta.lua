@@ -6390,21 +6390,21 @@ local data = {
     embeds = {
         {
             title =
-                "⭐ Rare Item Picked",
+                "⭐ Rare Item Detected",
 
             description =
                 "**"
                 .. tostring(
                     itemName
                 )
-                .. "** was picked up.",
+                .. "** was detected.",
 
             color = 0xFFD700,
 
             footer = {
                 text =
                     "Account Name: "
-                    .. player.Name
+                    .. shortName
             },
 
             timestamp =
