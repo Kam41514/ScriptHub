@@ -4571,11 +4571,18 @@ funcs.teleportToFruit = function(
         return false
     end
 
+    position =
+        position
+        - Vector3.new(
+            0,
+            0.5,
+            0
+        )
+
     hrp.CFrame =
         CFrame.new(position)
 
     return true
-
 end
 
 funcs.waitForTreeFruits = function(
