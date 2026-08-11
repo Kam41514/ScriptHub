@@ -234,7 +234,12 @@ local State = {
     TreeFarmStatusDot = nil,
 
     noFogConnection = nil,
-    oldFogEnd = nil
+    oldFogEnd = nil,
+
+    OldBrightness = Services.Lighting.Brightness,
+    FullBrightConnection = nil,
+    BrightnessLevel = 2,
+    FullBrightEnabled = false,
 }
 
 
@@ -3044,6 +3049,51 @@ if State.ObserveEnabled then
         enableObserve()
     end)
 end
+
+function funcs.fullBright(state)
+    State.FullBrightEnabled = state
+
+    if State.FullBrightConnection then
+        State.FullBrightConnection:Disconnect()
+        State.FullBrightConnection = nil
+    end
+
+    if not state then
+        Services.Lighting.Brightness = State.OldBrightness
+        return
+    end
+
+    State.FullBrightConnection =
+        Services.RunService.RenderStepped:Connect(function()
+            Services.Lighting.Brightness =
+                State.BrightnessLevel
+        end)
+end
+
+AutomationLeftGroupBox:AddSlider("BrightnessLevel", {
+    Text = "Brightness",
+    Default = 2,
+    Min = 0,
+    Max = 10,
+    Rounding = 1,
+
+    Callback = function(Value)
+        State.BrightnessLevel = Value
+
+        if State.FullBrightEnabled then
+            Services.Lighting.Brightness = Value
+        end
+    end
+})
+
+AutomationLeftGroupBox:AddToggle("FullBright", {
+    Text = "Full Bright",
+    Default = false,
+
+    Callback = function(Value)
+        funcs.fullBright(Value)
+    end
+})
 
 VisualRightGroupBox2:AddToggle("NoFog", {
     Text = "No Fog",
