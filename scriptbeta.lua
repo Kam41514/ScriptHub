@@ -198,7 +198,8 @@ local State = {
         ["Pear"] = true,
         ["Alluring Apple"] = true,
         ["Apple"] = true,
-        ["Banana"] = true
+        ["Banana"] = true,
+        ["Fruit Of Forgetfulness"] = true,
     },
 
     PlayerESPObjects = {},
@@ -4365,7 +4366,8 @@ funcs.getCurrentFruits = function()
             "Alluring Apple",
             "Pear",
             "Chakra Fruit",
-            "Life Up Fruit"
+            "Life Up Fruit",
+            "Fruit Of Forgetfulness",
         }
 
         for _, name in ipairs(names) do
