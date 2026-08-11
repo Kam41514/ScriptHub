@@ -132,13 +132,14 @@ Connect(
 -- Updates:
 
 local State = {
+    -- Player
     SelectedPlayer = "",
     PlayerList = {},
 
+    -- Movement
     FlySpeed = 125,
     WalkSpeed = 16,
     ToggleAutoFallValue = false,
-    AutoPick = false,
 
     SpeedEnabled = false,
     Humanoid = nil,
@@ -146,46 +147,64 @@ local State = {
     DefaultSpeed = 16,
     JumpPower = 50,
 
-    SelectedNPC = nil,
-    AutoFloatNPC = false,
-    ESPEnabled = false,
-
-    CurrentSpeedToggleKey = nil,
-    CurrentNoclipKey = nil,
-    CurrentFlyKey = nil,
-
-    AutoExecute = AutoExecuteValue,
-    SelectedPoint = nil,
-
-    FruitESP = false,
-    Farming = false,
-    PickupList = {},
-
-    DangerDistance = 165,
-
     FlyEnabled = false,
     NoclipEnabled = false,
     FlyBodyVelocity = nil,
 
+    -- NPC
+    SelectedNPC = nil,
+    AutoFloatNPC = false,
+
+    -- ESP
+    ESPEnabled = false,
+    FruitESP = false,
+
+    -- Keybinds
+    CurrentSpeedToggleKey = nil,
+    CurrentNoclipKey = nil,
+    CurrentFlyKey = nil,
+    CurrentTreeFarmKey = nil,
+
+    -- Auto Execute
+    AutoExecute = AutoExecuteValue,
+
+    -- Player selection / points
+    SelectedPoint = nil,
+
+    -- Farming
+    Farming = false,
+    PickupList = {},
+
+    -- Proximity / Safety
+    DangerDistance = 165,
+    ProximityDistance = 375,
+    ProximityCheck = false,
+    TreePlayerRange = 150,
+
+    -- Auto Log
     AutoLog = false,
     AutoLogDistance = 50,
 
-    ProximityDistance = 375,
-    ProximityCheck = false,
-
+    -- Misc
     JoinNotifier = true,
 
+    -- Kill Bricks
     KillBricks = {},
     NoKillBricks = false,
 
-    TreePlayerRange = 150,
-
-    SafePointPositions = {
-    Vector3.new(-2431.339, 418.692, -1281.255),
-    Vector3.new(868.431, 288.574, -1757.482),
-    Vector3.new(528.921, 285.689, 1318.243)
+    KillBrickNames = {
+        "LavarossaVoid",
+        "Void"
     },
 
+    -- Safe Points
+    SafePointPositions = {
+        Vector3.new(-2431.339, 418.692, -1281.255),
+        Vector3.new(868.431, 288.574, -1757.482),
+        Vector3.new(528.921, 285.689, 1318.243)
+    },
+
+    -- Fruits
     FruitNames = {
         ["Mango"] = true,
         ["Orange"] = true,
@@ -197,30 +216,66 @@ local State = {
         ["Banana"] = true
     },
 
-    KillBrickNames = {
-    "LavarossaVoid",
-    "Void"
-    }
+    -- Player ESP
+    PlayerESPObjects = {},
+    PlayerESPEnabled = false,
+
+    -- Observe
+    ObserveEnabled = true,
+    CurrentObserveTarget = nil,
+
+    -- Tree / Fruit Farm
+    TreeFarmEnabled = false,
+    TreeFloatVelocity = nil,
+    AutoPickupConnectionName = nil,
+    TreeFarmRunId = 0,
+
+    -- No Fall
+    NoFallEnabled = false,
+    NoFallOldNamecall = nil,
+
+    -- Auto Pickup
+    AutoPickupEnabled = false,
+
+    -- GUI / Status
+    TreeFarmStatusGui = nil,
+    TreeFarmStatusFrame = nil,
+    TreeFarmStatusLabel = nil,
+    TreeFarmTreeLabel = nil,
+    TreeFarmStatusDot = nil,
 }
+
 
 local UI = {
     ProximityGui = nil,
     ProximityLabel = nil,
 }
 
-
-
 local function UpdatePlayerList()
-    local NewList = {}
-    local playerOptions = {}
 
-    for _, player in ipairs(Services.Players:GetPlayers()) do
-        table.insert(NewList, player.Name)
+    local newList = {}
+
+    for _, player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
+
+        table.insert(
+            newList,
+            player.Name
+        )
+
     end
+
+
+    State.PlayerList = newList
+
 
     if Options.PlayerDropdown then
-        Options.PlayerDropdown:SetValues(NewList)
+        Options.PlayerDropdown:SetValues(
+            newList
+        )
     end
+
 end
 
 
@@ -235,42 +290,114 @@ local function ResetPlayerStates()
     State.WalkSpeed = 16
     State.JumpPower = 50
 
+    State.SelectedPlayer = ""
+    State.SelectedNPC = nil
+
+
+    -- Fly
     if Toggles.FlyToggle then
         Toggles.FlyToggle:SetValue(false)
     end
 
+
+    -- Auto Fall
     if Toggles.AutoFallToggle then
         Toggles.AutoFallToggle:SetValue(false)
     end
 
+
+    -- Speed
     if Toggles.SpeedToggle then
         Toggles.SpeedToggle:SetValue(false)
     end
 
+
+    -- Noclip
     Disconnect("Noclip_Stepped")
 
     if Toggles.NoclipToggle then
         Toggles.NoclipToggle:SetValue(false)
     end
 
+
+    -- Auto Float NPC
     if Toggles.AutoFloatNPCToggle then
         Toggles.AutoFloatNPCToggle:SetValue(false)
     end
 
+
+    -- Auto Fruit
     if Toggles.AutoFruit then
         Toggles.AutoFruit:SetValue(false)
     end
 
+
+    -- Player ESP
     if Toggles.BoxESPToggle then
         Toggles.BoxESPToggle:SetValue(false)
     end
 
-    local humanoid = State.Humanoid
 
-    if humanoid then
-        humanoid.WalkSpeed = State.DefaultSpeed
-        humanoid.JumpPower = State.JumpPower
+    -- Tree Farm
+    if Toggles.TreeFarmToggle then
+        Toggles.TreeFarmToggle:SetValue(false)
     end
+
+
+    -- Observe
+    if Toggles.ObserveToggle then
+        Toggles.ObserveToggle:SetValue(false)
+    end
+
+
+    -- Fly BodyVelocity temizle
+    if State.FlyBodyVelocity then
+        State.FlyBodyVelocity:Destroy()
+        State.FlyBodyVelocity = nil
+    end
+
+
+    -- Tree Float temizle
+    if State.TreeFloatVelocity then
+        State.TreeFloatVelocity:Destroy()
+        State.TreeFloatVelocity = nil
+    end
+
+
+    -- Auto Pickup
+    if State.AutoPickupConnectionName then
+
+        Disconnect(
+            State.AutoPickupConnectionName
+        )
+
+        State.AutoPickupConnectionName = nil
+
+    end
+
+
+    -- Eski global bağlantı kullanılıyorsa
+    if autoPickupConnection then
+        autoPickupConnection:Disconnect()
+        autoPickupConnection = nil
+    end
+
+
+    -- Humanoid değerlerini geri yükle
+    local humanoid =
+        State.Humanoid
+
+
+    if humanoid and humanoid.Parent then
+
+        humanoid.WalkSpeed =
+            State.DefaultSpeed
+
+        humanoid.JumpPower =
+            50
+
+    end
+
 end
 
 
@@ -279,11 +406,122 @@ local function UpdateHumanoid()
     local character =
         Services.LocalPlayer.Character
 
-    if character then
-        State.Humanoid =
-            character:FindFirstChildOfClass("Humanoid")
-    else
+
+    if not character then
+
         State.Humanoid = nil
+
+        return
+
+    end
+
+
+    State.Humanoid =
+        character:FindFirstChildOfClass(
+            "Humanoid"
+        )
+
+
+end
+
+
+local function SetupCharacter(character)
+
+    if not character then
+        return
+    end
+
+
+    local humanoid =
+        character:WaitForChild(
+            "Humanoid",
+            10
+        )
+
+
+    if not humanoid then
+        return
+    end
+
+
+    State.Humanoid =
+        humanoid
+
+
+    UpdatePlayerList()
+
+
+    ResetPlayerStates()
+
+
+    Connect(
+        "Character_HumanoidDied",
+        humanoid.Died,
+        function()
+
+            ResetPlayerStates()
+
+        end
+    )
+
+
+    Library:Notify({
+        Title = "Character Updated",
+        Description =
+            "Functions were reset after character reset.",
+        Duration = 3
+    })
+
+end
+
+
+local function UpdateOnCharacterReset()
+
+    -- Önceki CharacterAdded bağlantısını temizle
+    Disconnect(
+        "Character_Reset"
+    )
+
+
+    Connect(
+        "Character_Reset",
+        Services.LocalPlayer.CharacterAdded,
+        function(character)
+
+            -- Karakter tamamen oluşsun
+            task.wait(0.5)
+
+
+            if not character
+                or not character.Parent then
+                return
+            end
+
+
+            SetupCharacter(
+                character
+            )
+
+        end
+    )
+
+
+    local currentCharacter =
+        Services.LocalPlayer.Character
+
+
+    if currentCharacter then
+
+        task.spawn(
+            function()
+
+                SetupCharacter(
+                    currentCharacter
+                )
+
+            end
+        )
+
     end
 
 end
@@ -1267,6 +1505,57 @@ Connect(
         end
     end
 )
+
+local NewNoFallToggle = PlayerLeftGroupBox3:AddToggle(
+    "NewNoFallToggle",
+    {
+        Text = "No Fall Damage",
+        Default = false,
+
+        Callback = function(Value)
+
+            getgenv().NewNoFallEnabled = Value
+
+            if Value then
+
+                if getgenv().NewNoFallHookInstalled then
+                    return
+                end
+
+                local oldNamecall
+
+                oldNamecall = hookmetamethod(
+                    game,
+                    "__namecall",
+                    function(self, ...)
+
+                        local method = getnamecallmethod()
+
+                        if method == "FindFirstChild"
+                            and getgenv().NewNoFallEnabled then
+
+                            local args = {...}
+
+                            if args[1] == "NegateFall" then
+                                return true
+                            end
+                        end
+
+                        return oldNamecall(self, ...)
+                    end
+                )
+
+                getgenv().NewNoFallOldNamecall =
+                    oldNamecall
+
+                getgenv().NewNoFallHookInstalled =
+                    true
+
+            end
+        end
+    }
+)
+
 
 -- End Of Player Tab
 
@@ -2720,8 +3009,7 @@ Connect(
 )
 
 
-local playerGui =
-    Services.LocalPlayer:WaitForChild("PlayerGui")
+local playerGui = Services.LocalPlayer:WaitForChild("PlayerGui")
 
 
 Connect(
@@ -2956,633 +3244,1447 @@ AutomationLeftGroupBox:AddToggle("AutoPick", {
 
 -- Botting
 
-local BottingRightGroupBox = Tabs.Botting:AddRightGroupbox("Auto Farm")
+local BottingLeftGroupBox =
+    Tabs.Botting:AddLeftGroupbox("Auto Farm Settings")
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local BottingRightGroupBox =
+    Tabs.Botting:AddRightGroupbox("Auto Farm")
 
-local function getCharacter()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+State.TreeFarmEnabled =
+    State.TreeFarmEnabled or false
+
+State.TreeFloatVelocity =
+    State.TreeFloatVelocity or nil
+
+State.AutoPickupConnectionName =
+    State.AutoPickupConnectionName or nil
+
+State.TreeFarmRunId =
+    State.TreeFarmRunId or 0
+
+State.CurrentTreeFarmKey =
+    State.CurrentTreeFarmKey or nil
+
+State.TreePlayerRange =
+    State.TreePlayerRange or 150
+
+State.TreeFarmPreviousNoFallState =
+    State.TreeFarmPreviousNoFallState or false
+
+State.TreeFarmNoFallOldNamecall =
+    State.TreeFarmNoFallOldNamecall or nil
+
+
+
+local Players = Services.Players
+local LocalPlayer = Services.LocalPlayer
+local RunService = Services.RunService
+local ReplicatedStorage = Services.ReplicatedStorage
+
+
+funcs.getCharacter = function()
+
+    local character =
+        LocalPlayer.Character
+
+    if character then
+        return character
+    end
+
+    return LocalPlayer.CharacterAdded:Wait()
+
 end
 
-local function getHRP()
-    local character = getCharacter()
-    return character:FindFirstChild("HumanoidRootPart")
+
+funcs.getHRP = function()
+
+    local character =
+        funcs.getCharacter()
+
+    return character
+        and character:FindFirstChild(
+            "HumanoidRootPart"
+        )
+
 end
 
-local function GetActiveChakraPlayers()
+funcs.GetActiveChakraPlayers = function()
+
     local activePlayers = {}
 
-    for _, plr in ipairs(Players:GetPlayers()) do
+    for _, plr in ipairs(
+        Players:GetPlayers()
+    ) do
+
         if plr ~= LocalPlayer
             and plr.Character then
 
             local torso =
-                plr.Character:FindFirstChild("Torso")
-                or plr.Character:FindFirstChild("UpperTorso")
+                plr.Character:FindFirstChild(
+                    "Torso"
+                )
+                or plr.Character:FindFirstChild(
+                    "UpperTorso"
+                )
 
-            if torso and torso:FindFirstChild("ChakraSense") then
-                table.insert(activePlayers, plr.Name)
+            if torso
+                and torso:FindFirstChild(
+                    "ChakraSense"
+                ) then
+
+                table.insert(
+                    activePlayers,
+                    plr.Name
+                )
+
             end
         end
     end
 
     return activePlayers
+
 end
 
-local function isAnyActiveChakraUser()
-    return #GetActiveChakraPlayers() > 0
+
+funcs.isAnyActiveChakraUser = function()
+
+    return #funcs.GetActiveChakraPlayers() > 0
+
 end
 
-local function isPlayerWithinDistance(position, distance)
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+funcs.isPlayerWithinDistance = function(
+    position,
+    distance
+)
 
-            if hrp and (hrp.Position - position).Magnitude <= distance then
+    for _, plr in ipairs(
+        Players:GetPlayers()
+    ) do
+
+        if plr ~= LocalPlayer then
+
+            local character =
+                plr.Character
+
+            local hrp =
+                character
+                and character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
+            if hrp
+                and (
+                    hrp.Position - position
+                ).Magnitude <= distance then
+
                 return true
+
             end
         end
     end
 
     return false
+
 end
 
+funcs.teleportToSafePoint = function()
+
+    if funcs.noClip then
+        funcs.noClip(false)
+    elseif noClip then
+        noClip(false)
+    end
 
 
-local function teleportToSafePoint()
-    local hrp = getHRP()
+    if State.TreeFloatVelocity then
+
+        State.TreeFloatVelocity:Destroy()
+
+        State.TreeFloatVelocity = nil
+
+    end
+
+
+    local hrp =
+        funcs.getHRP()
 
     if not hrp then
         return false
     end
 
-    -- 1. deneme
-    local safePoint = getSafePoint(hrp.Position)
+
+    local safePoint =
+        funcs.getSafePoint(
+            hrp.Position
+        )
 
     if safePoint then
-        hrp.CFrame = CFrame.new(safePoint)
+
+        hrp.CFrame =
+            CFrame.new(
+                safePoint
+            )
 
         task.wait(0.05)
 
-        if hrp.Parent and (hrp.Position - safePoint).Magnitude <= 5 then
 
-            -- Safe point'e gelince noclip'i kapat
-            noClip(false)
+        if hrp.Parent
+            and (
+                hrp.Position - safePoint
+            ).Magnitude <= 5 then
 
-            updateStatus(
-                "Moved To Safe Point",
-                Color3.fromRGB(90, 220, 130),
-                "Safety mode active"
-            )
+            if funcs.updateStatus then
+                funcs.updateStatus(
+                    "Moved To Safe Point",
+                    Color3.fromRGB(
+                        90,
+                        220,
+                        130
+                    ),
+                    "Safety mode active"
+                )
+            end
 
             return true
+
         end
     end
 
-    -- 2. deneme: closest point'i yeniden hesapla
+
     task.wait(0.05)
+
 
     if not hrp.Parent then
         return false
     end
 
-    safePoint = getSafePoint(hrp.Position)
+
+    safePoint =
+        funcs.getSafePoint(
+            hrp.Position
+        )
 
     if not safePoint then
         return false
     end
 
-    hrp.CFrame = CFrame.new(safePoint)
+
+    hrp.CFrame =
+        CFrame.new(
+            safePoint
+        )
 
     task.wait(0.05)
+
 
     if not hrp.Parent then
         return false
     end
 
-    -- 2. denemede de noclip'i kapat
-    noClip(false)
 
-    updateStatus(
-        "Moved To Safe Point",
-        Color3.fromRGB(90, 220, 130),
-        "Safety mode active"
-    )
+    if funcs.updateStatus then
+        funcs.updateStatus(
+            "Moved To Safe Point",
+            Color3.fromRGB(
+                90,
+                220,
+                130
+            ),
+            "Safety mode active"
+        )
+    end
+
 
     return true
+
 end
 
+funcs.getTrees = function()
 
-
-
-local function getTrees()
     local trees = {}
 
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and string.match(obj.Name, "^Tree%d+$") then
-            local fruitSpawns = obj:FindFirstChild("FruitSpawns")
-            local mainBranch = obj:FindFirstChild("MainBranch")
+    for _, obj in ipairs(
+        workspace:GetChildren()
+    ) do
 
-            if fruitSpawns and mainBranch then
-                table.insert(trees, {
-                    Tree = obj,
-                    MainBranch = mainBranch
-                })
+        if obj:IsA("Model")
+            and string.match(
+                obj.Name,
+                "^Tree%d+$"
+            ) then
+
+            local fruitSpawns =
+                obj:FindFirstChild(
+                    "FruitSpawns"
+                )
+
+            local mainBranch =
+                obj:FindFirstChild(
+                    "MainBranch"
+                )
+
+            if fruitSpawns
+                and mainBranch then
+
+                table.insert(
+                    trees,
+                    {
+                        Tree = obj,
+                        MainBranch = mainBranch
+                    }
+                )
+
             end
         end
     end
 
-    table.sort(trees, function(a, b)
-        return a.Tree.Name < b.Tree.Name
-    end)
+
+    table.sort(
+        trees,
+        function(a, b)
+
+            return a.Tree.Name
+                < b.Tree.Name
+
+        end
+    )
+
 
     return trees
+
 end
 
-local function teleportToTree(treeData)
-    if isAnyActiveChakraUser() then
+funcs.teleportToTree = function(
+    treeData
+)
+
+    if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    local hrp = getHRP()
+
+    local hrp =
+        funcs.getHRP()
 
     if not hrp then
         return false
     end
 
-    local mainBranch = treeData.MainBranch
+
+    local mainBranch =
+        treeData.MainBranch
+
 
     if not mainBranch
         or not mainBranch.Parent
         or not mainBranch:IsA("BasePart") then
+
+        return false
+
+    end
+
+
+    local targetPosition =
+        mainBranch.Position
+
+
+    -- Slider değerini kullan
+    local playerRange =
+        State.TreePlayerRange or 150
+
+
+    -- Ağaca gitmeden önce oyuncu kontrolü
+    if funcs.isPlayerWithinDistance(
+        targetPosition,
+        playerRange
+    ) then
+
+        return false
+
+    end
+
+
+    if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    local targetPosition = mainBranch.Position
 
-    if isPlayerWithinDistance(targetPosition, 275) then
-        return false
+    -- Ağaca giderken noclip
+    if funcs.noClip then
+        funcs.noClip(true)
+    elseif noClip then
+        noClip(true)
     end
 
-    if isAnyActiveChakraUser() then
-        return false
+
+    hrp.CFrame =
+        CFrame.new(
+            targetPosition
+        )
+
+
+    -- Eski float temizle
+    if State.TreeFloatVelocity then
+
+        State.TreeFloatVelocity:Destroy()
+
+        State.TreeFloatVelocity = nil
+
     end
 
-    hrp.CFrame = CFrame.new(targetPosition)
 
-    -- Ağaç içinde float halinde sabit kal
-    if TreeFloatVelocity then
-        TreeFloatVelocity:Destroy()
-        TreeFloatVelocity = nil
-    end
+    -- Tree float
+    State.TreeFloatVelocity =
+        Instance.new("BodyVelocity")
 
-    TreeFloatVelocity = Instance.new("BodyVelocity")
-    TreeFloatVelocity.Name = "TreeFarmFloatVelocity"
-    TreeFloatVelocity.MaxForce = Vector3.new(
-        math.huge,
-        math.huge,
-        math.huge
-    )
-    TreeFloatVelocity.Velocity = Vector3.zero
-    TreeFloatVelocity.Parent = hrp
+    State.TreeFloatVelocity.Name =
+        "TreeFarmFloatVelocity"
+
+    State.TreeFloatVelocity.MaxForce =
+        Vector3.new(
+            math.huge,
+            math.huge,
+            math.huge
+        )
+
+    State.TreeFloatVelocity.Velocity =
+        Vector3.zero
+
+    State.TreeFloatVelocity.Parent =
+        hrp
+
 
     task.wait(0.05)
 
-    if not getgenv().TreeFarmEnabled then
+
+    if not State.TreeFarmEnabled then
         return false
     end
+
 
     if not hrp.Parent then
         return false
     end
 
-    if isAnyActiveChakraUser() then
+
+    if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    hrp.CFrame = CFrame.new(targetPosition)
 
-    return true
-end
-
-
-
-
-local function checkNearbyPlayerAfterTeleport()
-    local hrp = getHRP()
-
-    if not hrp then
-        return false
-    end
-
-    if isAnyActiveChakraUser() then
-        updateStatus(
-            "Active Chakra User",
-            Color3.fromRGB(255, 180, 70),
-            "Moving to nearest safe point..."
+    -- Tekrar merkezle
+    hrp.CFrame =
+        CFrame.new(
+            targetPosition
         )
 
-        teleportToSafePoint()
-
-        return true
-    end
-
-    if not isPlayerWithinDistance(hrp.Position, 150) then
-        return false
-    end
-
-    updateStatus(
-        "Player Detected",
-        Color3.fromRGB(255, 90, 90),
-        "Moving to nearest safe point..."
-    )
-
-    teleportToSafePoint()
 
     return true
+
 end
 
-local ScreenGui
-local MainFrame
-local Status
-local TreeLabel
-local StatusDot
 
-local function createStatusGui()
-    if ScreenGui then
-        ScreenGui.Enabled = true
+funcs.checkNearbyPlayerAfterTeleport =
+    function()
+
+        local hrp =
+            funcs.getHRP()
+
+        if not hrp then
+            return false
+        end
+
+
+        if funcs.isAnyActiveChakraUser() then
+
+            if funcs.updateStatus then
+                funcs.updateStatus(
+                    "Active Chakra User",
+                    Color3.fromRGB(
+                        255,
+                        180,
+                        70
+                    ),
+                    "Moving to nearest safe point..."
+                )
+            end
+
+
+            funcs.teleportToSafePoint()
+
+            return true
+
+        end
+
+
+        local playerRange =
+            State.TreePlayerRange or 150
+
+
+        if not funcs.isPlayerWithinDistance(
+            hrp.Position,
+            playerRange
+        ) then
+
+            return false
+
+        end
+
+
+        if funcs.updateStatus then
+            funcs.updateStatus(
+                "Player Detected",
+                Color3.fromRGB(
+                    255,
+                    90,
+                    90
+                ),
+                "Moving to nearest safe point..."
+            )
+        end
+
+
+        funcs.teleportToSafePoint()
+
+        return true
+
+    end
+
+State.TreeFarmScreenGui =
+    State.TreeFarmScreenGui or nil
+
+State.TreeFarmMainFrame =
+    State.TreeFarmMainFrame or nil
+
+State.TreeFarmStatus =
+    State.TreeFarmStatus or nil
+
+State.TreeFarmTreeLabel =
+    State.TreeFarmTreeLabel or nil
+
+State.TreeFarmStatusDot =
+    State.TreeFarmStatusDot or nil
+
+
+funcs.createStatusGui = function()
+
+    if State.TreeFarmScreenGui then
+
+        State.TreeFarmScreenGui.Enabled =
+            true
+
+        return
+
+    end
+
+
+    local ScreenGui =
+        Instance.new("ScreenGui")
+
+    ScreenGui.Name =
+        "TreeFarmStatus"
+
+    ScreenGui.ResetOnSpawn =
+        false
+
+    ScreenGui.IgnoreGuiInset =
+        true
+
+    ScreenGui.Parent =
+        LocalPlayer:WaitForChild(
+            "PlayerGui"
+        )
+
+
+    State.TreeFarmScreenGui =
+        ScreenGui
+
+
+    local MainFrame =
+        Instance.new("Frame")
+
+    MainFrame.Name =
+        "StatusFrame"
+
+    MainFrame.Size =
+        UDim2.fromOffset(
+            255,
+            86
+        )
+
+    MainFrame.AnchorPoint =
+        Vector2.new(
+            1,
+            1
+        )
+
+    MainFrame.Position =
+        UDim2.new(
+            1,
+            -30,
+            0.72,
+            0
+        )
+
+    MainFrame.BackgroundColor3 =
+        Color3.fromRGB(
+            20,
+            100,
+            190
+        )
+
+    MainFrame.BackgroundTransparency =
+        0.25
+
+    MainFrame.BorderSizePixel =
+        0
+
+    MainFrame.ZIndex =
+        2
+
+    MainFrame.Parent =
+        ScreenGui
+
+
+    State.TreeFarmMainFrame =
+        MainFrame
+
+
+    local Corner =
+        Instance.new("UICorner")
+
+    Corner.CornerRadius =
+        UDim.new(
+            0,
+            18
+        )
+
+    Corner.Parent =
+        MainFrame
+
+
+    local Gradient =
+        Instance.new("UIGradient")
+
+    Gradient.Color =
+        ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(
+                    35,
+                    145,
+                    255
+                )
+            ),
+
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(
+                    15,
+                    75,
+                    160
+                )
+            )
+        })
+
+    Gradient.Rotation =
+        35
+
+    Gradient.Parent =
+        MainFrame
+
+
+    local Stroke =
+        Instance.new("UIStroke")
+
+    Stroke.Color =
+        Color3.fromRGB(
+            100,
+            200,
+            255
+        )
+
+    Stroke.Transparency =
+        0.35
+
+    Stroke.Thickness =
+        1.5
+
+    Stroke.Parent =
+        MainFrame
+
+
+    local Shadow =
+        Instance.new("ImageLabel")
+
+    Shadow.Name =
+        "Shadow"
+
+    Shadow.AnchorPoint =
+        Vector2.new(
+            0.5,
+            0.5
+        )
+
+    Shadow.Position =
+        UDim2.fromScale(
+            0.5,
+            0.5
+        )
+
+    Shadow.Size =
+        UDim2.new(
+            1,
+            20,
+            1,
+            20
+        )
+
+    Shadow.BackgroundTransparency =
+        1
+
+    Shadow.Image =
+        "rbxassetid://1316045217"
+
+    Shadow.ImageColor3 =
+        Color3.fromRGB(
+            0,
+            80,
+            180
+        )
+
+    Shadow.ImageTransparency =
+        0.65
+
+    Shadow.ScaleType =
+        Enum.ScaleType.Slice
+
+    Shadow.SliceCenter =
+        Rect.new(
+            10,
+            10,
+            118,
+            118
+        )
+
+    Shadow.ZIndex =
+        1
+
+    Shadow.Parent =
+        MainFrame
+
+
+    local Content =
+        Instance.new("Frame")
+
+    Content.Name =
+        "Content"
+
+    Content.BackgroundTransparency =
+        1
+
+    Content.Size =
+        UDim2.fromScale(
+            1,
+            1
+        )
+
+    Content.ZIndex =
+        3
+
+    Content.Parent =
+        MainFrame
+
+
+    local Padding =
+        Instance.new("UIPadding")
+
+    Padding.PaddingLeft =
+        UDim.new(
+            0,
+            15
+        )
+
+    Padding.PaddingRight =
+        UDim.new(
+            0,
+            15
+        )
+
+    Padding.PaddingTop =
+        UDim.new(
+            0,
+            10
+        )
+
+    Padding.PaddingBottom =
+        UDim.new(
+            0,
+            10
+        )
+
+    Padding.Parent =
+        Content
+
+
+    local Header =
+        Instance.new("TextLabel")
+
+    Header.Size =
+        UDim2.new(
+            1,
+            -25,
+            0,
+            19
+        )
+
+    Header.BackgroundTransparency =
+        1
+
+    Header.Text =
+        "FRUIT FARM"
+
+    Header.TextColor3 =
+        Color3.fromRGB(
+            245,
+            250,
+            255
+        )
+
+    Header.TextSize =
+        13
+
+    Header.Font =
+        Enum.Font.GothamBold
+
+    Header.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    Header.ZIndex =
+        4
+
+    Header.Parent =
+        Content
+
+
+    local StatusDot =
+        Instance.new("Frame")
+
+    StatusDot.Size =
+        UDim2.fromOffset(
+            8,
+            8
+        )
+
+    StatusDot.Position =
+        UDim2.new(
+            1,
+            -8,
+            0,
+            6
+        )
+
+    StatusDot.BackgroundColor3 =
+        Color3.fromRGB(
+            90,
+            240,
+            150
+        )
+
+    StatusDot.BorderSizePixel =
+        0
+
+    StatusDot.ZIndex =
+        4
+
+    StatusDot.Parent =
+        Content
+
+
+    local DotCorner =
+        Instance.new("UICorner")
+
+    DotCorner.CornerRadius =
+        UDim.new(
+            1,
+            0
+        )
+
+    DotCorner.Parent =
+        StatusDot
+
+
+    State.TreeFarmStatusDot =
+        StatusDot
+
+
+    local Status =
+        Instance.new("TextLabel")
+
+    Status.Size =
+        UDim2.new(
+            1,
+            0,
+            0,
+            20
+        )
+
+    Status.Position =
+        UDim2.fromOffset(
+            0,
+            26
+        )
+
+    Status.BackgroundTransparency =
+        1
+
+    Status.Text =
+        "Checking Active Chakra Users..."
+
+    Status.TextColor3 =
+        Color3.fromRGB(
+            225,
+            240,
+            255
+        )
+
+    Status.TextSize =
+        12
+
+    Status.Font =
+        Enum.Font.GothamMedium
+
+    Status.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    Status.TextTruncate =
+        Enum.TextTruncate.AtEnd
+
+    Status.ZIndex =
+        4
+
+    Status.Parent =
+        Content
+
+
+    State.TreeFarmStatus =
+        Status
+
+
+    local TreeLabel =
+        Instance.new("TextLabel")
+
+    TreeLabel.Size =
+        UDim2.new(
+            1,
+            0,
+            0,
+            18
+        )
+
+    TreeLabel.Position =
+        UDim2.fromOffset(
+            0,
+            49
+        )
+
+    TreeLabel.BackgroundTransparency =
+        1
+
+    TreeLabel.Text =
+        "Waiting..."
+
+    TreeLabel.TextColor3 =
+        Color3.fromRGB(
+            175,
+            220,
+            255
+        )
+
+    TreeLabel.TextSize =
+        11
+
+    TreeLabel.Font =
+        Enum.Font.Gotham
+
+    TreeLabel.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    TreeLabel.TextTruncate =
+        Enum.TextTruncate.AtEnd
+
+    TreeLabel.ZIndex =
+        4
+
+    TreeLabel.Parent =
+        Content
+
+
+    State.TreeFarmTreeLabel =
+        TreeLabel
+
+end
+
+
+funcs.hideStatusGui = function()
+
+    if State.TreeFarmScreenGui then
+
+        State.TreeFarmScreenGui.Enabled =
+            false
+
+    end
+
+end
+
+
+funcs.updateStatus = function(
+    text,
+    color,
+    treeText
+)
+
+    local status =
+        State.TreeFarmStatus
+
+    if not status then
         return
     end
 
-    ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "TreeFarmStatus"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-    MainFrame = Instance.new("Frame")
-    MainFrame.Name = "StatusFrame"
-    MainFrame.Size = UDim2.fromOffset(255, 86)
-    MainFrame.AnchorPoint = Vector2.new(1, 1)
-    MainFrame.Position = UDim2.new(1, -30, 0.72, 0)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 100, 190)
-    MainFrame.BackgroundTransparency = 0.25
-    MainFrame.BorderSizePixel = 0
-    MainFrame.ZIndex = 2
-    MainFrame.Parent = ScreenGui
+    status.Text =
+        text
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 18)
-    Corner.Parent = MainFrame
-
-    local Gradient = Instance.new("UIGradient")
-    Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 145, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 75, 160))
-    })
-    Gradient.Rotation = 35
-    Gradient.Parent = MainFrame
-
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(100, 200, 255)
-    Stroke.Transparency = 0.35
-    Stroke.Thickness = 1.5
-    Stroke.Parent = MainFrame
-
-    local Shadow = Instance.new("ImageLabel")
-    Shadow.Name = "Shadow"
-    Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    Shadow.Position = UDim2.fromScale(0.5, 0.5)
-    Shadow.Size = UDim2.new(1, 20, 1, 20)
-    Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxassetid://1316045217"
-    Shadow.ImageColor3 = Color3.fromRGB(0, 80, 180)
-    Shadow.ImageTransparency = 0.65
-    Shadow.ScaleType = Enum.ScaleType.Slice
-    Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    Shadow.ZIndex = 1
-    Shadow.Parent = MainFrame
-
-    local Content = Instance.new("Frame")
-    Content.Name = "Content"
-    Content.BackgroundTransparency = 1
-    Content.Size = UDim2.fromScale(1, 1)
-    Content.ZIndex = 3
-    Content.Parent = MainFrame
-
-    local Padding = Instance.new("UIPadding")
-    Padding.PaddingLeft = UDim.new(0, 15)
-    Padding.PaddingRight = UDim.new(0, 15)
-    Padding.PaddingTop = UDim.new(0, 10)
-    Padding.PaddingBottom = UDim.new(0, 10)
-    Padding.Parent = Content
-
-    local Header = Instance.new("TextLabel")
-    Header.Size = UDim2.new(1, -25, 0, 19)
-    Header.BackgroundTransparency = 1
-    Header.Text = "FRUIT FARM"
-    Header.TextColor3 = Color3.fromRGB(245, 250, 255)
-    Header.TextSize = 13
-    Header.Font = Enum.Font.GothamBold
-    Header.TextXAlignment = Enum.TextXAlignment.Left
-    Header.ZIndex = 4
-    Header.Parent = Content
-
-    StatusDot = Instance.new("Frame")
-    StatusDot.Size = UDim2.fromOffset(8, 8)
-    StatusDot.Position = UDim2.new(1, -8, 0, 6)
-    StatusDot.BackgroundColor3 = Color3.fromRGB(90, 240, 150)
-    StatusDot.BorderSizePixel = 0
-    StatusDot.ZIndex = 4
-    StatusDot.Parent = Content
-
-    local DotCorner = Instance.new("UICorner")
-    DotCorner.CornerRadius = UDim.new(1, 0)
-    DotCorner.Parent = StatusDot
-
-    Status = Instance.new("TextLabel")
-    Status.Size = UDim2.new(1, 0, 0, 20)
-    Status.Position = UDim2.fromOffset(0, 26)
-    Status.BackgroundTransparency = 1
-    Status.Text = "Checking Active Chakra Users..."
-    Status.TextColor3 = Color3.fromRGB(225, 240, 255)
-    Status.TextSize = 12
-    Status.Font = Enum.Font.GothamMedium
-    Status.TextXAlignment = Enum.TextXAlignment.Left
-    Status.TextTruncate = Enum.TextTruncate.AtEnd
-    Status.ZIndex = 4
-    Status.Parent = Content
-
-    TreeLabel = Instance.new("TextLabel")
-    TreeLabel.Size = UDim2.new(1, 0, 0, 18)
-    TreeLabel.Position = UDim2.fromOffset(0, 49)
-    TreeLabel.BackgroundTransparency = 1
-    TreeLabel.Text = "Waiting..."
-    TreeLabel.TextColor3 = Color3.fromRGB(175, 220, 255)
-    TreeLabel.TextSize = 11
-    TreeLabel.Font = Enum.Font.Gotham
-    TreeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TreeLabel.TextTruncate = Enum.TextTruncate.AtEnd
-    TreeLabel.ZIndex = 4
-    TreeLabel.Parent = Content
-end
-
-local function hideStatusGui()
-    if ScreenGui then
-        ScreenGui.Enabled = false
-    end
-end
-
-function updateStatus(text, color, treeText)
-    if not Status then
-        return
-    end
-
-    Status.Text = text
 
     if color then
-        Status.TextColor3 = color
 
-        if StatusDot then
-            StatusDot.BackgroundColor3 = color
+        status.TextColor3 =
+            color
+
+
+        if State.TreeFarmStatusDot then
+
+            State.TreeFarmStatusDot.BackgroundColor3 =
+                color
+
         end
+
     end
 
-    if treeText and TreeLabel then
-        TreeLabel.Text = treeText
+
+    if treeText
+        and State.TreeFarmTreeLabel then
+
+        State.TreeFarmTreeLabel.Text =
+            treeText
+
     end
+
 end
 
-local function getFruitPosition(fruit)
-    if not fruit or not fruit.Parent then
+funcs.getFruitPosition = function(
+    fruit
+)
+
+    if not fruit
+        or not fruit.Parent then
+
         return nil
+
     end
+
 
     if fruit:IsA("BasePart") then
         return fruit.Position
     end
 
+
     if fruit:IsA("Model") then
         return fruit:GetPivot().Position
     end
 
+
     return nil
+
 end
 
-local FruitNames = {
-    "Mango",
-    "Orange",
-    "Banana",
-    "Apple",
-    "Alluring Apple",
-    "Pear",
-    "Chakra Fruit",
-    "Life Up Fruit"
-}
 
-local function getCurrentFruits()
+funcs.getCurrentFruits = function()
+
     local result = {}
+
     local allowed = {}
 
-    for _, name in ipairs(FruitNames) do
-        allowed[name] = true
+
+    if State.FruitNames then
+
+        for name, enabled in pairs(
+            State.FruitNames
+        ) do
+
+            if enabled then
+                allowed[name] = true
+            end
+
+        end
+
+    else
+
+        local names = {
+            "Mango",
+            "Orange",
+            "Banana",
+            "Apple",
+            "Alluring Apple",
+            "Pear",
+            "Chakra Fruit",
+            "Life Up Fruit"
+        }
+
+        for _, name in ipairs(names) do
+            allowed[name] = true
+        end
+
     end
 
-    local hrp = getHRP()
+
+    local hrp =
+        funcs.getHRP()
 
     if not hrp then
         return result
     end
 
-    local currentPosition = hrp.Position
 
-    for _, obj in ipairs(workspace:GetDescendants()) do
+    local currentPosition =
+        hrp.Position
+
+
+    for _, obj in ipairs(
+        workspace:GetDescendants()
+    ) do
+
         if allowed[obj.Name] then
-            local position = getFruitPosition(obj)
+
+            local position =
+                funcs.getFruitPosition(
+                    obj
+                )
+
 
             if position
-                and (position - currentPosition).Magnitude <= 300 then
+                and (
+                    position
+                    - currentPosition
+                ).Magnitude <= 300 then
 
-                local playerNearby = false
+                local playerNearby =
+                    funcs.isPlayerWithinDistance(
+                        position,
+                        50
+                    )
 
-                for _, otherPlayer in ipairs(Players:GetPlayers()) do
-                    if otherPlayer ~= LocalPlayer then
-                        local character = otherPlayer.Character
-                        local otherHRP =
-                            character
-                            and character:FindFirstChild("HumanoidRootPart")
-
-                        if otherHRP
-                            and (otherHRP.Position - position).Magnitude <= 50 then
-
-                            playerNearby = true
-                            break
-                        end
-                    end
-                end
 
                 if not playerNearby then
-                    table.insert(result, {
-                        Object = obj,
-                        Position = position
-                    })
+
+                    table.insert(
+                        result,
+                        {
+                            Object = obj,
+                            Position = position
+                        }
+                    )
+
                 end
+
             end
         end
     end
 
+
     return result
+
 end
 
 
-local function teleportToFruit(fruitData)
-    if isAnyActiveChakraUser() then
+funcs.teleportToFruit = function(
+    fruitData
+)
+
+    if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    local hrp = getHRP()
+
+    local hrp =
+        funcs.getHRP()
 
     if not hrp then
         return false
     end
 
-    local position = getFruitPosition(fruitData.Object)
+
+    local position =
+        funcs.getFruitPosition(
+            fruitData.Object
+        )
 
     if not position then
         return false
     end
 
-    if isAnyActiveChakraUser() then
+
+    if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    hrp.CFrame = CFrame.new(position)
+
+    hrp.CFrame =
+        CFrame.new(position)
+
 
     return true
+
 end
 
-local function waitForTreeFruits(treeData)
+funcs.waitForTreeFruits = function(
+    treeData
+)
+
     local timeout = 10
-    local startTime = tick()
 
-    while getgenv().TreeFarmEnabled do
+    local startTime =
+        tick()
 
-        if isAnyActiveChakraUser() then
-            updateStatus(
+
+    local currentRunId =
+        State.TreeFarmRunId
+
+
+    while State.TreeFarmEnabled
+        and currentRunId
+            == State.TreeFarmRunId do
+
+
+        if funcs.isAnyActiveChakraUser() then
+
+            funcs.updateStatus(
                 "Active Chakra User",
-                Color3.fromRGB(255, 180, 70),
+                Color3.fromRGB(
+                    255,
+                    180,
+                    70
+                ),
                 "Moving to nearest safe point..."
             )
 
-            teleportToSafePoint()
+
+            funcs.teleportToSafePoint()
+
 
             repeat
                 task.wait(0.25)
-            until not isAnyActiveChakraUser()
-                or not getgenv().TreeFarmEnabled
 
-            if not getgenv().TreeFarmEnabled then
+            until not funcs.isAnyActiveChakraUser()
+                or not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId
+
+
+            if not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId then
+
                 return {}
+
             end
 
-            startTime = tick()
+
+            startTime =
+                tick()
+
         end
 
-        local currentFruits = getCurrentFruits()
+
+        local currentFruits =
+            funcs.getCurrentFruits()
+
 
         if #currentFruits > 0 then
-            updateStatus(
+
+            funcs.updateStatus(
                 "Fruit Detected",
-                Color3.fromRGB(100, 220, 140),
+                Color3.fromRGB(
+                    100,
+                    220,
+                    140
+                ),
                 "Waiting 1 second..."
             )
 
+
             task.wait(1)
 
-            if not getgenv().TreeFarmEnabled then
+
+            if not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId then
+
                 return {}
+
             end
 
-            if isAnyActiveChakraUser() then
-                updateStatus(
+
+            if funcs.isAnyActiveChakraUser() then
+
+                funcs.updateStatus(
                     "Active Chakra User",
-                    Color3.fromRGB(255, 180, 70),
+                    Color3.fromRGB(
+                        255,
+                        180,
+                        70
+                    ),
                     "Moving to nearest safe point..."
                 )
 
-                teleportToSafePoint()
+
+                funcs.teleportToSafePoint()
+
 
                 repeat
                     task.wait(0.25)
-                until not isAnyActiveChakraUser()
-                    or not getgenv().TreeFarmEnabled
 
-                if not getgenv().TreeFarmEnabled then
+                until not funcs.isAnyActiveChakraUser()
+                    or not State.TreeFarmEnabled
+                    or currentRunId
+                        ~= State.TreeFarmRunId
+
+
+                if not State.TreeFarmEnabled
+                    or currentRunId
+                        ~= State.TreeFarmRunId then
+
                     return {}
+
                 end
+
             end
 
-            return getCurrentFruits()
+
+            return funcs.getCurrentFruits()
+
         end
+
 
         if tick() - startTime >= timeout then
             return {}
         end
 
-        updateStatus(
+
+        funcs.updateStatus(
             "Waiting For Fruit",
-            Color3.fromRGB(255, 200, 90),
+            Color3.fromRGB(
+                255,
+                200,
+                90
+            ),
             treeData.Tree.Name
         )
 
+
         task.wait(0.25)
+
     end
 
+
     return {}
+
 end
 
-local function runTreeFarm()
-    local trees = getTrees()
+funcs.runTreeFarm = function()
+
+    local trees =
+        funcs.getTrees()
+
 
     if #trees == 0 then
-        updateStatus(
+
+        funcs.updateStatus(
             "No Valid Trees Found",
-            Color3.fromRGB(255, 90, 90),
+            Color3.fromRGB(
+                255,
+                90,
+                90
+            ),
             "Waiting for FruitSpawns..."
         )
 
         return
+
     end
 
-    for index, treeData in ipairs(trees) do
-        if not getgenv().TreeFarmEnabled then
+
+    local currentRunId =
+        State.TreeFarmRunId
+
+
+    for index, treeData in ipairs(
+        trees
+    ) do
+
+        if not State.TreeFarmEnabled
+            or currentRunId
+                ~= State.TreeFarmRunId then
+
             return
+
         end
 
-        if isAnyActiveChakraUser() then
-            updateStatus(
+
+        if funcs.isAnyActiveChakraUser() then
+
+            funcs.updateStatus(
                 "Active Chakra User",
-                Color3.fromRGB(255, 180, 70),
+                Color3.fromRGB(
+                    255,
+                    180,
+                    70
+                ),
                 "Moving to nearest safe point..."
             )
 
-            teleportToSafePoint()
+
+            funcs.teleportToSafePoint()
+
 
             repeat
                 task.wait(0.25)
-            until not isAnyActiveChakraUser()
-                or not getgenv().TreeFarmEnabled
 
-            if not getgenv().TreeFarmEnabled then
+            until not funcs.isAnyActiveChakraUser()
+                or not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId
+
+
+            if not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId then
+
                 return
+
             end
+
         end
 
-        updateStatus(
+
+        funcs.updateStatus(
             "Checking Tree",
-            Color3.fromRGB(100, 180, 255),
+            Color3.fromRGB(
+                100,
+                180,
+                255
+            ),
             string.format(
                 "%d / %d  •  %s",
                 index,
@@ -3591,16 +4693,27 @@ local function runTreeFarm()
             )
         )
 
-        if isAnyActiveChakraUser() then
+
+        if funcs.isAnyActiveChakraUser() then
             continue
         end
 
-        local teleported = teleportToTree(treeData)
+
+        local teleported =
+            funcs.teleportToTree(
+                treeData
+            )
+
 
         if not teleported then
-            updateStatus(
+
+            funcs.updateStatus(
                 "Tree Skipped",
-                Color3.fromRGB(255, 190, 80),
+                Color3.fromRGB(
+                    255,
+                    190,
+                    80
+                ),
                 string.format(
                     "%d / %d  •  Player nearby",
                     index,
@@ -3608,55 +4721,107 @@ local function runTreeFarm()
                 )
             )
 
+
             task.wait(0.15)
+
             continue
+
         end
+
 
         task.wait(0.25)
 
-        if checkNearbyPlayerAfterTeleport() then
+
+        if funcs.checkNearbyPlayerAfterTeleport() then
+
             task.wait(0.25)
+
             continue
+
         end
 
-        local currentFruits = waitForTreeFruits(treeData)
 
-        if not getgenv().TreeFarmEnabled then
+        local currentFruits =
+            funcs.waitForTreeFruits(
+                treeData
+            )
+
+
+        if not State.TreeFarmEnabled
+            or currentRunId
+                ~= State.TreeFarmRunId then
+
             return
+
         end
 
-        for fruitIndex, fruitData in ipairs(currentFruits) do
-            if not getgenv().TreeFarmEnabled then
+
+        for fruitIndex, fruitData in ipairs(
+            currentFruits
+        ) do
+
+            if not State.TreeFarmEnabled
+                or currentRunId
+                    ~= State.TreeFarmRunId then
+
                 return
+
             end
 
-            if isAnyActiveChakraUser() then
-                updateStatus(
+
+            if funcs.isAnyActiveChakraUser() then
+
+                funcs.updateStatus(
                     "Active Chakra User",
-                    Color3.fromRGB(255, 180, 70),
+                    Color3.fromRGB(
+                        255,
+                        180,
+                        70
+                    ),
                     "Moving to nearest safe point..."
                 )
 
-                teleportToSafePoint()
+
+                funcs.teleportToSafePoint()
+
 
                 repeat
                     task.wait(0.25)
-                until not isAnyActiveChakraUser()
-                    or not getgenv().TreeFarmEnabled
 
-                if not getgenv().TreeFarmEnabled then
+                until not funcs.isAnyActiveChakraUser()
+                    or not State.TreeFarmEnabled
+                    or currentRunId
+                        ~= State.TreeFarmRunId
+
+
+                if not State.TreeFarmEnabled
+                    or currentRunId
+                        ~= State.TreeFarmRunId then
+
                     return
+
                 end
+
             end
 
-            if checkNearbyPlayerAfterTeleport() then
+
+            if funcs.checkNearbyPlayerAfterTeleport() then
+
                 break
+
             end
 
-            if fruitData.Object and fruitData.Object.Parent then
-                updateStatus(
+
+            if fruitData.Object
+                and fruitData.Object.Parent then
+
+                funcs.updateStatus(
                     "Collecting Fruit",
-                    Color3.fromRGB(100, 220, 140),
+                    Color3.fromRGB(
+                        100,
+                        220,
+                        140
+                    ),
                     string.format(
                         "%d / %d  •  %s",
                         fruitIndex,
@@ -3665,174 +4830,506 @@ local function runTreeFarm()
                     )
                 )
 
-                if not isAnyActiveChakraUser() then
-                    teleportToFruit(fruitData)
+
+                if not funcs.isAnyActiveChakraUser() then
+
+                    funcs.teleportToFruit(
+                        fruitData
+                    )
+
                 end
+
 
                 task.wait(0.25)
 
-                if checkNearbyPlayerAfterTeleport() then
+
+                if funcs.checkNearbyPlayerAfterTeleport() then
                     break
                 end
+
             end
         end
+
 
         task.wait(0.25)
+
     end
 
-    updateStatus(
-        "Tree Cycle Completed",
-        Color3.fromRGB(90, 220, 130),
-        "Restarting scan..."
-    )
-end
 
-local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
-    Text = "Fruit Farm",
-    Default = false,
+    if State.TreeFarmEnabled
+        and currentRunId
+            == State.TreeFarmRunId then
 
-    Callback = function(Value)
-        getgenv().TreeFarmEnabled = Value
-
-        if not Value then
-
-            noClip(false)
-
-            if TreeFloatVelocity then
-                TreeFloatVelocity:Destroy()
-                TreeFloatVelocity = nil
-            end
-
-            hideStatusGui()
-
-            if autoPickupConnection then
-                autoPickupConnection:Disconnect()
-                autoPickupConnection = nil
-            end
-
-            return
-        end
-
-        noClip(true)
-
-        createStatusGui()
-
-        updateStatus(
-            "Checking Active Chakra Users...",
-            Color3.fromRGB(100, 180, 255),
-            "Scanning..."
+        funcs.updateStatus(
+            "Tree Cycle Completed",
+            Color3.fromRGB(
+                90,
+                220,
+                130
+            ),
+            "Restarting scan..."
         )
 
-        if autoPickupConnection then
-            autoPickupConnection:Disconnect()
-            autoPickupConnection = nil
-        end
+    end
 
-        autoPickupConnection = RunService.Heartbeat:Connect(function()
-            if not getgenv().TreeFarmEnabled then
+end
+
+funcs.startAutoPickup = function()
+
+    if State.AutoPickupConnectionName then
+
+        Disconnect(
+            State.AutoPickupConnectionName
+        )
+
+        State.AutoPickupConnectionName =
+            nil
+
+    end
+
+
+    local connectionName =
+        "TreeFarm_AutoPickup"
+
+
+    State.AutoPickupConnectionName =
+        connectionName
+
+
+    Connect(
+        connectionName,
+        RunService.Heartbeat,
+        function()
+
+            if not State.TreeFarmEnabled then
                 return
             end
 
-            local character = player.Character
+
+            local character =
+                LocalPlayer.Character
+
             if not character then
                 return
             end
 
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
+
+            local rootPart =
+                character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
             if not rootPart then
                 return
             end
 
-            for pos, obj in pairs(pickupList) do
-                if obj and obj.Parent then
-                    local distance = (rootPart.Position - pos).Magnitude
+
+            local pickupList =
+                State.PickupList
+
+            if not pickupList then
+                return
+            end
+
+
+            local dataEvent =
+                ReplicatedStorage
+                :FindFirstChild("Events")
+                and ReplicatedStorage.Events
+                :FindFirstChild(
+                    "DataEvent"
+                )
+
+
+            if not dataEvent then
+                return
+            end
+
+
+            for pos, obj in pairs(
+                pickupList
+            ) do
+
+                if obj
+                    and obj.Parent then
+
+                    local distance =
+                        (
+                            rootPart.Position
+                            - pos
+                        ).Magnitude
+
 
                     if distance < 25 then
-                        local id = obj:FindFirstChild("ID")
+
+                        local id =
+                            obj:FindFirstChild(
+                                "ID"
+                            )
+
 
                         if id then
+
                             dataEvent:FireServer(
                                 "PickUp",
                                 id.Value
                             )
+
                         end
                     end
                 end
             end
-        end)
 
-        task.spawn(function()
-            local firstCheck = true
+        end
+    )
 
-            while getgenv().TreeFarmEnabled do
+end
 
-                local activePlayers = GetActiveChakraPlayers()
 
-                if #activePlayers > 0 then
-                    updateStatus(
-                        "Active Chakra Users",
-                        Color3.fromRGB(255, 180, 70),
-                        string.format("%d user(s) detected", #activePlayers)
-                    )
+funcs.stopAutoPickup = function()
 
-                    if not firstCheck then
-                        local hrp = getHRP()
+    if State.AutoPickupConnectionName then
 
-                        if hrp then
-                            teleportToSafePoint()
+        Disconnect(
+            State.AutoPickupConnectionName
+        )
+
+        State.AutoPickupConnectionName =
+            nil
+
+    end
+
+end
+
+funcs.setTreeFarmNoFall = function(
+    enabled
+)
+
+    if enabled then
+
+        if getgenv().NoFallEnabled then
+            return
+        end
+
+
+        State.TreeFarmPreviousNoFallState =
+            false
+
+
+        getgenv().NoFallEnabled =
+            true
+
+
+        if not State.TreeFarmNoFallOldNamecall then
+
+            local oldNamecall
+
+
+            oldNamecall =
+                hookmetamethod(
+                    game,
+                    "__namecall",
+                    function(self, ...)
+
+                        local method =
+                            getnamecallmethod()
+
+
+                        if method
+                            == "FindFirstChild" then
+
+                            local args =
+                                {...}
+
+
+                            if args[1]
+                                == "NegateFall"
+                                and getgenv().NoFallEnabled then
+
+                                return true
+
+                            end
                         end
-                    else
-                        updateStatus(
-                            "Active Chakra Users",
-                            Color3.fromRGB(255, 180, 70),
-                            "Waiting at current position..."
+
+
+                        return oldNamecall(
+                            self,
+                            ...
                         )
+
+                    end
+                )
+
+
+            State.TreeFarmNoFallOldNamecall =
+                oldNamecall
+
+        end
+
+    else
+
+        getgenv().NoFallEnabled =
+            false
+
+
+        if State.TreeFarmNoFallOldNamecall then
+
+            hookmetamethod(
+                game,
+                "__namecall",
+                State.TreeFarmNoFallOldNamecall
+            )
+
+
+            State.TreeFarmNoFallOldNamecall =
+                nil
+
+        end
+
+    end
+
+end
+
+local TreeFarmToggle =
+    BottingRightGroupBox:AddToggle(
+        "TreeFarmToggle",
+        {
+            Text = "Fruit Farm",
+            Default = false
+        }
+    )
+
+
+TreeFarmToggle:OnChanged(
+    function(Value)
+
+        State.TreeFarmEnabled =
+            Value
+
+
+        -- Her toggle değişiminde eski loop'u geçersiz yap
+        State.TreeFarmRunId =
+            State.TreeFarmRunId + 1
+
+
+        if not Value then
+
+            funcs.stopAutoPickup()
+
+
+            if funcs.noClip then
+                funcs.noClip(false)
+            elseif noClip then
+                noClip(false)
+            end
+
+
+            if State.TreeFloatVelocity then
+
+                State.TreeFloatVelocity:Destroy()
+
+                State.TreeFloatVelocity =
+                    nil
+
+            end
+
+
+            if not State.TreeFarmPreviousNoFallState then
+                funcs.setTreeFarmNoFall(false)
+            end
+
+
+            funcs.hideStatusGui()
+
+            return
+
+        end
+
+
+        -- Tree Farm açılmadan önceki No Fall durumu
+        State.TreeFarmPreviousNoFallState =
+            getgenv().NoFallEnabled == true
+
+
+        if not State.TreeFarmPreviousNoFallState then
+            funcs.setTreeFarmNoFall(true)
+        end
+
+
+        if funcs.noClip then
+            funcs.noClip(true)
+        elseif noClip then
+            noClip(true)
+        end
+
+
+        funcs.createStatusGui()
+
+
+        funcs.updateStatus(
+            "Checking Active Chakra Users...",
+            Color3.fromRGB(
+                100,
+                180,
+                255
+            ),
+            "Scanning..."
+        )
+
+
+        funcs.startAutoPickup()
+
+
+        local currentRunId =
+            State.TreeFarmRunId
+
+
+        task.spawn(
+            function()
+
+                local firstCheck =
+                    true
+
+
+                while State.TreeFarmEnabled
+                    and currentRunId
+                        == State.TreeFarmRunId do
+
+
+                    local activePlayers =
+                        funcs.GetActiveChakraPlayers()
+
+
+                    if #activePlayers > 0 then
+
+                        funcs.updateStatus(
+                            "Active Chakra Users",
+                            Color3.fromRGB(
+                                255,
+                                180,
+                                70
+                            ),
+                            string.format(
+                                "%d user(s) detected",
+                                #activePlayers
+                            )
+                        )
+
+
+                        if not firstCheck then
+
+                            local hrp =
+                                funcs.getHRP()
+
+
+                            if hrp then
+                                funcs.teleportToSafePoint()
+                            end
+
+                        else
+
+                            funcs.updateStatus(
+                                "Active Chakra Users",
+                                Color3.fromRGB(
+                                    255,
+                                    180,
+                                    70
+                                ),
+                                "Waiting at current position..."
+                            )
+
+                        end
+
+
+                        repeat
+
+                            task.wait(0.25)
+
+                            activePlayers =
+                                funcs.GetActiveChakraPlayers()
+
+                        until #activePlayers == 0
+                            or not State.TreeFarmEnabled
+                            or currentRunId
+                                ~= State.TreeFarmRunId
+
+
+                        if not State.TreeFarmEnabled
+                            or currentRunId
+                                ~= State.TreeFarmRunId then
+
+                            break
+
+                        end
+
+
+                        funcs.updateStatus(
+                            "No Active Chakra Users",
+                            Color3.fromRGB(
+                                90,
+                                220,
+                                130
+                            ),
+                            "Starting fruit farm..."
+                        )
+
+
+                        task.wait(0.5)
+
                     end
 
-                    repeat
-                        task.wait(0.25)
-                        activePlayers = GetActiveChakraPlayers()
-                    until #activePlayers == 0
-                        or not getgenv().TreeFarmEnabled
 
-                    if not getgenv().TreeFarmEnabled then
-                        break
+                    firstCheck =
+                        false
+
+
+                    if funcs.GetActiveChakraPlayers
+                        and #funcs.GetActiveChakraPlayers()
+                            == 0 then
+
+                        funcs.runTreeFarm()
+
                     end
 
-                    updateStatus(
-                        "No Active Chakra Users",
-                        Color3.fromRGB(90, 220, 130),
-                        "Starting fruit farm..."
-                    )
 
                     task.wait(0.5)
+
                 end
 
-                firstCheck = false
 
-                if #GetActiveChakraPlayers() == 0 then
-                    runTreeFarm()
+                -- Loop kapanınca cleanup
+                funcs.stopAutoPickup()
+
+
+                if funcs.noClip then
+                    funcs.noClip(false)
+                elseif noClip then
+                    noClip(false)
                 end
 
-                task.wait(0.5)
+
+                if State.TreeFloatVelocity then
+
+                    State.TreeFloatVelocity:Destroy()
+
+                    State.TreeFloatVelocity =
+                        nil
+
+                end
+
+
+                if not State.TreeFarmPreviousNoFallState then
+                    funcs.setTreeFarmNoFall(false)
+                end
+
+
+                funcs.hideStatusGui()
+
             end
+        )
 
-            if autoPickupConnection then
-                autoPickupConnection:Disconnect()
-                autoPickupConnection = nil
-            end
-
-            noClip(false)
-
-            if TreeFloatVelocity then
-                TreeFloatVelocity:Destroy()
-                TreeFloatVelocity = nil
-            end
-
-            hideStatusGui()
-        end)
     end
-})
+)
 
 TreeFarmToggle:AddKeyPicker(
     "TreeFarmKeybind",
@@ -3841,28 +5338,38 @@ TreeFarmToggle:AddKeyPicker(
         SyncToggleState = true,
 
         Callback = function(key)
-            CurrentTreeFarmKey = key
+
+            State.CurrentTreeFarmKey =
+                key
+
         end
     }
 )
 
-
-TreeFarmToggle:AddKeyPicker(
-    "TreeFarmKeybind",
+BottingLeftGroupBox:AddSlider(
+    "TreePlayerRange",
     {
-        Default = "None",
-        SyncToggleState = true,
+        Text = "Proximity Check",
 
-        Callback = function(key)
-            CurrentTreeFarmKey = key
+        Default =
+            State.TreePlayerRange,
+
+        Min = 50,
+
+        Max = 500,
+
+        Rounding = 0,
+
+        Compact = false,
+
+        Callback = function(Value)
+
+            State.TreePlayerRange =
+                Value
+
         end
     }
 )
-
-
-
-
-
 
 
 -- Notifications
@@ -4385,35 +5892,66 @@ NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
     end
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LocalPlayer = Players.LocalPlayer
+State.ChakraSenseUIEnabled =
+    State.ChakraSenseUIEnabled ~= false
 
-local ChakraSenseUIEnabled = false
+State.JoinNotifier =
+    State.JoinNotifier or false
+
 local ChakraSenseGui = nil
 local ChakraSenseLabel = nil
 
 local MyChakraTitle = nil
 local MyChakraDescription = nil
 
-local BeingObservedConnection = nil
+local BeingObservedConnections = {}
+
+local TrackedCharacters = {}
+local CharacterConnections = {}
+local PlayerConnections = {}
+
+local ChakraStates = {}
+
+local BeingObservedTriggered = false
+
+
+local function ChakraNotify(title, description)
+
+    if not State.ChakraSenseUIEnabled then
+        return
+    end
+
+    if not Library then
+        return
+    end
+
+    Library:Notify({
+        Title = title,
+        Description = description,
+        Duration = 10
+    })
+end
 
 
 local function CreateChakraSenseUI()
 
     if ChakraSenseGui then
+        ChakraSenseGui.Enabled =
+            State.ChakraSenseUIEnabled
         return
     end
 
+    local playerGui =
+        Services.LocalPlayer:WaitForChild(
+            "PlayerGui"
+        )
 
     ChakraSenseGui = Instance.new("ScreenGui")
     ChakraSenseGui.Name = "ChakraSenseStatus"
     ChakraSenseGui.ResetOnSpawn = false
     ChakraSenseGui.IgnoreGuiInset = true
-    ChakraSenseGui.Parent =
-        LocalPlayer:WaitForChild("PlayerGui")
+    ChakraSenseGui.Parent = playerGui
 
 
     ChakraSenseLabel = Instance.new("TextLabel")
@@ -4447,14 +5985,20 @@ local function CreateChakraSenseUI()
     ChakraSenseLabel.TextStrokeTransparency = 0.35
 
     ChakraSenseLabel.Text =
-        "Chakra Sense Active: None"
+        "Chakra Sense Active: 0"
 
-    ChakraSenseLabel.Visible = false
-    ChakraSenseLabel.Parent = ChakraSenseGui
+    ChakraSenseLabel.Visible =
+        State.ChakraSenseUIEnabled
+
+    ChakraSenseLabel.Parent =
+        ChakraSenseGui
 
 
-    MyChakraTitle = Instance.new("TextLabel")
-    MyChakraTitle.Name = "MyChakraTitle"
+    MyChakraTitle =
+        Instance.new("TextLabel")
+
+    MyChakraTitle.Name =
+        "MyChakraTitle"
 
     MyChakraTitle.AnchorPoint =
         Vector2.new(0.5, 0)
@@ -4490,11 +6034,16 @@ local function CreateChakraSenseUI()
         Enum.TextYAlignment.Center
 
     MyChakraTitle.Visible = false
-    MyChakraTitle.Parent = ChakraSenseGui
+
+    MyChakraTitle.Parent =
+        ChakraSenseGui
 
 
-    MyChakraDescription = Instance.new("TextLabel")
-    MyChakraDescription.Name = "MyChakraDescription"
+    MyChakraDescription =
+        Instance.new("TextLabel")
+
+    MyChakraDescription.Name =
+        "MyChakraDescription"
 
     MyChakraDescription.AnchorPoint =
         Vector2.new(0.5, 0)
@@ -4530,8 +6079,9 @@ local function CreateChakraSenseUI()
         Enum.TextYAlignment.Center
 
     MyChakraDescription.Visible = false
-    MyChakraDescription.Parent = ChakraSenseGui
 
+    MyChakraDescription.Parent =
+        ChakraSenseGui
 end
 
 
@@ -4539,41 +6089,94 @@ local function GetActiveChakraPlayers()
 
     local activePlayers = {}
 
-    for _, plr in ipairs(Players:GetPlayers()) do
+    for _, player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
 
-        if plr ~= LocalPlayer
-            and plr.Character then
+        if player ~= Services.LocalPlayer then
 
-            local torso =
-                plr.Character:FindFirstChild("Torso")
-                or plr.Character:FindFirstChild("UpperTorso")
+            local character =
+                player.Character
 
-            if torso
-                and torso:FindFirstChild("ChakraSense") then
+            if character then
 
-                table.insert(
-                    activePlayers,
-                    plr.Name
-                )
+                local torso =
+                    character:FindFirstChild("Torso")
+                    or character:FindFirstChild("UpperTorso")
 
+                if torso
+                    and torso:FindFirstChild(
+                        "ChakraSense"
+                    ) then
+
+                    table.insert(
+                        activePlayers,
+                        player.Name
+                    )
+                end
             end
         end
     end
 
     return activePlayers
+end
 
+
+local function HasActiveChakraSense()
+
+    for _, player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
+
+        if player ~= Services.LocalPlayer then
+
+            local character =
+                player.Character
+
+            if character then
+
+                local torso =
+                    character:FindFirstChild("Torso")
+                    or character:FindFirstChild("UpperTorso")
+
+                if torso
+                    and torso:FindFirstChild(
+                        "ChakraSense"
+                    ) then
+
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
 end
 
 
 local function UpdateChakraSenseUI()
 
-    if not ChakraSenseUIEnabled then
-        return
-    end
-
     if not ChakraSenseLabel then
         return
     end
+
+    if not State.ChakraSenseUIEnabled then
+
+        ChakraSenseLabel.Visible = false
+
+        if MyChakraTitle then
+            MyChakraTitle.Visible = false
+        end
+
+        if MyChakraDescription then
+            MyChakraDescription.Visible = false
+        end
+
+        return
+    end
+
+
+    ChakraSenseLabel.Visible = true
 
 
     local activePlayers =
@@ -4593,304 +6196,585 @@ local function UpdateChakraSenseUI()
         ChakraSenseLabel.TextColor3 =
             Color3.fromRGB(170, 170, 170)
 
-
-        if MyChakraTitle then
-            MyChakraTitle.Visible = false
-        end
-
-        if MyChakraDescription then
-            MyChakraDescription.Visible = false
-        end
-
     else
 
         ChakraSenseLabel.TextColor3 =
             Color3.fromRGB(170, 85, 255)
+    end
+end
 
+
+local function SetObservedUI(visible)
+
+    if not State.ChakraSenseUIEnabled then
+        visible = false
     end
 
+
+    if MyChakraTitle then
+        MyChakraTitle.Visible =
+            visible
+    end
+
+
+    if MyChakraDescription then
+
+        MyChakraDescription.Visible =
+            visible
+
+        MyChakraDescription.Text =
+            "Waiting For All Chakra Sense Users"
+    end
+end
+
+
+local function UpdateObservedState()
+
+    if not BeingObservedTriggered then
+        return
+    end
+
+
+    if HasActiveChakraSense() then
+
+        SetObservedUI(true)
+
+    else
+
+        BeingObservedTriggered =
+            false
+
+        SetObservedUI(false)
+    end
+end
+
+
+local function ClearBeingObservedConnections()
+
+    for _, connection in ipairs(
+        BeingObservedConnections
+    ) do
+
+        if connection then
+            connection:Disconnect()
+        end
+    end
+
+
+    table.clear(
+        BeingObservedConnections
+    )
 end
 
 
 local function SetupBeingObservedDetector()
 
-    if BeingObservedConnection then
-        BeingObservedConnection:Disconnect()
-        BeingObservedConnection = nil
+    ClearBeingObservedConnections()
+
+    local settings =
+        Services.ReplicatedStorage:FindFirstChild(
+            "Settings"
+        )
+
+    if not settings then
+        return
     end
 
+    local mySettings =
+        settings:FindFirstChild(
+            Services.LocalPlayer.Name
+        )
 
-    local Settings =
-        ReplicatedStorage:WaitForChild("Settings")
+    if not mySettings then
+        return
+    end
 
-    local MySettings =
-        Settings:WaitForChild(LocalPlayer.Name)
+    table.insert(
+        BeingObservedConnections,
 
+        mySettings.ChildAdded:Connect(
+            function(child)
 
-    BeingObservedConnection =
-        MySettings.ChildAdded:Connect(function(child)
-
-            if child.Name == "BeingObservedBy"
-                and child:IsA("StringValue") then
-
-                if ChakraSenseUIEnabled then
-
-                    if MyChakraTitle then
-                        MyChakraTitle.Visible = true
-                    end
-
-                    if MyChakraDescription then
-                        MyChakraDescription.Visible = true
-                    end
-
+                if child.Name ~= "BeingObservedBy" then
+                    return
                 end
 
+                if not child:IsA("StringValue") then
+                    return
+                end
+
+                BeingObservedTriggered = true
+
+                if HasActiveChakraSense() then
+                    SetObservedUI(true)
+                end
+
+                ChakraNotify(
+                    "⚠️ You Are Being Observed",
+                    "Someone is observing you!"
+                )
             end
-
-        end)
-
+        )
+    )
 end
 
 
-CreateChakraSenseUI()
 
-SetupBeingObservedDetector()
+    table.insert(
+        BeingObservedConnections,
+
+        mySettings.ChildRemoved:Connect(
+            function(child)
+
+                if child.Name ~=
+                    "BeingObservedBy" then
+                    return
+                end
 
 
-task.spawn(function()
+                task.defer(
+                    function()
 
-    while task.wait(0.2) do
+                        UpdateObservedState()
 
-        if ChakraSenseUIEnabled then
+                    end
+                )
+            end
+        )
+    )
 
-            UpdateChakraSenseUI()
 
+    local existing =
+        mySettings:FindFirstChild(
+            "BeingObservedBy"
+        )
+
+
+    if existing
+        and existing:IsA(
+            "StringValue"
+        ) then
+
+        BeingObservedTriggered =
+            true
+
+        if HasActiveChakraSense() then
+            SetObservedUI(true)
         end
-
     end
-
-end)
-
-
--- ==========================================
--- CHAKRA SENSE PLAYER DETECTOR
--- ==========================================
-
-local trackedCharacters = {}
+end
 
 
-local function watchCharacter(player, character)
+local function WatchCharacter(
+    player,
+    character
+)
 
-    if trackedCharacters[character] then
+    if not character then
         return
     end
 
-    trackedCharacters[character] = true
+
+    if TrackedCharacters[character] then
+        return
+    end
+
+
+    TrackedCharacters[character] = true
+    ChakraStates[character] = false
 
 
     local torso =
-        character:WaitForChild("Torso", 5)
-        or character:WaitForChild("UpperTorso", 5)
+        character:FindFirstChild("Torso")
+        or character:FindFirstChild("UpperTorso")
+
 
     if not torso then
-        trackedCharacters[character] = nil
+
+        torso =
+            character:WaitForChild(
+                "Torso",
+                5
+            )
+
+
+        if not torso then
+
+            torso =
+                character:WaitForChild(
+                    "UpperTorso",
+                    5
+                )
+        end
+    end
+
+
+    if not torso then
+
+        TrackedCharacters[character] = nil
+        ChakraStates[character] = nil
+
         return
     end
 
 
-    local chakraActive = false
-    local timerId = 0
+    local function ChakraStarted()
 
-
-    local function notify(title, description)
-
-        if not ChakraSenseUIEnabled then
+        if ChakraStates[character] then
             return
         end
 
 
-        Library:Notify({
-            Title = title,
-            Description = description,
-            Duration = 10
-        })
-
-    end
+        ChakraStates[character] = true
 
 
-    local function chakraStarted()
-
-        if not ChakraSenseUIEnabled then
-            return
-        end
-
-
-        if chakraActive then
-            return
-        end
-
-
-        chakraActive = true
-        timerId += 1
-
-        local currentTimer =
-            timerId
-
-
-        notify(
+        ChakraNotify(
             "⚠️ Chakra Sense Detected",
             player.Name
             .. " Used Chakra Sense!"
         )
 
 
-        task.delay(10, function()
+        task.delay(
+            10,
+            function()
 
-            if ChakraSenseUIEnabled
-                and chakraActive
-                and currentTimer == timerId then
+                if not State.ChakraSenseUIEnabled then
+                    return
+                end
 
-                notify(
+
+                if not ChakraStates[character] then
+                    return
+                end
+
+
+                ChakraNotify(
                     "⚠️ Chakra Sense Still Active",
                     player.Name
                     .. " is still using Chakra Sense!"
                 )
 
             end
+        )
 
-        end)
 
+        UpdateChakraSenseUI()
+
+
+        if BeingObservedTriggered then
+            SetObservedUI(true)
+        end
     end
 
 
-    local function chakraEnded()
+    local function ChakraEnded()
 
-        if not chakraActive then
+        if not ChakraStates[character] then
             return
         end
 
 
-        chakraActive = false
-        timerId += 1
+        ChakraStates[character] = false
 
 
-        if ChakraSenseUIEnabled then
+        ChakraNotify(
+            "Chakra Sense Ended",
+            player.Name
+            .. " stopped using Chakra Sense!"
+        )
 
-            notify(
-                "Chakra Sense Ended",
-                player.Name
-                .. " stopped using Chakra Sense!"
-            )
 
-        end
+        UpdateChakraSenseUI()
 
+        UpdateObservedState()
     end
 
 
-    local function checkExisting()
+    if torso:FindFirstChild(
+        "ChakraSense"
+    ) then
 
-        if not ChakraSenseUIEnabled then
-            return
-        end
-
-
-        local chakra =
-            torso:FindFirstChild("ChakraSense")
-
-
-        if chakra then
-            chakraStarted()
-        end
-
+        ChakraStarted()
     end
 
 
-    checkExisting()
+    local addedConnection =
+        torso.ChildAdded:Connect(
+            function(child)
+
+                if child.Name ~=
+                    "ChakraSense" then
+                    return
+                end
 
 
-    torso.ChildAdded:Connect(function(child)
+                ChakraStarted()
 
-        if child.Name == "ChakraSense" then
-            chakraStarted()
-        end
-
-    end)
+            end
+        )
 
 
-    torso.ChildRemoved:Connect(function(child)
+    local removedConnection =
+        torso.ChildRemoved:Connect(
+            function(child)
 
-        if child.Name == "ChakraSense" then
-            chakraEnded()
-        end
+                if child.Name ~=
+                    "ChakraSense" then
+                    return
+                end
 
-    end)
+
+                ChakraEnded()
+
+            end
+        )
 
 
-    character.Destroying:Connect(function()
+    local characterConnection =
+        character.Destroying:Connect(
+            function()
 
-        trackedCharacters[character] = nil
+                if addedConnection then
+                    addedConnection:Disconnect()
+                end
 
-    end)
 
+                if removedConnection then
+                    removedConnection:Disconnect()
+                end
+
+
+                TrackedCharacters[character] =
+                    nil
+
+                ChakraStates[character] =
+                    nil
+
+                CharacterConnections[character] =
+                    nil
+
+
+                UpdateChakraSenseUI()
+
+                UpdateObservedState()
+            end
+        )
+
+
+    CharacterConnections[character] = {
+
+        Added =
+            addedConnection,
+
+        Removed =
+            removedConnection,
+
+        Destroying =
+            characterConnection
+    }
+
+
+    UpdateChakraSenseUI()
 end
 
 
-local function setupPlayer(player)
+local function SetupPlayer(player)
 
-    if player == LocalPlayer then
+    if player ==
+        Services.LocalPlayer then
         return
     end
 
 
-    player.CharacterAdded:Connect(function(character)
-
-        watchCharacter(
-            player,
-            character
-        )
-
-    end)
-
-
     if player.Character then
 
-        watchCharacter(
-            player,
-            player.Character
-        )
+        task.spawn(
+            function()
 
+                WatchCharacter(
+                    player,
+                    player.Character
+                )
+
+            end
+        )
     end
 
+
+    if PlayerConnections[player] then
+        return
+    end
+
+
+    PlayerConnections[player] =
+        player.CharacterAdded:Connect(
+            function(character)
+
+                task.wait(0.1)
+
+
+                WatchCharacter(
+                    player,
+                    character
+                )
+
+
+                task.wait(0.1)
+
+
+                UpdateChakraSenseUI()
+                UpdateObservedState()
+
+            end
+        )
 end
 
 
-for _, player in ipairs(Players:GetPlayers()) do
-    setupPlayer(player)
+for _, player in ipairs(
+    Services.Players:GetPlayers()
+) do
+
+    SetupPlayer(player)
+
 end
 
 
-Players.PlayerAdded:Connect(setupPlayer)
+Services.Players.PlayerAdded:Connect(
+    function(player)
+
+        SetupPlayer(player)
 
 
--- ==========================================
--- TOGGLE
--- ==========================================
+        task.wait(0.1)
+
+
+        UpdateChakraSenseUI()
+        UpdateObservedState()
+
+    end
+)
+
+
+Services.Players.PlayerRemoving:Connect(
+    function(player)
+
+        if PlayerConnections[player] then
+
+            PlayerConnections[player]:Disconnect()
+
+            PlayerConnections[player] =
+                nil
+        end
+
+
+        if player.Character then
+
+            local character =
+                player.Character
+
+            local connections =
+                CharacterConnections[character]
+
+
+            if connections then
+
+                if connections.Added then
+                    connections.Added:Disconnect()
+                end
+
+
+                if connections.Removed then
+                    connections.Removed:Disconnect()
+                end
+
+
+                if connections.Destroying then
+                    connections.Destroying:Disconnect()
+                end
+
+
+                CharacterConnections[character] =
+                    nil
+            end
+
+
+            TrackedCharacters[character] =
+                nil
+
+            ChakraStates[character] =
+                nil
+        end
+
+
+        UpdateChakraSenseUI()
+        UpdateObservedState()
+
+    end
+)
+
+
+CreateChakraSenseUI()
+
+SetupBeingObservedDetector()
+
+UpdateChakraSenseUI()
+
+
+Services.LocalPlayer.CharacterAdded:Connect(
+    function()
+
+        task.wait(1)
+
+
+        SetupBeingObservedDetector()
+
+        UpdateChakraSenseUI()
+        UpdateObservedState()
+
+    end
+)
+
+
+task.spawn(
+    function()
+
+        while task.wait(0.2) do
+
+            if State.ChakraSenseUIEnabled then
+
+                UpdateChakraSenseUI()
+
+
+                if BeingObservedTriggered then
+
+                    UpdateObservedState()
+
+                end
+            end
+        end
+    end
+)
+
 
 NotificationsRightGroupBox:AddToggle(
     "ChakraSenseStatus",
     {
         Text = "Chakra Sense Detector",
-        Default = true,
+
+        Default =
+            State.ChakraSenseUIEnabled,
+
 
         Callback = function(Value)
 
-            ChakraSenseUIEnabled =
+            State.ChakraSenseUIEnabled =
                 Value
 
 
-            if ChakraSenseLabel then
+            if ChakraSenseGui then
 
-                ChakraSenseLabel.Visible =
+                ChakraSenseGui.Enabled =
                     Value
 
             end
@@ -4898,59 +6782,123 @@ NotificationsRightGroupBox:AddToggle(
 
             if not Value then
 
-                if MyChakraTitle then
-                    MyChakraTitle.Visible = false
+                if ChakraSenseLabel then
+
+                    ChakraSenseLabel.Visible =
+                        false
+
                 end
 
-                if MyChakraDescription then
-                    MyChakraDescription.Visible = false
-                end
+
+                SetObservedUI(false)
 
             else
 
                 if ChakraSenseLabel then
-                    ChakraSenseLabel.Visible = true
+
+                    ChakraSenseLabel.Visible =
+                        true
+
                 end
+
 
                 UpdateChakraSenseUI()
 
+
+                if BeingObservedTriggered then
+
+                    UpdateObservedState()
+
+                end
+
+
+                SetupBeingObservedDetector()
+
             end
+        end
+    }
+)
+
+
+NotificationsRightGroupBox:AddToggle(
+    "JoinNotifier",
+    {
+        Text = "Player Joined",
+
+        Default =
+            State.JoinNotifier,
+
+
+        Callback = function(Value)
+
+            State.JoinNotifier =
+                Value
 
         end
     }
 )
 
 
--- DEFAULT TRUE
+Services.Players.PlayerAdded:Connect(
+    function(player)
 
-ChakraSenseUIEnabled = true
-
-
-if ChakraSenseLabel then
-    ChakraSenseLabel.Visible = true
-end
+        if not State.JoinNotifier then
+            return
+        end
 
 
-UpdateChakraSenseUI()
-
-
-NotificationsRightGroupBox:AddToggle("JoinNotifier", {
-    Text = "Player Joined",
-    Default = false,
-    Callback = function(Value)
-        JoinNotifier = Value
-    end
-})
-
-Players.PlayerAdded:Connect(function(Player)
-    if JoinNotifier then
         Library:Notify({
-            Title = "A Player Just Joined To Your Server!",
-            Description = Player.Name .. " Joined!",
-            Time = 5
+
+            Title =
+                "A Player Just Joined To Your Server!",
+
+            Description =
+                player.Name
+                .. " Joined!",
+
+            Duration = 5
+
         })
     end
-end)
+)
+
+
+
+NotificationsRightGroupBox:AddToggle(
+    "JoinNotifier",
+    {
+        Text = "Player Joined",
+        Default =
+            State.JoinNotifier,
+
+        Callback = function(Value)
+
+            State.JoinNotifier =
+                Value
+        end
+    }
+)
+
+
+Services.Players.PlayerAdded:Connect(
+    function(player)
+
+        if not State.JoinNotifier then
+            return
+        end
+
+
+        Library:Notify({
+            Title =
+                "A Player Just Joined To Your Server!",
+
+            Description =
+                player.Name .. " Joined!",
+
+            Duration = 5
+        })
+    end
+)
 
 
 -- Addons
