@@ -15,6 +15,8 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = game.Players.LocalPlayer
 
@@ -101,6 +103,7 @@ local ProximityCheck = false
 local JoinNotifier = true
 local killBricks = {}
 local NoKillBricks = false
+local TreePlayerRange = 150
 
 local function UpdatePlayerList()
     local NewList = {}
@@ -444,6 +447,10 @@ RightGroupBox2:AddButton("Unload", function()
         Toggles.AutoExecute:SetValue(false)
     end
 
+    if Toggles.NoFallToggle then 
+        Toggles.NoFallToggle:SetValue(false)
+    end
+
 
     -- Manuel olarak tuttuğun connection'lar
     if FlyConnection then
@@ -507,6 +514,19 @@ RightGroupBox2:AddButton("Unload", function()
         FlyBodyVelocity = nil
     end
 
+    -- No Fall Damage
+    getgenv().NoFallEnabled = false
+
+    if getgenv().NoFallOldNamecall then
+        hookmetamethod(
+            game,
+            "__namecall",
+            getgenv().NoFallOldNamecall
+        )
+
+        getgenv().NoFallOldNamecall = nil
+    end
+
 
 
     Library:Unload()
@@ -526,8 +546,8 @@ Library.ToggleKeybind = Options.MenuKeybind
 
 -- Groupboxes For Player Tab
 local PlayerLeftGroupBox = Tabs.Player:AddLeftGroupbox("Flight", "wind")
-local PlayerLeftGroupBox2 = Tabs.Player:AddLeftGroupbox("Extras", "user")
 local PlayerLeftGroupBox3 = Tabs.Player:AddLeftGroupbox("World Settings", "globe")
+local PlayerLeftGroupBox2 = Tabs.Player:AddLeftGroupbox("Extras", "user")
 local PlayerRightGroupBox = Tabs.Player:AddRightGroupbox("Speed", "wind")
 local PlayerRightGroupBox2 = Tabs.Player:AddRightGroupbox("Proximity Detector", "bot")
 
@@ -1363,6 +1383,54 @@ for _, v in ipairs(workspace:GetDescendants()) do
     end
 end
 
+local NoFallToggle = PlayerLeftGroupBox3:AddToggle("NoFallToggle", {
+    Text = "No Fall Damage",
+    Default = false,
+
+    Callback = function(Value)
+        getgenv().NoFallEnabled = Value
+
+        if Value then
+            if getgenv().NoFallOldNamecall then
+                return
+            end
+
+            local oldNamecall
+
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+
+                if method == "FindFirstChild" then
+                    local args = {...}
+
+                    if args[1] == "NegateFall"
+                        and getgenv().NoFallEnabled then
+
+                        print("no fall damage haha")
+                        return true
+                    end
+                end
+
+                return oldNamecall(self, ...)
+            end)
+
+            getgenv().NoFallOldNamecall = oldNamecall
+
+        else
+            if getgenv().NoFallOldNamecall then
+                hookmetamethod(
+                    game,
+                    "__namecall",
+                    getgenv().NoFallOldNamecall
+                )
+
+                getgenv().NoFallOldNamecall = nil
+            end
+        end
+    end
+})
+
+
 
 workspace.DescendantAdded:Connect(onChildAdded)
 
@@ -1424,6 +1492,7 @@ workspace.DescendantAdded:Connect(onChildAdded)
 local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "eye")
 local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Extra ESP", "eye")
 local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
+local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("World Settings", "globe")
 
 local PlayerESPObjects = {}
 local PlayerESPEnabled = false
@@ -1903,8 +1972,6 @@ end
 
 
 
-
-
 -- Automation
 
 local AutomationLeftGroupBox = Tabs.Automation:AddLeftGroupbox("Automation")
@@ -1954,7 +2021,10 @@ AutomationLeftGroupBox:AddToggle("AutoPick", {
 
 -- Botting
 
+local BottingLeftGroupBox = Tabs.Botting:AddLeftGroupbox("Auto Farm Settings")
 local BottingRightGroupBox = Tabs.Botting:AddRightGroupbox("Auto Farm")
+
+
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -2010,13 +2080,21 @@ end
 
 
 local function teleportToSafePoint()
+   
+    noClip(false)
+
+    if TreeFloatVelocity then
+        TreeFloatVelocity:Destroy()
+        TreeFloatVelocity = nil
+    end
+
     local hrp = getHRP()
 
     if not hrp then
         return false
     end
 
-    -- 1. deneme
+    
     local safePoint = getSafePoint(hrp.Position)
 
     if safePoint then
@@ -2025,10 +2103,6 @@ local function teleportToSafePoint()
         task.wait(0.05)
 
         if hrp.Parent and (hrp.Position - safePoint).Magnitude <= 5 then
-
-            -- Safe point'e gelince noclip'i kapat
-            noClip(false)
-
             updateStatus(
                 "Moved To Safe Point",
                 Color3.fromRGB(90, 220, 130),
@@ -2039,7 +2113,6 @@ local function teleportToSafePoint()
         end
     end
 
-    -- 2. deneme: closest point'i yeniden hesapla
     task.wait(0.05)
 
     if not hrp.Parent then
@@ -2060,9 +2133,6 @@ local function teleportToSafePoint()
         return false
     end
 
-    -- 2. denemede de noclip'i kapat
-    noClip(false)
-
     updateStatus(
         "Moved To Safe Point",
         Color3.fromRGB(90, 220, 130),
@@ -2071,6 +2141,7 @@ local function teleportToSafePoint()
 
     return true
 end
+
 
 
 
@@ -2128,6 +2199,9 @@ local function teleportToTree(treeData)
         return false
     end
 
+    -- Işınlanmadan hemen önce noclip'i aç
+    noClip(true)
+
     hrp.CFrame = CFrame.new(targetPosition)
 
     -- Ağaç içinde float halinde sabit kal
@@ -2160,10 +2234,12 @@ local function teleportToTree(treeData)
         return false
     end
 
+    -- Fizik/ışınlanma sonrası tekrar tam merkeze al
     hrp.CFrame = CFrame.new(targetPosition)
 
     return true
 end
+
 
 
 
@@ -2187,7 +2263,7 @@ local function checkNearbyPlayerAfterTeleport()
         return true
     end
 
-    if not isPlayerWithinDistance(hrp.Position, 150) then
+    if not isPlayerWithinDistance(hrp.Position, TreePlayerRange) then
         return false
     end
 
@@ -2685,6 +2761,8 @@ local function runTreeFarm()
     )
 end
 
+local TreeFarmPreviousNoFallState = false
+
 local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
     Text = "Fruit Farm",
     Default = false,
@@ -2693,6 +2771,21 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
         getgenv().TreeFarmEnabled = Value
 
         if not Value then
+
+            -- Fruit Farm kapanınca No Fall'ı eski durumuna getir
+            if not TreeFarmPreviousNoFallState then
+                getgenv().NoFallEnabled = false
+
+                if getgenv().NoFallOldNamecall then
+                    hookmetamethod(
+                        game,
+                        "__namecall",
+                        getgenv().NoFallOldNamecall
+                    )
+
+                    getgenv().NoFallOldNamecall = nil
+                end
+            end
 
             noClip(false)
 
@@ -2709,6 +2802,43 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
             end
 
             return
+        end
+
+    
+        TreeFarmPreviousNoFallState =
+            getgenv().NoFallEnabled == true
+
+
+        if not getgenv().NoFallEnabled then
+
+            getgenv().NoFallEnabled = true
+
+            if not getgenv().NoFallOldNamecall then
+
+                local oldNamecall
+
+                oldNamecall = hookmetamethod(
+                    game,
+                    "__namecall",
+                    function(self, ...)
+                        local method = getnamecallmethod()
+
+                        if method == "FindFirstChild" then
+                            local args = {...}
+
+                            if args[1] == "NegateFall"
+                                and getgenv().NoFallEnabled then
+
+                                return true
+                            end
+                        end
+
+                        return oldNamecall(self, ...)
+                    end
+                )
+
+                getgenv().NoFallOldNamecall = oldNamecall
+            end
         end
 
         noClip(true)
@@ -2732,21 +2862,28 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
             end
 
             local character = player.Character
+
             if not character then
                 return
             end
 
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local rootPart =
+                character:FindFirstChild("HumanoidRootPart")
+
             if not rootPart then
                 return
             end
 
             for pos, obj in pairs(pickupList) do
                 if obj and obj.Parent then
-                    local distance = (rootPart.Position - pos).Magnitude
+
+                    local distance =
+                        (rootPart.Position - pos).Magnitude
 
                     if distance < 25 then
-                        local id = obj:FindFirstChild("ID")
+
+                        local id =
+                            obj:FindFirstChild("ID")
 
                         if id then
                             dataEvent:FireServer(
@@ -2760,26 +2897,35 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
         end)
 
         task.spawn(function()
+
             local firstCheck = true
 
             while getgenv().TreeFarmEnabled do
 
-                local activePlayers = GetActiveChakraPlayers()
+                local activePlayers =
+                    GetActiveChakraPlayers()
 
                 if #activePlayers > 0 then
+
                     updateStatus(
                         "Active Chakra Users",
                         Color3.fromRGB(255, 180, 70),
-                        string.format("%d user(s) detected", #activePlayers)
+                        string.format(
+                            "%d user(s) detected",
+                            #activePlayers
+                        )
                     )
 
                     if not firstCheck then
+
                         local hrp = getHRP()
 
                         if hrp then
                             teleportToSafePoint()
                         end
+
                     else
+
                         updateStatus(
                             "Active Chakra Users",
                             Color3.fromRGB(255, 180, 70),
@@ -2789,7 +2935,10 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
 
                     repeat
                         task.wait(0.25)
-                        activePlayers = GetActiveChakraPlayers()
+
+                        activePlayers =
+                            GetActiveChakraPlayers()
+
                     until #activePlayers == 0
                         or not getgenv().TreeFarmEnabled
 
@@ -2827,6 +2976,22 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
                 TreeFloatVelocity = nil
             end
 
+            -- Fruit Farm kapanırken No Fall'ı eski haline getir
+            if not TreeFarmPreviousNoFallState then
+
+                getgenv().NoFallEnabled = false
+
+                if getgenv().NoFallOldNamecall then
+                    hookmetamethod(
+                        game,
+                        "__namecall",
+                        getgenv().NoFallOldNamecall
+                    )
+
+                    getgenv().NoFallOldNamecall = nil
+                end
+            end
+
             hideStatusGui()
         end)
     end
@@ -2845,17 +3010,20 @@ TreeFarmToggle:AddKeyPicker(
 )
 
 
-TreeFarmToggle:AddKeyPicker(
-    "TreeFarmKeybind",
-    {
-        Default = "None",
-        SyncToggleState = true,
 
-        Callback = function(key)
-            CurrentTreeFarmKey = key
-        end
-    }
-)
+BottingLeftGroupBox:AddSlider("TreePlayerRange", {
+    Text = "Proximity Check",
+    Default = 150,
+    Min = 50,
+    Max = 500,
+    Rounding = 0,
+    Compact = false,
+
+    Callback = function(Value)
+        TreePlayerRange = Value
+    end
+})
+
 
 
 
@@ -3869,10 +4037,6 @@ end
 
 Players.PlayerAdded:Connect(setupPlayer)
 
-
--- ==========================================
--- TOGGLE
--- ==========================================
 
 NotificationsRightGroupBox:AddToggle(
     "ChakraSenseStatus",
