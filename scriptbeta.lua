@@ -1453,6 +1453,10 @@ local NewNoFallToggle =
 
 -- End Of Player Tab
 
+-- Wait To Not Crash
+task.wait(0.02)
+
+
 -- Groupboxes For Exploits Tab
 local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
 local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
