@@ -2149,7 +2149,7 @@ local function teleportToTree(treeData)
     end
 
     -- Center'ın 25 stud üstüne ışınlan
-    hrp.CFrame = targetCFrame + Vector3.new(0, 25, 0)
+    hrp.CFrame = targetCFrame + Vector3.new(0, 10, 0)
 
     -- Ağaç üzerinde float halinde sabit kal
     if TreeFloatVelocity then
@@ -2682,6 +2682,11 @@ local TreeFarmToggle = BottingRightGroupBox:AddToggle("TreeFarmToggle", {
                 autoPickupConnection = nil
             end
 
+            if TreeFloatVelocity then
+                TreeFloatVelocity:Destroy()
+                TreeFloatVelocity = nil
+            end
+
             return
         end
 
@@ -2809,6 +2814,7 @@ TreeFarmToggle:AddKeyPicker(
         end
     }
 )
+
 
 
 
