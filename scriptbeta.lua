@@ -2045,19 +2045,45 @@ local function teleportToSafePoint()
         return false
     end
 
+    -- 1. deneme
     local safePoint = getSafePoint(hrp.Position)
 
-    if not safePoint then
-        updateStatus(
-            "No Safe Point Available",
-            Color3.fromRGB(255, 90, 90),
-            "Waiting for a safe location..."
-        )
+    if safePoint then
+        hrp.CFrame = CFrame.new(safePoint)
 
+        task.wait(0.05)
+
+        if hrp.Parent and (hrp.Position - safePoint).Magnitude <= 5 then
+            updateStatus(
+                "Moved To Safe Point",
+                Color3.fromRGB(90, 220, 130),
+                "Safety mode active"
+            )
+
+            return true
+        end
+    end
+
+    -- 2. deneme: closest point'i yeniden hesapla
+    task.wait(0.05)
+
+    if not hrp.Parent then
+        return false
+    end
+
+    safePoint = getSafePoint(hrp.Position)
+
+    if not safePoint then
         return false
     end
 
     hrp.CFrame = CFrame.new(safePoint)
+
+    task.wait(0.05)
+
+    if not hrp.Parent then
+        return false
+    end
 
     updateStatus(
         "Moved To Safe Point",
@@ -2067,6 +2093,8 @@ local function teleportToSafePoint()
 
     return true
 end
+
+
 
 local function getTrees()
     local trees = {}
@@ -2120,10 +2148,29 @@ local function teleportToTree(treeData)
         return false
     end
 
-    hrp.CFrame = targetCFrame
+    -- Center'ın 25 stud üstüne ışınlan
+    hrp.CFrame = targetCFrame + Vector3.new(0, 25, 0)
+
+    -- Ağaç üzerinde float halinde sabit kal
+    if TreeFloatVelocity then
+        TreeFloatVelocity:Destroy()
+        TreeFloatVelocity = nil
+    end
+
+    TreeFloatVelocity = Instance.new("BodyVelocity")
+    TreeFloatVelocity.Name = "TreeFarmFloatVelocity"
+    TreeFloatVelocity.MaxForce = Vector3.new(
+        math.huge,
+        math.huge,
+        math.huge
+    )
+    TreeFloatVelocity.Velocity = Vector3.zero
+    TreeFloatVelocity.Parent = hrp
 
     return true
 end
+
+
 
 local function checkNearbyPlayerAfterTeleport()
     local hrp = getHRP()
@@ -3124,6 +3171,77 @@ end
 
 
 
+local RareItems = {
+    ["Life Up Fruit"] = true,
+    ["Chakra Fruit"] = true,
+    ["Mysterious Eyes"] = true,
+    ["Trait Scroll"] = true,
+    ["Ring Of Favor"] = true,
+    ["Sharingan Eyes"] = true,
+    ["Byakugan Eyes"] = true,
+    ["Chakra Heart"] = true,
+}
+
+local function SendRareItemWebhook(itemName)
+    local webhook = Options.WebhookURL.Value
+
+    if not webhook or webhook == "" then
+        return
+    end
+
+    local data = {
+        username = "Rare Item Logger",
+
+        embeds = {
+            {
+                title = "⭐ Rare Item Picked",
+
+                description =
+                    "**"
+                    .. tostring(itemName)
+                    .. "** was picked up.",
+
+                color = 0xFFD700,
+
+                footer = {
+                    text = "Account: " .. player.Name
+                },
+
+                timestamp =
+                    os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }
+        }
+    }
+
+    local request =
+        request
+        or http_request
+        or syn.request
+
+    if not request then
+        return
+    end
+
+    pcall(function()
+        request({
+            Url = webhook,
+
+            Method = "POST",
+
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+end
+
+local RareInventoryConnections = {}
+
+
+
+
 NotificationsLeftGroupBox:AddButton({
     Text = "Send Inventory",
 
@@ -3135,6 +3253,90 @@ NotificationsLeftGroupBox:AddButton({
 
     Tooltip =
         "Scan inventory and hotbar, then send to webhook.",
+})
+
+NotificationsLeftGroupBox:AddToggle("RareItemWebhookToggle", {
+    Text = "Rare Item Webhook",
+    Default = false,
+
+    Callback = function(Value)
+        getgenv().RareItemWebhookEnabled = Value
+
+        -- Eski bağlantıları temizle
+        for _, connection in ipairs(RareInventoryConnections) do
+            connection:Disconnect()
+        end
+
+        table.clear(RareInventoryConnections)
+
+        if not Value then
+            return
+        end
+
+        local loadout =
+            player.PlayerGui.ClientGui.Mainframe.Loadout
+
+        local inventory =
+            loadout.Inventory.InventoryScroll
+
+        local function watchSlot(slot)
+            if not slot.Name:match("^InvSlot%d+$") then
+                return
+            end
+
+            local slotText =
+                slot:FindFirstChild("SlotText")
+
+            if not slotText
+                or not slotText:IsA("TextLabel") then
+                return
+            end
+
+            -- Toggle açıldığında mevcut itemi kaydet,
+            -- mevcut item için webhook gönderme.
+            local lastText = slotText.Text
+
+            local connection =
+                slotText:GetPropertyChangedSignal("Text"):Connect(function()
+
+                    if not getgenv().RareItemWebhookEnabled then
+                        return
+                    end
+
+                    local itemName = slotText.Text
+
+                    if itemName == ""
+                        or itemName == lastText then
+                        return
+                    end
+
+                    lastText = itemName
+
+                    if RareItems[itemName] then
+                        SendRareItemWebhook(itemName)
+                    end
+                end)
+
+            table.insert(
+                RareInventoryConnections,
+                connection
+            )
+        end
+
+        -- Mevcut slotları izle
+        for _, slot in ipairs(inventory:GetChildren()) do
+            watchSlot(slot)
+        end
+
+        -- Sonradan oluşan slotları izle
+        table.insert(
+            RareInventoryConnections,
+            inventory.ChildAdded:Connect(function(slot)
+                task.wait(0.1)
+                watchSlot(slot)
+            end)
+        )
+    end
 })
 
 local Players = game:GetService("Players")
