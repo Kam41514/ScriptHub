@@ -2148,8 +2148,10 @@ local function teleportToTree(treeData)
         return false
     end
 
-    -- Center'ın 25 stud üstüne ışınlan
-    hrp.CFrame = targetCFrame + Vector3.new(0, 10, 0)
+    -- Center'ın 10 stud üstüne ışınlan
+    local targetPosition = targetCFrame.Position + Vector3.new(0, 10, 0)
+
+    hrp.CFrame = CFrame.new(targetPosition)
 
     -- Ağaç üzerinde float halinde sabit kal
     if TreeFloatVelocity then
@@ -2167,8 +2169,26 @@ local function teleportToTree(treeData)
     TreeFloatVelocity.Velocity = Vector3.zero
     TreeFloatVelocity.Parent = hrp
 
+    -- Fizik yüzünden dışarı kayarsa tekrar merkeze al
+    task.wait(0.05)
+
+    if not getgenv().TreeFarmEnabled then
+        return false
+    end
+
+    if not hrp.Parent then
+        return false
+    end
+
+    if isAnyActiveChakraUser() then
+        return false
+    end
+
+    hrp.CFrame = CFrame.new(targetPosition)
+
     return true
 end
+
 
 
 
