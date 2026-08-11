@@ -241,6 +241,8 @@ local State = {
     FullBrightConnection = nil,
     BrightnessLevel = 2,
     FullBrightEnabled = false,
+
+    webhook = ""
 }
 
 
@@ -2376,6 +2378,15 @@ State.Fruits = State.Fruits or {
     ["Chakra Fruit"] =
         Color3.fromRGB(
             170, 0, 255
+        ),
+    ["Fruit Of Forgetfulness"] =
+        Color3.fromRGB(
+            255, 0, 0
+        ),
+
+    ["Life Up Fruit"] =
+        Color3.fromRGB(
+            0, 95, 0
         )
 }
 
@@ -3826,444 +3837,547 @@ State.TreeFarmStatusDot =
 
 funcs.createStatusGui = function()
 
-    if State.TreeFarmScreenGui then
+if State.TreeFarmScreenGui then
 
-        State.TreeFarmScreenGui.Enabled =
-            true
 
-        return
+State.TreeFarmScreenGui.Enabled =
+    true
+
+return
+
+end
+
+local ScreenGui =
+    Instance.new("ScreenGui")
+
+    ScreenGui.Name =
+    "TreeFarmStatus"
+
+    ScreenGui.ResetOnSpawn =
+    false
+
+    ScreenGui.IgnoreGuiInset =
+    true
+
+    ScreenGui.Parent =
+    LocalPlayer:WaitForChild(
+    "PlayerGui"
+    )
+
+    State.TreeFarmScreenGui =
+    ScreenGui
+
+    local MainFrame =
+    Instance.new("Frame")
+
+    MainFrame.Name =
+    "StatusFrame"
+
+    MainFrame.Size =
+    UDim2.fromOffset(
+    255,
+    86
+    )
+
+    MainFrame.AnchorPoint =
+    Vector2.new(
+    1,
+    1
+    )
+
+    MainFrame.Position =
+    UDim2.new(
+    1,
+    -30,
+    0.72,
+    0
+    )
+
+    MainFrame.BackgroundColor3 =
+    Color3.fromRGB(
+    20,
+    100,
+    190
+    )
+
+    MainFrame.BackgroundTransparency =
+    0.25
+
+    MainFrame.BorderSizePixel =
+    0
+
+    MainFrame.ZIndex =
+    2
+
+    MainFrame.Parent =
+    ScreenGui
+
+    State.TreeFarmMainFrame =
+    MainFrame
+
+    local Corner =
+    Instance.new("UICorner")
+
+    Corner.CornerRadius =
+    UDim.new(
+    0,
+    18
+    )
+
+    Corner.Parent =
+    MainFrame
+
+    local Gradient =
+    Instance.new("UIGradient")
+
+    Gradient.Color =
+    ColorSequence.new({
+    ColorSequenceKeypoint.new(
+    0,
+    Color3.fromRGB(
+    35,
+    145,
+    255
+    )
+    ),
+
+
+        ColorSequenceKeypoint.new(
+            1,
+            Color3.fromRGB(
+                15,
+                75,
+                160
+            )
+        )
+    })
+
+
+    Gradient.Rotation =
+    35
+
+    Gradient.Parent =
+    MainFrame
+
+    local Stroke =
+    Instance.new("UIStroke")
+
+    Stroke.Color =
+    Color3.fromRGB(
+    100,
+    200,
+    255
+    )
+
+    Stroke.Transparency =
+    0.35
+
+    Stroke.Thickness =
+    1.5
+
+    Stroke.Parent =
+    MainFrame
+
+    local Shadow =
+    Instance.new("ImageLabel")
+
+    Shadow.Name =
+    "Shadow"
+
+    Shadow.AnchorPoint =
+    Vector2.new(
+    0.5,
+    0.5
+    )
+
+    Shadow.Position =
+    UDim2.fromScale(
+    0.5,
+    0.5
+    )
+
+    Shadow.Size =
+    UDim2.new(
+    1,
+    20,
+    1,
+    20
+    )
+
+    Shadow.BackgroundTransparency =
+    1
+
+    Shadow.Image =
+    "rbxassetid://1316045217"
+
+    Shadow.ImageColor3 =
+    Color3.fromRGB(
+    0,
+    80,
+    180
+    )
+
+    Shadow.ImageTransparency =
+    0.65
+
+    Shadow.ScaleType =
+    Enum.ScaleType.Slice
+
+    Shadow.SliceCenter =
+    Rect.new(
+    10,
+    10,
+    118,
+    118
+    )
+
+    Shadow.ZIndex =
+    1
+
+    Shadow.Parent =
+    MainFrame
+
+    local Content =
+    Instance.new("Frame")
+
+    Content.Name =
+    "Content"
+
+    Content.BackgroundTransparency =
+    1
+
+    Content.Size =
+    UDim2.fromScale(
+    1,
+    1
+    )
+
+    Content.ZIndex =
+    3
+
+    Content.Parent =
+    MainFrame
+
+    local Padding =
+    Instance.new("UIPadding")
+
+    Padding.PaddingLeft =
+    UDim.new(
+    0,
+    15
+    )
+
+    Padding.PaddingRight =
+    UDim.new(
+    0,
+    15
+    )
+
+    Padding.PaddingTop =
+    UDim.new(
+    0,
+    10
+    )
+
+    Padding.PaddingBottom =
+    UDim.new(
+    0,
+    10
+    )
+
+    Padding.Parent =
+    Content
+
+    local Header =
+    Instance.new("TextLabel")
+
+    Header.Size =
+    UDim2.new(
+    1,
+    -25,
+    0,
+    19
+    )
+
+    Header.BackgroundTransparency =
+    1
+
+    Header.Text =
+    "FRUIT FARM"
+
+    Header.TextColor3 =
+    Color3.fromRGB(
+    245,
+    250,
+    255
+    )
+
+    Header.TextSize =
+    13
+
+    Header.Font =
+    Enum.Font.GothamBold
+
+    Header.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+    Header.ZIndex =
+    4
+
+    Header.Parent =
+    Content
+
+    local StatusDot =
+    Instance.new("Frame")
+
+    StatusDot.Size =
+    UDim2.fromOffset(
+    8,
+    8
+    )
+
+    StatusDot.Position =
+    UDim2.new(
+    1,
+    -8,
+    0,
+    6
+    )
+
+    StatusDot.BackgroundColor3 =
+    Color3.fromRGB(
+    90,
+    240,
+    150
+    )
+
+    StatusDot.BorderSizePixel =
+    0
+
+    StatusDot.ZIndex =
+    4
+
+    StatusDot.Parent =
+    Content
+
+    local DotCorner =
+    Instance.new("UICorner")
+
+    DotCorner.CornerRadius =
+    UDim.new(
+    1,
+    0
+    )
+
+    DotCorner.Parent =
+    StatusDot
+
+    State.TreeFarmStatusDot =
+    StatusDot
+
+    local Status =
+    Instance.new("TextLabel")
+
+    Status.Size =
+    UDim2.new(
+    1,
+    0,
+    0,
+    20
+    )
+
+    Status.Position =
+    UDim2.fromOffset(
+    0,
+    26
+    )
+
+    Status.BackgroundTransparency =
+    1
+
+    Status.Text =
+    "Checking Active Chakra Users..."
+
+    Status.TextColor3 =
+    Color3.fromRGB(
+    225,
+    240,
+    255
+    )
+
+    Status.TextSize =
+    12
+
+    Status.Font =
+    Enum.Font.GothamMedium
+
+    Status.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+    Status.TextTruncate =
+    Enum.TextTruncate.AtEnd
+
+    Status.ZIndex =
+    4
+
+    Status.Parent =
+    Content
+
+    State.TreeFarmStatus =
+    Status
+
+    local TreeLabel =
+    Instance.new("TextLabel")
+
+    TreeLabel.Size =
+    UDim2.new(
+    1,
+    0,
+    0,
+    18
+    )
+
+    TreeLabel.Position =
+    UDim2.fromOffset(
+    0,
+    49
+    )
+
+    TreeLabel.BackgroundTransparency =
+    1
+
+    TreeLabel.Text =
+    "Waiting..."
+
+    TreeLabel.TextColor3 =
+    Color3.fromRGB(
+    175,
+    220,
+    255
+    )
+
+    TreeLabel.TextSize =
+    11
+
+    TreeLabel.Font =
+    Enum.Font.Gotham
+
+    TreeLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+    TreeLabel.TextTruncate =
+    Enum.TextTruncate.AtEnd
+
+    TreeLabel.ZIndex =
+    4
+
+    TreeLabel.Parent =
+    Content
+
+    State.TreeFarmTreeLabel =
+    TreeLabel
+
+    local TimerLabel =
+    Instance.new("TextLabel")
+
+    TimerLabel.Name =
+    "Timer"
+
+    TimerLabel.Size =
+    UDim2.fromOffset(
+    90,
+    18
+    )
+
+    TimerLabel.AnchorPoint =
+    Vector2.new(
+    1,
+    1
+    )
+
+    TimerLabel.Position =
+    UDim2.new(
+    1,
+    -8,
+    1,
+    -5
+    )
+
+    TimerLabel.BackgroundTransparency =
+    1
+
+    TimerLabel.Text =
+    "Timer: 00:00"
+
+    TimerLabel.TextColor3 =
+    Color3.fromRGB(
+    200,
+    230,
+    255
+    )
+
+    TimerLabel.TextSize =
+    10
+
+    TimerLabel.Font =
+    Enum.Font.GothamMedium
+
+    TimerLabel.TextXAlignment =
+    Enum.TextXAlignment.Right
+
+    TimerLabel.ZIndex =
+    4
+
+    TimerLabel.Parent =
+    Content
+
+    State.TreeFarmTimer =
+    TimerLabel
+
+    local TimerStart =
+    tick()
+
+    State.TreeFarmTimerStart =
+    TimerStart
+
+    task.spawn(function()
+
+    while State.TreeFarmScreenGui
+        and State.TreeFarmScreenGui.Parent do
+
+        local Elapsed =
+            math.floor(
+                tick() - State.TreeFarmTimerStart
+            )
+
+        local Minutes =
+            math.floor(
+                Elapsed / 60
+            )
+
+        local Seconds =
+            Elapsed % 60
+
+        if State.TreeFarmTimer then
+
+            State.TreeFarmTimer.Text =
+                string.format(
+                    "Timer: %02d:%02d",
+                    Minutes,
+                    Seconds
+                )
+
+        end
+
+        task.wait(1)
 
     end
 
-    local ScreenGui =
-        Instance.new("ScreenGui")
+    end)
 
-    ScreenGui.Name =
-        "TreeFarmStatus"
 
-    ScreenGui.ResetOnSpawn =
-        false
+    end
 
-    ScreenGui.IgnoreGuiInset =
-        true
-
-    ScreenGui.Parent =
-        LocalPlayer:WaitForChild(
-            "PlayerGui"
-        )
-
-    State.TreeFarmScreenGui =
-        ScreenGui
-
-    local MainFrame =
-        Instance.new("Frame")
-
-    MainFrame.Name =
-        "StatusFrame"
-
-    MainFrame.Size =
-        UDim2.fromOffset(
-            255,
-            86
-        )
-
-    MainFrame.AnchorPoint =
-        Vector2.new(
-            1,
-            1
-        )
-
-    MainFrame.Position =
-        UDim2.new(
-            1,
-            -30,
-            0.72,
-            0
-        )
-
-    MainFrame.BackgroundColor3 =
-        Color3.fromRGB(
-            20,
-            100,
-            190
-        )
-
-    MainFrame.BackgroundTransparency =
-        0.25
-
-    MainFrame.BorderSizePixel =
-        0
-
-    MainFrame.ZIndex =
-        2
-
-    MainFrame.Parent =
-        ScreenGui
-
-    State.TreeFarmMainFrame =
-        MainFrame
-
-    local Corner =
-        Instance.new("UICorner")
-
-    Corner.CornerRadius =
-        UDim.new(
-            0,
-            18
-        )
-
-    Corner.Parent =
-        MainFrame
-
-    local Gradient =
-        Instance.new("UIGradient")
-
-    Gradient.Color =
-        ColorSequence.new({
-            ColorSequenceKeypoint.new(
-                0,
-                Color3.fromRGB(
-                    35,
-                    145,
-                    255
-                )
-            ),
-
-            ColorSequenceKeypoint.new(
-                1,
-                Color3.fromRGB(
-                    15,
-                    75,
-                    160
-                )
-            )
-        })
-
-    Gradient.Rotation =
-        35
-
-    Gradient.Parent =
-        MainFrame
-
-    local Stroke =
-        Instance.new("UIStroke")
-
-    Stroke.Color =
-        Color3.fromRGB(
-            100,
-            200,
-            255
-        )
-
-    Stroke.Transparency =
-        0.35
-
-    Stroke.Thickness =
-        1.5
-
-    Stroke.Parent =
-        MainFrame
-
-    local Shadow =
-        Instance.new("ImageLabel")
-
-    Shadow.Name =
-        "Shadow"
-
-    Shadow.AnchorPoint =
-        Vector2.new(
-            0.5,
-            0.5
-        )
-
-    Shadow.Position =
-        UDim2.fromScale(
-            0.5,
-            0.5
-        )
-
-    Shadow.Size =
-        UDim2.new(
-            1,
-            20,
-            1,
-            20
-        )
-
-    Shadow.BackgroundTransparency =
-        1
-
-    Shadow.Image =
-        "rbxassetid://1316045217"
-
-    Shadow.ImageColor3 =
-        Color3.fromRGB(
-            0,
-            80,
-            180
-        )
-
-    Shadow.ImageTransparency =
-        0.65
-
-    Shadow.ScaleType =
-        Enum.ScaleType.Slice
-
-    Shadow.SliceCenter =
-        Rect.new(
-            10,
-            10,
-            118,
-            118
-        )
-
-    Shadow.ZIndex =
-        1
-
-    Shadow.Parent =
-        MainFrame
-
-    local Content =
-        Instance.new("Frame")
-
-    Content.Name =
-        "Content"
-
-    Content.BackgroundTransparency =
-        1
-
-    Content.Size =
-        UDim2.fromScale(
-            1,
-            1
-        )
-
-    Content.ZIndex =
-        3
-
-    Content.Parent =
-        MainFrame
-
-    local Padding =
-        Instance.new("UIPadding")
-
-    Padding.PaddingLeft =
-        UDim.new(
-            0,
-            15
-        )
-
-    Padding.PaddingRight =
-        UDim.new(
-            0,
-            15
-        )
-
-    Padding.PaddingTop =
-        UDim.new(
-            0,
-            10
-        )
-
-    Padding.PaddingBottom =
-        UDim.new(
-            0,
-            10
-        )
-
-    Padding.Parent =
-        Content
-
-    local Header =
-        Instance.new("TextLabel")
-
-    Header.Size =
-        UDim2.new(
-            1,
-            -25,
-            0,
-            19
-        )
-
-    Header.BackgroundTransparency =
-        1
-
-    Header.Text =
-        "FRUIT FARM"
-
-    Header.TextColor3 =
-        Color3.fromRGB(
-            245,
-            250,
-            255
-        )
-
-    Header.TextSize =
-        13
-
-    Header.Font =
-        Enum.Font.GothamBold
-
-    Header.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    Header.ZIndex =
-        4
-
-    Header.Parent =
-        Content
-
-    local StatusDot =
-        Instance.new("Frame")
-
-    StatusDot.Size =
-        UDim2.fromOffset(
-            8,
-            8
-        )
-
-    StatusDot.Position =
-        UDim2.new(
-            1,
-            -8,
-            0,
-            6
-        )
-
-    StatusDot.BackgroundColor3 =
-        Color3.fromRGB(
-            90,
-            240,
-            150
-        )
-
-    StatusDot.BorderSizePixel =
-        0
-
-    StatusDot.ZIndex =
-        4
-
-    StatusDot.Parent =
-        Content
-
-    local DotCorner =
-        Instance.new("UICorner")
-
-    DotCorner.CornerRadius =
-        UDim.new(
-            1,
-            0
-        )
-
-    DotCorner.Parent =
-        StatusDot
-
-    State.TreeFarmStatusDot =
-        StatusDot
-
-    local Status =
-        Instance.new("TextLabel")
-
-    Status.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            20
-        )
-
-    Status.Position =
-        UDim2.fromOffset(
-            0,
-            26
-        )
-
-    Status.BackgroundTransparency =
-        1
-
-    Status.Text =
-        "Checking Active Chakra Users..."
-
-    Status.TextColor3 =
-        Color3.fromRGB(
-            225,
-            240,
-            255
-        )
-
-    Status.TextSize =
-        12
-
-    Status.Font =
-        Enum.Font.GothamMedium
-
-    Status.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    Status.TextTruncate =
-        Enum.TextTruncate.AtEnd
-
-    Status.ZIndex =
-        4
-
-    Status.Parent =
-        Content
-
-    State.TreeFarmStatus =
-        Status
-
-    local TreeLabel =
-        Instance.new("TextLabel")
-
-    TreeLabel.Size =
-        UDim2.new(
-            1,
-            0,
-            0,
-            18
-        )
-
-    TreeLabel.Position =
-        UDim2.fromOffset(
-            0,
-            49
-        )
-
-    TreeLabel.BackgroundTransparency =
-        1
-
-    TreeLabel.Text =
-        "Waiting..."
-
-    TreeLabel.TextColor3 =
-        Color3.fromRGB(
-            175,
-            220,
-            255
-        )
-
-    TreeLabel.TextSize =
-        11
-
-    TreeLabel.Font =
-        Enum.Font.Gotham
-
-    TreeLabel.TextXAlignment =
-        Enum.TextXAlignment.Left
-
-    TreeLabel.TextTruncate =
-        Enum.TextTruncate.AtEnd
-
-    TreeLabel.ZIndex =
-        4
-
-    TreeLabel.Parent =
-        Content
-
-    State.TreeFarmTreeLabel =
-        TreeLabel
-
-end
 
 funcs.hideStatusGui = function()
 
@@ -5713,182 +5827,237 @@ BottingLeftGroupBox:AddSlider(
 local NotificationsLeftGroupBox = Tabs.Notifications:AddLeftGroupbox("Discord Webhook")
 local NotificationsRightGroupBox = Tabs.Notifications:AddRightGroupbox("Notifier")
 
-NotificationsLeftGroupBox:AddInput("WebhookURL", {
-    Text = "Webhook URL",
-    Default = "",
-    Numeric = false,
-    Finished = false,
-    ClearTextOnFocus = false,
-    Placeholder = "Discord Webhook URL...",
-})
+NotificationsLeftGroupBox:AddInput(
+"WebhookURL",
+{
+Text = "Webhook URL",
+Default = "",
+Numeric = false,
+Finished = false,
+ClearTextOnFocus = false,
+Placeholder = "Discord Webhook URL...",
+}
+)
+
+State.webhook = Options.WebhookURL.Value
+
 
 local importantItems = {
-    ["Life Up Fruit"] = true,
-    ["Chakra Fruit"] = true,
-    ["Scalpel"] = true,
-    ["Mysterious Eyes"] = true,
-    ["Trait Scroll"] = true,
-    ["Ring Of Favor"] = true,
-    ["Sharingan Eyes"] = true,
-    ["Byakugan Eyes"] = true,
-    ["Lava Snakeskin"] = true,
-    ["Snakeskin"] = true,
-    ["Extraction Spoon"] = true,
-    ["Chakra Heart"] = true,
+["Life Up Fruit"] = true,
+["Chakra Fruit"] = true,
+["Scalpel"] = true,
+["Mysterious Eyes"] = true,
+["Trait Scroll"] = true,
+["Ring Of Favor"] = true,
+["Sharingan Eyes"] = true,
+["Byakugan Eyes"] = true,
+["Lava Snakeskin"] = true,
+["Snakeskin"] = true,
+["Extraction Spoon"] = true,
+["Chakra Heart"] = true,
 }
 
 local function SendInventory()
-    local player = Services.LocalPlayer
 
-    if not player then
-        Library:Notify({
-            Title = "Inventory Logger",
-            Description = "LocalPlayer bulunamadı.",
-            Duration = 4,
-        })
+local player =
+    Services.LocalPlayer
+
+if not player then
+
+    Library:Notify({
+        Title = "Inventory Logger",
+        Description = "LocalPlayer not found.",
+        Duration = 4,
+    })
+
+    return
+end
+
+State.webhook =
+    Options.WebhookURL.Value
+
+local webhook =
+    State.webhook
+
+if type(webhook) ~= "string"
+    or webhook == "" then
+
+    Library:Notify({
+        Title = "Inventory Logger",
+        Description = "Please enter a Webhook URL.",
+        Duration = 4,
+    })
+
+    return
+end
+
+local playerGui =
+    player:FindFirstChildOfClass(
+        "PlayerGui"
+    )
+
+local clientGui =
+    playerGui
+    and playerGui:FindFirstChild(
+        "ClientGui"
+    )
+
+local mainframe =
+    clientGui
+    and clientGui:FindFirstChild(
+        "Mainframe"
+    )
+
+local loadout =
+    mainframe
+    and mainframe:FindFirstChild(
+        "Loadout"
+    )
+
+local inventoryGui =
+    loadout
+    and loadout:FindFirstChild(
+        "Inventory"
+    )
+
+local scroll =
+    inventoryGui
+    and inventoryGui:FindFirstChild(
+        "InventoryScroll"
+    )
+
+if not scroll
+    or not loadout then
+
+    Library:Notify({
+        Title = "Inventory Logger",
+        Description = "Inventory not found.",
+        Duration = 4,
+    })
+
+    return
+end
+
+local inventory = {}
+local importantInventory = {}
+local importantCount = 0
+
+local RED =
+    "\27[2;31m"
+
+local RESET =
+    "\27[0m"
+
+local function addItem(
+    itemName,
+    amount
+)
+
+    if not itemName
+        or itemName == "" then
+
         return
     end
 
-    local webhook = Options.WebhookURL.Value
+    local line
 
-    if type(webhook) ~= "string" or webhook == "" then
-        Library:Notify({
-            Title = "Inventory Logger",
-            Description = "Please enter a Webhook URL.",
-            Duration = 4,
-        })
-        return
+    if amount
+        and amount ~= "" then
+
+        line =
+            amount
+            .. " "
+            .. itemName
+
+    else
+
+        line =
+            itemName
+
     end
 
-    local playerGui = player:FindFirstChildOfClass("PlayerGui")
-    local clientGui = playerGui and playerGui:FindFirstChild("ClientGui")
-    local mainframe = clientGui and clientGui:FindFirstChild("Mainframe")
-    local loadout = mainframe and mainframe:FindFirstChild("Loadout")
-    local inventoryGui = loadout and loadout:FindFirstChild("Inventory")
-    local scroll = inventoryGui and inventoryGui:FindFirstChild("InventoryScroll")
+    local isImportant =
+        importantItems[itemName]
+        or itemName:match(
+            "Schematics$"
+        )
 
-    if not scroll or not loadout then
-        Library:Notify({
-            Title = "Inventory Logger",
-            Description = "Inventory bulunamadı.",
-            Duration = 4,
-        })
-        return
+    if isImportant then
+
+        table.insert(
+            inventory,
+            RED
+            .. line
+            .. RESET
+        )
+
+        table.insert(
+            importantInventory,
+            RED
+            .. line
+            .. RESET
+        )
+
+        importantCount =
+            importantCount + 1
+
+    else
+
+        table.insert(
+            inventory,
+            line
+        )
+
     end
+end
 
-    local inventory = {}
-    local importantInventory = {}
-    local importantCount = 0
 
-    local RED = "\27[2;31m"
-    local RESET = "\27[0m"
+for _, slot in
+    ipairs(
+        scroll:GetChildren()
+    ) do
 
-    local function addItem(itemName, amount)
-        if not itemName or itemName == "" then
-            return
-        end
+    if slot.Name:match(
+        "^InvSlot%d+$"
+    ) then
 
-        local line
-
-        if amount and amount ~= "" then
-            line = amount .. " " .. itemName
-        else
-            line = itemName
-        end
-
-        local isImportant =
-            importantItems[itemName]
-            or itemName:match("Schematics$")
-
-        if isImportant then
-            table.insert(
-                inventory,
-                RED .. line .. RESET
+        local slotText =
+            slot:FindFirstChild(
+                "SlotText"
             )
 
-            table.insert(
-                importantInventory,
-                RED .. line .. RESET
+        local itemNumber =
+            slot:FindFirstChild(
+                "ItemNumber"
             )
 
-            importantCount =
-                importantCount + 1
-        else
-            table.insert(
-                inventory,
-                line
+        if slotText
+            and slotText:IsA(
+                "TextLabel"
             )
-        end
-    end
+            and slotText.Text ~= "" then
 
-    for _, slot in ipairs(scroll:GetChildren()) do
-        if slot.Name:match("^InvSlot%d+$") then
-            local slotText =
-                slot:FindFirstChild("SlotText")
+            local itemName =
+                slotText.Text
 
-            local itemNumber =
-                slot:FindFirstChild("ItemNumber")
-
-            if slotText
-                and slotText:IsA("TextLabel")
-                and slotText.Text ~= "" then
-
-                local itemName =
-                    slotText.Text
-
-                local amount = ""
-
-                if itemNumber then
-                    local number =
-                        itemNumber:FindFirstChild("Number")
-
-                    if number
-                        and number:IsA("TextLabel") then
-
-                        amount =
-                            number.Text
-                    end
-                end
-
-                addItem(
-                    itemName,
-                    amount
-                )
-            end
-        end
-    end
-
-    for i = 1, 12 do
-        local slot =
-            loadout:FindFirstChild("Slot" .. i)
-
-        if slot then
-            local slotText =
-                slot:FindFirstChild("SlotText")
-
-            local itemNumber =
-                slot:FindFirstChild("ItemNumber")
-
-            local itemName = ""
             local amount = ""
 
             if itemNumber then
+
                 local number =
-                    itemNumber:FindFirstChild("Number")
+                    itemNumber:FindFirstChild(
+                        "Number"
+                    )
 
                 if number
-                    and number:IsA("TextLabel") then
+                    and number:IsA(
+                        "TextLabel"
+                    ) then
 
                     amount =
                         number.Text
+
                 end
-            end
-
-            if slotText
-                and slotText:IsA("TextLabel") then
-
-                itemName =
-                    slotText.Text
             end
 
             addItem(
@@ -5897,228 +6066,186 @@ local function SendInventory()
             )
         end
     end
+end
 
-    local inventoryText =
-        table.concat(
-            inventory,
-            "\n"
+
+for i = 1, 12 do
+
+    local slot =
+        loadout:FindFirstChild(
+            "Slot"
+            .. i
         )
 
-    if inventoryText == "" then
-        inventoryText = "Empty"
-    end
+    if slot then
 
-    local importantText =
-        table.concat(
-            importantInventory,
-            "\n"
+        local slotText =
+            slot:FindFirstChild(
+                "SlotText"
+            )
+
+        local itemNumber =
+            slot:FindFirstChild(
+                "ItemNumber"
+            )
+
+        local itemName = ""
+        local amount = ""
+
+        if itemNumber then
+
+            local number =
+                itemNumber:FindFirstChild(
+                    "Number"
+                )
+
+            if number
+                and number:IsA(
+                    "TextLabel"
+                ) then
+
+                amount =
+                    number.Text
+
+            end
+        end
+
+        if slotText
+            and slotText:IsA(
+                "TextLabel"
+            ) then
+
+            itemName =
+                slotText.Text
+
+        end
+
+        addItem(
+            itemName,
+            amount
         )
-
-    if importantText == "" then
-        importantText = "None"
-    end
-
-    local playerName =
-        player.Name
-
-    local half =
-        math.ceil(
-            #playerName / 2
-        )
-
-    local shortName =
-        string.sub(
-            playerName,
-            1,
-            half
-        ) .. "..."
-
-    local data = {
-        username = "Inventory Logger",
-
-        embeds = {
-            {
-                title = "Inventory Logger",
-
-                description =
-                    "Important Items Found: **"
-                    .. tostring(importantCount)
-                    .. "**",
-
-                color = 0x2ECC71,
-
-                fields = {
-                    {
-                        name = "🎒 Current Inventory",
-
-                        value =
-                            "```ansi\n"
-                            .. inventoryText
-                            .. "\n```",
-
-                        inline = false
-                    },
-
-                    {
-                        name = "⭐ Important Items",
-
-                        value =
-                            "```ansi\n"
-                            .. importantText
-                            .. "\n```",
-
-                        inline = false
-                    }
-                },
-
-                footer = {
-                    text =
-                        "Account Name: "
-                        .. shortName
-                },
-
-                timestamp =
-                    os.date(
-                        "!%Y-%m-%dT%H:%M:%SZ"
-                    )
-            }
-        }
-    }
-
-    local requestFunction =
-        request
-        or http_request
-        or (syn and syn.request)
-
-    if not requestFunction then
-        Library:Notify({
-            Title = "Error",
-            Description = "HTTP requests not supported.",
-            Duration = 5,
-        })
-        return
-    end
-
-    local success, response =
-        pcall(function()
-            return requestFunction({
-                Url = webhook,
-
-                Method = "POST",
-
-                Headers = {
-                    ["Content-Type"] =
-                        "application/json"
-                },
-
-                Body =
-                    Services.HttpService:JSONEncode(data)
-            })
-        end)
-
-    if not success or not response then
-        Library:Notify({
-            Title = "Webhook Error",
-            Description = "Failed to send inventory.",
-            Duration = 5
-        })
-
-        warn(response)
-        return
-    end
-
-    local statusCode =
-        tonumber(response.StatusCode)
-
-    if statusCode
-        and statusCode >= 200
-        and statusCode < 300 then
-
-        Library:Notify({
-            Title = "Inventory Logger",
-            Description = "Inventory successfully sent!",
-            Duration = 4
-        })
-    else
-        Library:Notify({
-            Title = "Webhook Error",
-            Description =
-                "Status Code: "
-                .. tostring(
-                    response.StatusCode
-                ),
-            Duration = 5
-        })
-
-        warn(response.Body)
     end
 end
 
-local RareItems = {
-    ["Life Up Fruit"] = true,
-    ["Chakra Fruit"] = true,
-    ["Mysterious Eyes"] = true,
-    ["Trait Scroll"] = true,
-    ["Ring Of Favor"] = true,
-    ["Sharingan Eyes"] = true,
-    ["Byakugan Eyes"] = true,
-    ["Chakra Heart"] = true,
-}
 
-local function SendRareItemWebhook(itemName)
-    local player =
-        Services.LocalPlayer
+local inventoryText =
+    table.concat(
+        inventory,
+        "\n"
+    )
 
-    local webhook =
-        Options.WebhookURL.Value
+if inventoryText == "" then
+    inventoryText = "Empty"
+end
 
-    if not webhook or webhook == "" then
-        return
-    end
 
-    if not player then
-        return
-    end
+local importantText =
+    table.concat(
+        importantInventory,
+        "\n"
+    )
 
-    local data = {
-        username = "Rare Item Logger",
+if importantText == "" then
+    importantText = "None"
+end
 
-        embeds = {
-            {
-                title = "⭐ Rare Item Picked",
 
-                description =
-                    "**"
-                    .. tostring(itemName)
-                    .. "** was picked up.",
+local playerName =
+    player.Name
 
-                color = 0xFFD700,
+local half =
+    math.ceil(
+        #playerName / 2
+    )
 
-                footer = {
-                    text =
-                        "Account: "
-                        .. player.Name
+local shortName =
+    string.sub(
+        playerName,
+        1,
+        half
+    )
+    .. "..."
+
+
+local data = {
+    username = "Inventory Logger",
+
+    embeds = {
+        {
+            title = "Inventory Logger",
+
+            description =
+                "Important Items Found: **"
+                .. tostring(
+                    importantCount
+                )
+                .. "**",
+
+            color = 0x2ECC71,
+
+            fields = {
+                {
+                    name =
+                        "🎒 Current Inventory",
+
+                    value =
+                        "```ansi\n"
+                        .. inventoryText
+                        .. "\n```",
+
+                    inline = false
                 },
 
-                timestamp =
-                    os.date(
-                        "!%Y-%m-%dT%H:%M:%SZ"
-                    )
-            }
+                {
+                    name =
+                        "⭐ Important Items",
+
+                    value =
+                        "```ansi\n"
+                        .. importantText
+                        .. "\n```",
+
+                    inline = false
+                }
+            },
+
+            footer = {
+                text =
+                    "Account Name: "
+                    .. shortName
+            },
+
+            timestamp =
+                os.date(
+                    "!%Y-%m-%dT%H:%M:%SZ"
+                )
         }
     }
+}
 
-    local requestFunction =
-        request
-        or http_request
-        or (syn and syn.request)
 
-    if not requestFunction then
-        return
-    end
+local requestFunction =
+    request
+    or http_request
+    or (syn and syn.request)
 
+if not requestFunction then
+
+    Library:Notify({
+        Title = "Error",
+        Description =
+            "HTTP requests not supported.",
+        Duration = 5,
+    })
+
+    return
+end
+
+
+local success, response =
     pcall(function()
-        requestFunction({
+
+        return requestFunction({
             Url = webhook,
 
             Method = "POST",
@@ -6129,142 +6256,466 @@ local function SendRareItemWebhook(itemName)
             },
 
             Body =
-                HttpService:JSONEncode(data)
+                Services.HttpService:JSONEncode(
+                    data
+                )
         })
+
     end)
+
+
+if not success
+    or not response then
+
+    Library:Notify({
+        Title = "Webhook Error",
+        Description =
+            "Failed to send inventory.",
+        Duration = 5
+    })
+
+    warn(
+        "[InventoryWebhook]",
+        tostring(response)
+    )
+
+    return
 end
 
-local RareInventoryConnections = {}
 
-NotificationsLeftGroupBox:AddButton({
-    Text = "Send Inventory",
+local statusCode =
+    tonumber(
+        response.StatusCode
+    )
 
-    Func = function()
-        SendInventory()
-    end,
+if statusCode
+    and statusCode >= 200
+    and statusCode < 300 then
 
-    DoubleClick = false,
+    Library:Notify({
+        Title = "Inventory Logger",
+        Description =
+            "Inventory successfully sent!",
+        Duration = 4
+    })
 
-    Tooltip =
-        "Scan inventory and hotbar, then send to webhook.",
-})
+else
 
-NotificationsLeftGroupBox:AddToggle(
-    "RareItemWebhookToggle",
-    {
-        Text = "Rare Item Webhook",
+    Library:Notify({
+        Title = "Webhook Error",
+        Description =
+            "Status Code: "
+            .. tostring(
+                response.StatusCode
+            ),
+        Duration = 5
+    })
 
-        Default = false,
+    warn(
+        "[InventoryWebhook]",
+        tostring(
+            response.Body
+        )
+    )
+end
 
-        Callback = function(Value)
-            getgenv().RareItemWebhookEnabled =
-                Value
+end
 
-            for _, connection in
-                ipairs(RareInventoryConnections) do
+local RareItems = {
+["Life Up Fruit"] = true,
+["Chakra Fruit"] = true,
+["Mysterious Eyes"] = true,
+["Trait Scroll"] = true,
+["Ring Of Favor"] = true,
+["Sharingan Eyes"] = true,
+["Byakugan Eyes"] = true,
+["Chakra Heart"] = true,
+}
 
-                if connection then
-                    connection:Disconnect()
-                end
-            end
+local RareDetectedParts = {}
 
-            table.clear(
-                RareInventoryConnections
-            )
+local RARE_SCAN_DISTANCE =
+300
 
-            if not Value then
-                return
-            end
+local RARE_SCAN_INTERVAL =
+0.5
+
+local function SendRareItemWebhook(
+itemName
+)
+
+if not getgenv().RareItemWebhookEnabled then
+    return
+end
+
+local player =
+    Services.LocalPlayer
+
+if not player then
+
+    warn(
+        "[RareWebhook] LocalPlayer not found!"
+    )
+
+    return
+end
+
+State.webhook =
+    Options.WebhookURL.Value
+
+local webhook =
+    State.webhook
+
+if type(webhook) ~= "string"
+    or webhook == "" then
+
+    warn(
+        "[RareWebhook] Webhook URL is empty!"
+    )
+
+    return
+end
+
+
+local data = {
+    username = "Rare Item Logger",
+
+    embeds = {
+        {
+            title =
+                "⭐ Rare Item Picked",
+
+            description =
+                "**"
+                .. tostring(
+                    itemName
+                )
+                .. "** was picked up.",
+
+            color = 0xFFD700,
+
+            footer = {
+                text =
+                    "Account Name: "
+                    .. player.Name
+            },
+
+            timestamp =
+                os.date(
+                    "!%Y-%m-%dT%H:%M:%SZ"
+                )
+        }
+    }
+}
+
+
+local requestFunction =
+    request
+    or http_request
+    or (syn and syn.request)
+
+if not requestFunction then
+
+    warn(
+        "[RareWebhook] HTTP requests not supported."
+    )
+
+    return
+end
+
+
+local success, response =
+    pcall(function()
+
+        return requestFunction({
+            Url = webhook,
+
+            Method = "POST",
+
+            Headers = {
+                ["Content-Type"] =
+                    "application/json"
+            },
+
+            Body =
+                Services.HttpService:JSONEncode(
+                    data
+                )
+        })
+
+    end)
+
+
+if not success then
+
+    warn(
+        "[RareWebhook] Request failed:",
+        tostring(response)
+    )
+
+    return
+end
+
+
+if not response then
+
+    warn(
+        "[RareWebhook] No response received."
+    )
+
+    return
+end
+
+
+local statusCode =
+    tonumber(
+        response.StatusCode
+    )
+
+print(
+    "[RareWebhook] Status:",
+    tostring(
+        statusCode
+    )
+)
+
+print(
+    "[RareWebhook] Body:",
+    tostring(
+        response.Body
+    )
+)
+
+
+if statusCode
+    and statusCode >= 200
+    and statusCode < 300 then
+
+    print(
+        "[RareWebhook] Webhook sent successfully:",
+        tostring(itemName)
+    )
+
+else
+
+    warn(
+        "[RareWebhook] Webhook request failed:",
+        tostring(statusCode),
+        tostring(
+            response.Body
+        )
+    )
+
+end
+
+end
+
+local function IsRareItemName(
+itemName
+)
+
+itemName =
+    tostring(
+        itemName or ""
+    )
+
+itemName =
+    itemName
+        :gsub(
+            "^%s+",
+            ""
+        )
+        :gsub(
+            "%s+$",
+            ""
+        )
+
+if itemName == "" then
+    return false
+end
+
+if RareItems[itemName] then
+    return true
+end
+
+local normalizedName =
+    itemName:lower()
+
+for rareName, _ in
+    pairs(RareItems) do
+
+    local normalizedRareName =
+        tostring(
+            rareName
+        )
+        :lower()
+        :gsub(
+            "^%s+",
+            ""
+        )
+        :gsub(
+            "%s+$",
+            ""
+        )
+
+    if normalizedName
+        == normalizedRareName then
+
+        return true
+    end
+end
+
+return false
+
+
+end
+
+local function StartRareItemScanner()
+
+    if getgenv().RareItemScannerRunning then
+        return
+    end
+
+    getgenv().RareItemScannerRunning = true
+
+    task.spawn(function()
+
+        local overlapParams =
+            OverlapParams.new()
+
+        overlapParams.FilterType =
+            Enum.RaycastFilterType.Exclude
+
+        while getgenv().RareItemWebhookEnabled do
 
             local player =
                 Services.LocalPlayer
 
-            if not player then
-                return
-            end
+            local character =
+                player
+                and player.Character
 
-            local loadout =
-                player.PlayerGui.ClientGui.Mainframe.Loadout
+            local rootPart =
+                character
+                and character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
 
-            local inventory =
-                loadout.Inventory.InventoryScroll
+            if rootPart then
 
-            local function watchSlot(slot)
-                if not slot.Name:match(
-                    "^InvSlot%d+$"
-                ) then
-                    return
-                end
+                overlapParams.FilterDescendantsInstances = {
+                    character
+                }
 
-                local slotText =
-                    slot:FindFirstChild(
-                        "SlotText"
+                local nearbyParts =
+                    workspace:GetPartBoundsInRadius(
+                        rootPart.Position,
+                        RARE_SCAN_DISTANCE,
+                        overlapParams
                     )
 
-                if not slotText
-                    or not slotText:IsA(
-                        "TextLabel"
-                    ) then
-                    return
-                end
+                for _, object in
+                    ipairs(nearbyParts) do
 
-                local lastText =
-                    slotText.Text
-
-                local connection =
-                    slotText:GetPropertyChangedSignal(
-                        "Text"
-                    ):Connect(function()
-
-                        if not getgenv().RareItemWebhookEnabled then
-                            return
-                        end
+                    if object:IsA("BasePart")
+                        and object.Parent then
 
                         local itemName =
-                            slotText.Text
-
-                        if itemName == ""
-                            or itemName == lastText then
-                            return
-                        end
-
-                        lastText =
-                            itemName
-
-                        if RareItems[itemName] then
-                            SendRareItemWebhook(
-                                itemName
+                            tostring(
+                                object.Name
                             )
+
+                        if IsRareItemName(
+                            itemName
+                        ) then
+
+                            if not RareDetectedParts[object] then
+
+                                RareDetectedParts[object] =
+                                    true
+
+                                print(
+                                    "[RareWebhook] Rare item detected:",
+                                    itemName
+                                )
+
+                                SendRareItemWebhook(
+                                    itemName
+                                )
+
+                            end
                         end
-                    end)
-
-                table.insert(
-                    RareInventoryConnections,
-                    connection
-                )
-            end
-
-            for _, slot in
-                ipairs(inventory:GetChildren()) do
-
-                watchSlot(slot)
-            end
-
-            table.insert(
-                RareInventoryConnections,
-
-                inventory.ChildAdded:Connect(
-                    function(slot)
-
-                        task.wait(0.1)
-
-                        watchSlot(slot)
                     end
-                )
+                end
+            end
+
+            task.wait(
+                RARE_SCAN_INTERVAL
             )
         end
-    }
+
+        getgenv().RareItemScannerRunning =
+            false
+
+        table.clear(
+            RareDetectedParts
+        )
+
+    end)
+end
+
+NotificationsLeftGroupBox:AddButton({
+Text = "Send Inventory",
+
+Func = function()
+    SendInventory()
+end,
+
+DoubleClick = false,
+
+Tooltip =
+    "Scan inventory and hotbar, then send to webhook.",
+
+})
+
+getgenv().RareItemWebhookEnabled =
+true
+
+NotificationsLeftGroupBox:AddToggle(
+"RareItemWebhookToggle",
+{
+Text = "Rare Item Webhook",
+
+    Default = true,
+
+    Callback = function(Value)
+
+        getgenv().RareItemWebhookEnabled =
+            Value
+
+
+        if not Value then
+
+            table.clear(
+                RareDetectedParts
+            )
+
+            return
+        end
+
+
+        StartRareItemScanner()
+
+    end
+}
+
 )
+
+StartRareItemScanner()
+
+
+
+
 
 
 State.ChakraSenseUIEnabled =
