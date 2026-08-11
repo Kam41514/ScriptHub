@@ -3504,32 +3504,68 @@ funcs.teleportToSafePoint = function()
         return false
     end
 
+    local humanoid =
+        hrp.Parent:FindFirstChildOfClass("Humanoid")
+
+    local targetPosition =
+        nearestSafePoint + Vector3.new(0, 3, 0)
+
+    if humanoid then
+        humanoid:ChangeState(
+            Enum.HumanoidStateType.Physics
+        )
+    end
+
+    hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.zero
+
     hrp.CFrame =
         CFrame.new(
-            nearestSafePoint
+            targetPosition
         )
 
-    task.wait(0.05)
+    task.wait(0.1)
 
     if not hrp.Parent then
         return false
     end
 
+    hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    hrp.AssemblyAngularVelocity =
+        Vector3.zero
+
     if (
         hrp.Position
-        - nearestSafePoint
+        - targetPosition
     ).Magnitude > 5 then
 
         hrp.CFrame =
             CFrame.new(
-                nearestSafePoint
+                targetPosition
             )
 
-        task.wait(0.05)
+        task.wait(0.1)
 
         if not hrp.Parent then
             return false
         end
+
+        hrp.AssemblyLinearVelocity =
+            Vector3.zero
+
+        hrp.AssemblyAngularVelocity =
+            Vector3.zero
+    end
+
+    if humanoid then
+        humanoid:ChangeState(
+            Enum.HumanoidStateType.GettingUp
+        )
     end
 
     if funcs.updateStatus then
@@ -3547,7 +3583,6 @@ funcs.teleportToSafePoint = function()
     end
 
     return true
-
 end
 
 funcs.getTrees = function()
@@ -5122,6 +5157,25 @@ TreeFarmToggle:OnChanged(function(Value)
 
         end
 
+        if State.TreeFarmAnimationTrack then
+
+            State.TreeFarmAnimationTrack:Stop()
+            State.TreeFarmAnimationTrack:Destroy()
+
+            State.TreeFarmAnimationTrack =
+                nil
+
+        end
+
+        if State.TreeFarmAnimation then
+
+            State.TreeFarmAnimation:Destroy()
+
+            State.TreeFarmAnimation =
+                nil
+
+        end
+
         if funcs.noClip then
             funcs.noClip(false)
         elseif noClip then
@@ -5171,6 +5225,67 @@ TreeFarmToggle:OnChanged(function(Value)
         "Scanning..."
     )
 
+    -- TREE FARM ANIMATION
+    do
+
+        local player =
+            Services.Players.LocalPlayer
+
+        local character =
+            player.Character
+            or player.CharacterAdded:Wait()
+
+        local humanoid =
+            character:FindFirstChildOfClass(
+                "Humanoid"
+            )
+
+        if humanoid then
+
+            local animator =
+                humanoid:FindFirstChildOfClass(
+                    "Animator"
+                )
+
+            if not animator then
+
+                animator =
+                    Instance.new(
+                        "Animator"
+                    )
+
+                animator.Parent =
+                    humanoid
+
+            end
+
+            local animation =
+                Instance.new(
+                    "Animation"
+                )
+
+            animation.AnimationId =
+                "rbxassetid://122919972398961"
+
+            local track =
+                animator:LoadAnimation(
+                    animation
+                )
+
+            track.Looped = true
+
+            track:Play()
+
+            State.TreeFarmAnimation =
+                animation
+
+            State.TreeFarmAnimationTrack =
+                track
+
+        end
+
+    end
+
     -- AUTO PICK
     State.PickupList =
         State.PickupList or {}
@@ -5182,14 +5297,18 @@ TreeFarmToggle:OnChanged(function(Value)
         end
 
         local pickupable =
-            obj:FindFirstChild("Pickupable")
+            obj:FindFirstChild(
+                "Pickupable"
+            )
 
         if not pickupable then
             return
         end
 
         local id =
-            obj:FindFirstChild("ID")
+            obj:FindFirstChild(
+                "ID"
+            )
 
         if not id then
             return
@@ -5315,13 +5434,19 @@ TreeFarmToggle:OnChanged(function(Value)
                     if distance <= pickRange then
 
                         local id =
-                            obj:FindFirstChild("ID")
+                            obj:FindFirstChild(
+                                "ID"
+                            )
 
                         if id then
 
                             Services.ReplicatedStorage
-                                :WaitForChild("Events")
-                                :WaitForChild("DataEvent")
+                                :WaitForChild(
+                                    "Events"
+                                )
+                                :WaitForChild(
+                                    "DataEvent"
+                                )
                                 :FireServer(
                                     "PickUp",
                                     id.Value
@@ -5360,6 +5485,14 @@ TreeFarmToggle:OnChanged(function(Value)
                     funcs.GetActiveChakraPlayers()
 
                 if #activePlayers > 0 then
+
+                    -- CHAKRA ALGILANDI: ANIMASYONU BOZ
+                    if State.TreeFarmAnimationTrack
+                        and State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Stop()
+
+                    end
 
                     funcs.updateStatus(
                         "Active Chakra Users",
@@ -5417,6 +5550,14 @@ TreeFarmToggle:OnChanged(function(Value)
 
                     end
 
+                    -- CHAKRA BİTTİ: ANİMASYONU TEKRAR OYNAT
+                    if State.TreeFarmAnimationTrack
+                        and not State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Play()
+
+                    end
+
                     funcs.updateStatus(
                         "No Active Chakra Users",
                         Color3.fromRGB(
@@ -5438,6 +5579,14 @@ TreeFarmToggle:OnChanged(function(Value)
                     and #funcs.GetActiveChakraPlayers()
                         == 0 then
 
+                    -- NORMAL FARM: ANİMASYON ÇALIŞIYOR
+                    if State.TreeFarmAnimationTrack
+                        and not State.TreeFarmAnimationTrack.IsPlaying then
+
+                        State.TreeFarmAnimationTrack:Play()
+
+                    end
+
                     funcs.runTreeFarm()
 
                 end
@@ -5458,6 +5607,25 @@ TreeFarmToggle:OnChanged(function(Value)
                 State.TreeFarmPickupChildAdded:Disconnect()
 
                 State.TreeFarmPickupChildAdded =
+                    nil
+
+            end
+
+            if State.TreeFarmAnimationTrack then
+
+                State.TreeFarmAnimationTrack:Stop()
+                State.TreeFarmAnimationTrack:Destroy()
+
+                State.TreeFarmAnimationTrack =
+                    nil
+
+            end
+
+            if State.TreeFarmAnimation then
+
+                State.TreeFarmAnimation:Destroy()
+
+                State.TreeFarmAnimation =
                     nil
 
             end
