@@ -3070,7 +3070,7 @@ function funcs.fullBright(state)
         end)
 end
 
-AutomationLeftGroupBox:AddSlider("BrightnessLevel", {
+VisualRightGroupBox2:AddSlider("BrightnessLevel", {
     Text = "Brightness",
     Default = 2,
     Min = 0,
@@ -3086,7 +3086,7 @@ AutomationLeftGroupBox:AddSlider("BrightnessLevel", {
     end
 })
 
-AutomationLeftGroupBox:AddToggle("FullBright", {
+VisualRightGroupBox2:AddToggle("FullBright", {
     Text = "Full Bright",
     Default = false,
 
