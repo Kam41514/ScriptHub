@@ -166,7 +166,7 @@ local State = {
     CurrentTreeFarmKey = nil,
 
     -- Auto Execute
-    AutoExecute = AutoExecuteValue,
+    AutoExecute = true,
 
     -- Player selection / points
     SelectedPoint = nil,
@@ -721,34 +721,52 @@ UpdatePlayerList()
 
 RightGroupBox:AddButton({
     Text = "Copy Profile Link",
+
     Func = function()
 
-        if State.SelectedPlayer ~= "" then
-
-            local player = Services.Players:FindFirstChild(SelectedPlayer)
-
-            if player then
-
-                local ProfileLink = 
-                    "https://www.roblox.com/users/" 
-                    .. player.UserId 
-                    .. "/profile"
-
-                if setclipboard then
-                    setclipboard(ProfileLink)
-                    Library:Notify("Profile Link Copied!", 2)
-                else
-                    Library:Notify("Clipboard not supported!", 2)
-                end
-
-            else
-                Library:Notify("Player not found!", 3)
-            end
-
-        else
-            Library:Notify("Select a player first!", 2)
+        if State.SelectedPlayer == "" then
+            Library:Notify(
+                "Select a player first!",
+                2
+            )
+            return
         end
 
+        local player =
+            Services.Players:FindFirstChild(
+                State.SelectedPlayer
+            )
+
+        if not player then
+            Library:Notify(
+                "Player not found!",
+                3
+            )
+            return
+        end
+
+        local ProfileLink =
+            "https://www.roblox.com/users/"
+            .. player.UserId
+            .. "/profile"
+
+        if setclipboard then
+
+            setclipboard(ProfileLink)
+
+            Library:Notify(
+                "Profile Link Copied!",
+                2
+            )
+
+        else
+
+            Library:Notify(
+                "Clipboard not supported!",
+                2
+            )
+
+        end
     end
 })
 
@@ -838,10 +856,15 @@ RightGroupBox2:AddButton("Unload", function()
         dangerConnection = nil
     end
 
-    if BeingObservedConnection then
-        BeingObservedConnection:Disconnect()
-        BeingObservedConnection = nil
-    end
+    ClearBeingObservedConnections()
+
+    table.clear(TrackedCharacters)
+    table.clear(ChakraStates)
+    table.clear(PlayerConnections)
+    table.clear(CharacterConnections)
+
+    BeingObservedTriggered = false
+
 
 
     -- Chakra UI
@@ -854,12 +877,12 @@ RightGroupBox2:AddButton("Unload", function()
     end
 
 
-    -- Proximity UI
-    if ProximityGui then
-        ProximityGui:Destroy()
-        ProximityGui = nil
-        ProximityLabel = nil
+    if UI.ProximityGui then
+        UI.ProximityGui:Destroy()
+        UI.ProximityGui = nil
+        UI.ProximityLabel = nil
     end
+
 
 
     -- Player ESP
@@ -868,11 +891,11 @@ RightGroupBox2:AddButton("Unload", function()
     end
 
 
-    -- Fly BodyVelocity
-    if FlyBodyVelocity then
-        FlyBodyVelocity:Destroy()
-        FlyBodyVelocity = nil
+    if State.FlyBodyVelocity then
+        State.FlyBodyVelocity:Destroy()
+        State.FlyBodyVelocity = nil
     end
+
 
 
 
@@ -5403,13 +5426,17 @@ local importantItems = {
 
 local function SendInventory()
 
+    
+    local player =
+        Services.LocalPlayer
+
     local webhook = Options.WebhookURL.Value
 
     if webhook == nil or webhook == "" then
         Library:Notify({
             Title = "Inventory Logger",
             Description = "Please enter a Webhook URL.",
-            Time = 4,
+            Duration = 4,
         })
         return
     end
@@ -5663,7 +5690,7 @@ local function SendInventory()
             Title = "Error",
             Description =
                 "HTTP requests not supported.",
-            Time = 5,
+            Duration = 5,
         })
 
         return
@@ -5695,36 +5722,55 @@ local function SendInventory()
             Title = "Webhook Error",
             Description =
                 "Failed to send inventory.",
-            Time = 5,
+            Duration = 5,
         })
 
         warn(response)
         return
     end
 
-    if response.StatusCode >= 200
-        and response.StatusCode < 300 then
+if not success or not response then
 
-        Library:Notify({
-            Title = "Inventory Logger",
-            Description =
-                "Inventory successfully sent!",
-            Time = 4,
-        })
+    Library:Notify({
+        Title = "Webhook Error",
+        Description = "Failed to send inventory.",
+        Duration = 5
+    })
 
-    else
-
-        Library:Notify({
-            Title = "Webhook Error",
-            Description =
-                "Status Code: "
-                .. tostring(response.StatusCode),
-            Time = 5,
-        })
-
-        warn(response.Body)
-    end
+    warn(response)
+    return
 end
+
+local statusCode =
+    tonumber(response.StatusCode)
+
+if statusCode
+    and statusCode >= 200
+    and statusCode < 300 then
+
+    Library:Notify({
+        Title = "Inventory Logger",
+        Description = "Inventory successfully sent!",
+        Duration = 4
+    })
+
+else
+
+    Library:Notify({
+        Title = "Webhook Error",
+        Description =
+            "Status Code: "
+            .. tostring(
+                response.StatusCode
+            ),
+        Duration = 5
+    })
+
+    warn(
+        response.Body
+    )
+end
+
 
 
 
@@ -6234,19 +6280,18 @@ local function UpdateObservedState()
         return
     end
 
-
     if HasActiveChakraSense() then
 
         SetObservedUI(true)
 
     else
 
-        BeingObservedTriggered =
-            false
+        BeingObservedTriggered = false
 
         SetObservedUI(false)
     end
 end
+
 
 
 local function ClearBeingObservedConnections()
@@ -6320,6 +6365,7 @@ end
 
 
 
+
     table.insert(
         BeingObservedConnections,
 
@@ -6344,25 +6390,6 @@ end
     )
 
 
-    local existing =
-        mySettings:FindFirstChild(
-            "BeingObservedBy"
-        )
-
-
-    if existing
-        and existing:IsA(
-            "StringValue"
-        ) then
-
-        BeingObservedTriggered =
-            true
-
-        if HasActiveChakraSense() then
-            SetObservedUI(true)
-        end
-    end
-end
 
 
 local function WatchCharacter(
@@ -6474,9 +6501,7 @@ local function WatchCharacter(
             return
         end
 
-
         ChakraStates[character] = false
-
 
         ChakraNotify(
             "Chakra Sense Ended",
@@ -6484,11 +6509,10 @@ local function WatchCharacter(
             .. " stopped using Chakra Sense!"
         )
 
-
         UpdateChakraSenseUI()
-
         UpdateObservedState()
     end
+
 
 
     if torso:FindFirstChild(
@@ -6537,29 +6561,23 @@ local function WatchCharacter(
 
                 if addedConnection then
                     addedConnection:Disconnect()
+                    addedConnection = nil
                 end
-
 
                 if removedConnection then
                     removedConnection:Disconnect()
+                    removedConnection = nil
                 end
 
-
-                TrackedCharacters[character] =
-                    nil
-
-                ChakraStates[character] =
-                    nil
-
-                CharacterConnections[character] =
-                    nil
-
+                TrackedCharacters[character] = nil
+                ChakraStates[character] = nil
+                CharacterConnections[character] = nil
 
                 UpdateChakraSenseUI()
-
                 UpdateObservedState()
             end
         )
+
 
 
     CharacterConnections[character] = {
@@ -6656,62 +6674,48 @@ Services.Players.PlayerAdded:Connect(
 )
 
 
-Services.Players.PlayerRemoving:Connect(
-    function(player)
+    Services.Players.PlayerRemoving:Connect(
+        function(player)
 
-        if PlayerConnections[player] then
-
-            PlayerConnections[player]:Disconnect()
-
-            PlayerConnections[player] =
-                nil
-        end
-
-
-        if player.Character then
-
-            local character =
-                player.Character
-
-            local connections =
-                CharacterConnections[character]
-
-
-            if connections then
-
-                if connections.Added then
-                    connections.Added:Disconnect()
-                end
-
-
-                if connections.Removed then
-                    connections.Removed:Disconnect()
-                end
-
-
-                if connections.Destroying then
-                    connections.Destroying:Disconnect()
-                end
-
-
-                CharacterConnections[character] =
-                    nil
+            if PlayerConnections[player] then
+                PlayerConnections[player]:Disconnect()
+                PlayerConnections[player] = nil
             end
 
+            if player.Character then
 
-            TrackedCharacters[character] =
-                nil
+                local character =
+                    player.Character
 
-            ChakraStates[character] =
-                nil
+                local connections =
+                    CharacterConnections[character]
+
+                if connections then
+
+                    if connections.Added then
+                        connections.Added:Disconnect()
+                    end
+
+                    if connections.Removed then
+                        connections.Removed:Disconnect()
+                    end
+
+                    if connections.Destroying then
+                        connections.Destroying:Disconnect()
+                    end
+
+                    CharacterConnections[character] = nil
+                end
+
+                TrackedCharacters[character] = nil
+                ChakraStates[character] = nil
+            end
+
+            UpdateChakraSenseUI()
+            UpdateObservedState()
         end
+    )
 
-
-        UpdateChakraSenseUI()
-        UpdateObservedState()
-
-    end
-)
 
 
 CreateChakraSenseUI()
@@ -6736,26 +6740,6 @@ Services.LocalPlayer.CharacterAdded:Connect(
 )
 
 
-task.spawn(
-    function()
-
-        while task.wait(0.2) do
-
-            if State.ChakraSenseUIEnabled then
-
-                UpdateChakraSenseUI()
-
-
-                if BeingObservedTriggered then
-
-                    UpdateObservedState()
-
-                end
-            end
-        end
-    end
-)
-
 
 NotificationsRightGroupBox:AddToggle(
     "ChakraSenseStatus",
@@ -6765,59 +6749,41 @@ NotificationsRightGroupBox:AddToggle(
         Default =
             State.ChakraSenseUIEnabled,
 
-
         Callback = function(Value)
 
             State.ChakraSenseUIEnabled =
                 Value
 
-
             if ChakraSenseGui then
-
                 ChakraSenseGui.Enabled =
                     Value
-
             end
-
 
             if not Value then
 
                 if ChakraSenseLabel then
-
-                    ChakraSenseLabel.Visible =
-                        false
-
+                    ChakraSenseLabel.Visible = false
                 end
-
 
                 SetObservedUI(false)
 
             else
 
                 if ChakraSenseLabel then
-
-                    ChakraSenseLabel.Visible =
-                        true
-
+                    ChakraSenseLabel.Visible = true
                 end
-
-
-                UpdateChakraSenseUI()
-
-
-                if BeingObservedTriggered then
-
-                    UpdateObservedState()
-
-                end
-
 
                 SetupBeingObservedDetector()
+                UpdateChakraSenseUI()
 
+                if BeingObservedTriggered then
+                    UpdateObservedState()
+                end
             end
         end
     }
 )
+
 
 
 NotificationsRightGroupBox:AddToggle(
@@ -6825,8 +6791,7 @@ NotificationsRightGroupBox:AddToggle(
     {
         Text = "Player Joined",
 
-        Default =
-            State.JoinNotifier,
+        Default = State.JoinNotifier,
 
 
         Callback = function(Value)
@@ -6862,78 +6827,53 @@ Services.Players.PlayerAdded:Connect(
     end
 )
 
-
-
-NotificationsRightGroupBox:AddToggle(
-    "JoinNotifier",
-    {
-        Text = "Player Joined",
-        Default =
-            State.JoinNotifier,
-
-        Callback = function(Value)
-
-            State.JoinNotifier =
-                Value
-        end
-    }
-)
-
-
-Services.Players.PlayerAdded:Connect(
-    function(player)
-
-        if not State.JoinNotifier then
-            return
-        end
-
-
-        Library:Notify({
-            Title =
-                "A Player Just Joined To Your Server!",
-
-            Description =
-                player.Name .. " Joined!",
-
-            Duration = 5
-        })
-    end
-)
-
-
 -- Addons
 
 -- Auto Execute System
 
 
-RightGroupBox2:AddToggle("AutoExecute", {
-    Text = "Auto Execute on Teleport",
-    Default = true,
+RightGroupBox2:AddToggle(
+    "AutoExecute",
+    {
+        Text = "Auto Execute on Teleport",
+        Default = true,
 
-    Callback = function(AutoExecuteValue)
-        AutoExecute = AutoExecuteValue
+        Callback = function(Value)
 
-        if AutoExecute and queue_on_teleport then
-            queue_on_teleport([[
-                repeat task.wait() until game:IsLoaded()
+            State.AutoExecute =
+                Value
 
-                if game.PlaceId == 10266164381 then
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Kam41514/ScriptHub/refs/heads/main/scriptbeta.lua"))()
-                end
-            ]])
+            if State.AutoExecute
+                and queue_on_teleport then
 
-            print("Queue Added")
+                queue_on_teleport([[
+                    repeat
+                        task.wait()
+                    until game:IsLoaded()
+
+                    if game.PlaceId == 10266164381 then
+                        loadstring(
+                            game:HttpGet(
+                                "https://raw.githubusercontent.com/Kam41514/ScriptHub/refs/heads/main/scriptbeta.lua"
+                            )
+                        )()
+                    end
+                ]])
+
+                print("Queue Added")
+            end
         end
-    end
-})
+    }
+)
+
 
 -- Events
-Players.PlayerAdded:Connect(function()
+Services.Players.PlayerAdded:Connect(function()
     task.wait(1)
     UpdatePlayerList()
 end)
 
-Players.PlayerRemoving:Connect(function()
+Services.Players.PlayerRemoving:Connect(function()
     task.wait(1)
     UpdatePlayerList()
 end)
