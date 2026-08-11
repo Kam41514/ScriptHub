@@ -212,7 +212,9 @@ LeftGroupBox:AddButton({
 LeftGroupBox:AddButton({
     Text = "Execute Dex Explorer",
     Func = function()
-        loadstring(game:HttpGet("https://obj.wearedevs.net/2/scripts/Dex%20Explorer.lua"))()
+           loadstring(game:HttpGet(
+            "https://obj.wearedevs.net/2/scripts/Dex%20Explorer.lua"
+        ))()
     end
 })
 
