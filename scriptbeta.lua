@@ -1457,7 +1457,7 @@ local NewNoFallToggle =
 -- End Of Player Tab
 
 -- Wait To Not Crash
-task.wait(0.02)
+task.wait(0.01)
 
 
 -- Groupboxes For Exploits Tab
@@ -3136,6 +3136,7 @@ VisualRightGroupBox2:AddToggle("NoFog", {
 })
 
 
+task.wait(0.01)
 
 -- Automation
 
@@ -6341,8 +6342,7 @@ local RareItems = {
 
 local RareDetectedParts = {}
 
-local RARE_SCAN_DISTANCE =
-300
+local RARE_SCAN_DISTANCE = 25
 
 local RARE_SCAN_INTERVAL =
 0.5
