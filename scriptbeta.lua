@@ -6342,7 +6342,7 @@ local RareItems = {
 
 local RareDetectedParts = {}
 
-local RARE_SCAN_DISTANCE = 25
+local RARE_SCAN_DISTANCE = 100
 
 local RARE_SCAN_INTERVAL =
 0.5
