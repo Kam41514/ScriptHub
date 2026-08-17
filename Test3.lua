@@ -33,22 +33,25 @@ State.TreeFarmStatusDot =State.TreeFarmStatusDot or nil
 
 funcs.getCharacter = function()
 
-    BaseLocals.character = Services.LocalPlayer.Character
+    local character =
+        Services.LocalPlayer.Character
 
-    if BaseLocals.character then
-        return BaseLocals.character
+    if character then
+        return character
     end
 
     return Services.LocalPlayer.CharacterAdded:Wait()
 
 end
 
+
 funcs.getHRP = function()
 
-    BaseLocals.character = funcs.getCharacter()
+    local character =
+        funcs.getCharacter()
 
-    return BaseLocals.character
-        and BaseLocals.character:FindFirstChild(
+    return character
+        and character:FindFirstChild(
             "HumanoidRootPart"
         )
 
@@ -56,21 +59,30 @@ end
 
 funcs.GetActiveChakraPlayers = function()
 
-    BaseLocals.activePlayers = {}
+    local activePlayers = {}
 
-    for _, plr in ipairs(Services.Players:GetPlayers()) do
+    for _, plr in ipairs(
+        Services.Players:GetPlayers()
+    ) do
 
-        if plr ~= Services.LocalPlayer and plr.Character then
+        if plr ~= Services.LocalPlayer
+            and plr.Character then
 
-            BaseLocals.torso =
-                plr.Character:FindFirstChild("Torso")
-                or plr.Character:FindFirstChild("UpperTorso")
+            local torso =
+                plr.Character:FindFirstChild(
+                    "Torso"
+                )
+                or plr.Character:FindFirstChild(
+                    "UpperTorso"
+                )
 
-            if BaseLocals.torso
-                and BaseLocals.torso:FindFirstChild("ChakraSense") then
+            if torso
+                and torso:FindFirstChild(
+                    "ChakraSense"
+                ) then
 
                 table.insert(
-                    BaseLocals.activePlayers,
+                    activePlayers,
                     plr.Name
                 )
 
@@ -78,7 +90,7 @@ funcs.GetActiveChakraPlayers = function()
         end
     end
 
-    return BaseLocals.activePlayers
+    return activePlayers
 
 end
 
@@ -93,11 +105,11 @@ funcs.isPlayerWithinDistance = function(
     distance
 )
 
-    if not position then
+    if not position or not distance then
         return false
     end
 
-    BaseLocals.maxDistance =
+    local maxDistance =
         distance * distance
 
     for _, plr in ipairs(
@@ -106,29 +118,27 @@ funcs.isPlayerWithinDistance = function(
 
         if plr ~= Services.LocalPlayer then
 
-            BaseLocals.character =
+            local character =
                 plr.Character
 
-            if BaseLocals.character then
+            if character then
 
-                BaseLocals.hrp =
-                    BaseLocals.character:FindFirstChild(
+                local hrp =
+                    character:FindFirstChild(
                         "HumanoidRootPart"
                     )
 
-                if BaseLocals.hrp then
+                if hrp then
 
-                    BaseLocals.offset =
-                        BaseLocals.hrp.Position - position
+                    local offset =
+                        hrp.Position - position
 
-                    if BaseLocals.offset:Dot(
-                        BaseLocals.offset
-                    ) <= BaseLocals.maxDistance then
+                    if offset:Dot(offset)
+                        <= maxDistance then
 
                         return true
 
                     end
-
                 end
             end
         end
@@ -159,69 +169,67 @@ funcs.teleportToSafePoint = function()
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
-
         State.TreeFloatVelocity = nil
 
     end
 
-    BaseLocals.hrp = funcs.getHRP()
+    local hrp =
+        funcs.getHRP()
 
-    if not BaseLocals.hrp then
+    if not hrp then
         return false
     end
 
-    BaseLocals.safePoints =
+    local safePoints =
         State.SafePointPositions
 
-    if not BaseLocals.safePoints then
+    if not safePoints then
         return false
     end
 
-    BaseLocals.playerRange =
+    local playerRange =
         State.TreePlayerRange or 150
 
-    BaseLocals.currentPosition =
-        BaseLocals.hrp.Position
+    local currentPosition =
+        hrp.Position
 
-    BaseLocals.nearestSafePoint = nil
-    BaseLocals.nearestDistance = math.huge
+    local nearestSafePoint
+    local nearestDistance = math.huge
 
     for _, safePoint in pairs(
-        BaseLocals.safePoints
+        safePoints
     ) do
 
-        BaseLocals.pointPosition = nil
+        local pointPosition
 
         if typeof(safePoint) == "Vector3" then
 
-            BaseLocals.pointPosition =
-                safePoint
+            pointPosition = safePoint
 
         elseif typeof(safePoint) == "CFrame" then
 
-            BaseLocals.pointPosition =
+            pointPosition =
                 safePoint.Position
 
         elseif typeof(safePoint) == "table" then
 
-            if typeof(safePoint.Position) == "Vector3" then
+            if typeof(safePoint.Position)
+                == "Vector3" then
 
-                BaseLocals.pointPosition =
+                pointPosition =
                     safePoint.Position
 
-            elseif typeof(safePoint.CFrame) == "CFrame" then
+            elseif typeof(safePoint.CFrame)
+                == "CFrame" then
 
-                BaseLocals.pointPosition =
+                pointPosition =
                     safePoint.CFrame.Position
 
-            elseif safePoint[1]
-                and typeof(safePoint[1]) == "number"
-                and safePoint[2]
+            elseif typeof(safePoint[1]) == "number"
                 and typeof(safePoint[2]) == "number"
-                and safePoint[3]
                 and typeof(safePoint[3]) == "number" then
 
-                BaseLocals.pointPosition =
+                pointPosition =
                     Vector3.new(
                         safePoint[1],
                         safePoint[2],
@@ -231,42 +239,36 @@ funcs.teleportToSafePoint = function()
             end
         end
 
-        if BaseLocals.pointPosition then
+        if pointPosition
+            and not funcs.isPlayerWithinDistance(
+                pointPosition,
+                playerRange
+            ) then
 
-            BaseLocals.playerNearby =
-                funcs.isPlayerWithinDistance(
-                    BaseLocals.pointPosition,
-                    BaseLocals.playerRange
-                )
+            local distance =
+                (
+                    pointPosition
+                    - currentPosition
+                ).Magnitude
 
-            if not BaseLocals.playerNearby then
+            if distance < nearestDistance then
 
-                BaseLocals.distance =
-                    (
-                        BaseLocals.pointPosition
-                        - BaseLocals.currentPosition
-                    ).Magnitude
+                nearestDistance =
+                    distance
 
-                if BaseLocals.distance
-                    < BaseLocals.nearestDistance then
+                nearestSafePoint =
+                    pointPosition
 
-                    BaseLocals.nearestDistance =
-                        BaseLocals.distance
-
-                    BaseLocals.nearestSafePoint =
-                        BaseLocals.pointPosition
-
-                end
             end
         end
     end
 
-    if not BaseLocals.nearestSafePoint then
+    if not nearestSafePoint then
 
         if funcs.updateStatus then
 
             funcs.updateStatus(
-                "   Safe Point",
+                "Safe Point",
                 Color3.fromRGB(
                     255,
                     90,
@@ -280,76 +282,72 @@ funcs.teleportToSafePoint = function()
         return false
     end
 
-    BaseLocals.humanoid =
-        BaseLocals.hrp.Parent:FindFirstChildOfClass(
+    local humanoid =
+        hrp.Parent:FindFirstChildOfClass(
             "Humanoid"
         )
 
-    BaseLocals.targetPosition =
-        BaseLocals.nearestSafePoint
+    local targetPosition =
+        nearestSafePoint
         + Vector3.new(0, 3, 0)
 
-    if BaseLocals.humanoid then
-
-        BaseLocals.humanoid:ChangeState(
+    if humanoid then
+        humanoid:ChangeState(
             Enum.HumanoidStateType.Physics
         )
-
     end
 
-    BaseLocals.hrp.AssemblyLinearVelocity =
+    hrp.AssemblyLinearVelocity =
         Vector3.zero
 
-    BaseLocals.hrp.AssemblyAngularVelocity =
+    hrp.AssemblyAngularVelocity =
         Vector3.zero
 
-    BaseLocals.hrp.CFrame =
+    hrp.CFrame =
         CFrame.new(
-            BaseLocals.targetPosition
+            targetPosition
         )
 
     task.wait(0.1)
 
-    if not BaseLocals.hrp.Parent then
+    if not hrp.Parent then
         return false
     end
 
-    BaseLocals.hrp.AssemblyLinearVelocity =
+    hrp.AssemblyLinearVelocity =
         Vector3.zero
 
-    BaseLocals.hrp.AssemblyAngularVelocity =
+    hrp.AssemblyAngularVelocity =
         Vector3.zero
 
     if (
-        BaseLocals.hrp.Position
-        - BaseLocals.targetPosition
+        hrp.Position
+        - targetPosition
     ).Magnitude > 5 then
 
-        BaseLocals.hrp.CFrame =
+        hrp.CFrame =
             CFrame.new(
-                BaseLocals.targetPosition
+                targetPosition
             )
 
         task.wait(0.1)
 
-        if not BaseLocals.hrp.Parent then
+        if not hrp.Parent then
             return false
         end
 
-        BaseLocals.hrp.AssemblyLinearVelocity =
+        hrp.AssemblyLinearVelocity =
             Vector3.zero
 
-        BaseLocals.hrp.AssemblyAngularVelocity =
+        hrp.AssemblyAngularVelocity =
             Vector3.zero
 
     end
 
-    if BaseLocals.humanoid then
-
-        BaseLocals.humanoid:ChangeState(
+    if humanoid then
+        humanoid:ChangeState(
             Enum.HumanoidStateType.GettingUp
         )
-
     end
 
     if funcs.updateStatus then
@@ -372,7 +370,7 @@ end
 
 funcs.getTrees = function()
 
-    BaseLocals.trees = {}
+    local trees = {}
 
     for _, obj in ipairs(
         workspace:GetChildren()
@@ -384,28 +382,26 @@ funcs.getTrees = function()
                 "^Tree%d+$"
             ) then
 
-            BaseLocals.fruitSpawns =
+            local fruitSpawns =
                 obj:FindFirstChild(
                     "FruitSpawns"
                 )
 
-            BaseLocals.mainBranch =
+            local mainBranch =
                 obj:FindFirstChild(
                     "MainBranch"
                 )
 
-            if BaseLocals.fruitSpawns
-                and BaseLocals.mainBranch
-                and BaseLocals.mainBranch:IsA("BasePart") then
+            if fruitSpawns
+                and mainBranch
+                and mainBranch:IsA("BasePart") then
 
                 table.insert(
-                    BaseLocals.trees,
+                    trees,
                     {
                         Tree = obj,
-                        FruitSpawns =
-                            BaseLocals.fruitSpawns,
-                        MainBranch =
-                            BaseLocals.mainBranch
+                        MainBranch = mainBranch,
+                        FruitSpawns = fruitSpawns
                     }
                 )
 
@@ -414,7 +410,7 @@ funcs.getTrees = function()
     end
 
     table.sort(
-        BaseLocals.trees,
+        trees,
         function(a, b)
 
             return a.Tree.Name
@@ -423,7 +419,7 @@ funcs.getTrees = function()
         end
     )
 
-    return BaseLocals.trees
+    return trees
 
 end
 
@@ -432,44 +428,40 @@ funcs.teleportToTree = function(
     treeData
 )
 
-    if not treeData
-        or not treeData.Tree
-        or not treeData.Tree.Parent then
-
+    if not treeData then
         return false
-
     end
 
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-    BaseLocals.hrp =
+    local hrp =
         funcs.getHRP()
 
-    if not BaseLocals.hrp then
+    if not hrp then
         return false
     end
 
-    BaseLocals.mainBranch =
+    local mainBranch =
         treeData.MainBranch
 
-    if not BaseLocals.mainBranch
-        or not BaseLocals.mainBranch.Parent
-        or not BaseLocals.mainBranch:IsA("BasePart") then
+    if not mainBranch
+        or not mainBranch.Parent
+        or not mainBranch:IsA("BasePart") then
 
         return false
     end
 
-    BaseLocals.targetPosition =
-        BaseLocals.mainBranch.Position
+    local targetPosition =
+        mainBranch.Position
 
-    BaseLocals.playerRange =
+    local playerRange =
         State.TreePlayerRange or 150
 
     if funcs.isPlayerWithinDistance(
-        BaseLocals.targetPosition,
-        BaseLocals.playerRange
+        targetPosition,
+        playerRange
     ) then
 
         return false
@@ -486,10 +478,14 @@ funcs.teleportToTree = function(
         noClip(true)
     end
 
+    hrp.CFrame =
+        CFrame.new(
+            targetPosition
+        )
+
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
-
         State.TreeFloatVelocity = nil
 
     end
@@ -511,20 +507,15 @@ funcs.teleportToTree = function(
         Vector3.zero
 
     State.TreeFloatVelocity.Parent =
-        BaseLocals.hrp
+        hrp
 
-    BaseLocals.hrp.CFrame =
-        CFrame.new(
-            BaseLocals.targetPosition
-        )
-
-    task.wait(0.1)
+    task.wait(0.05)
 
     if not State.TreeFarmEnabled then
         return false
     end
 
-    if not BaseLocals.hrp.Parent then
+    if not hrp.Parent then
         return false
     end
 
@@ -532,15 +523,9 @@ funcs.teleportToTree = function(
         return false
     end
 
-    BaseLocals.hrp.AssemblyLinearVelocity =
-        Vector3.zero
-
-    BaseLocals.hrp.AssemblyAngularVelocity =
-        Vector3.zero
-
-    BaseLocals.hrp.CFrame =
+    hrp.CFrame =
         CFrame.new(
-            BaseLocals.targetPosition
+            targetPosition
         )
 
     return true
@@ -549,10 +534,10 @@ end
 
 funcs.checkNearbyPlayerAfterTeleport = function()
 
-    BaseLocals.hrp =
+    local hrp =
         funcs.getHRP()
 
-    if not BaseLocals.hrp then
+    if not hrp then
         return false
     end
 
@@ -578,11 +563,12 @@ funcs.checkNearbyPlayerAfterTeleport = function()
 
     end
 
-    BaseLocals.playerRange = State.TreePlayerRange or 150
+    local playerRange =
+        State.TreePlayerRange or 150
 
     if not funcs.isPlayerWithinDistance(
-        BaseLocals.hrp.Position,
-        BaseLocals.playerRange
+        hrp.Position,
+        playerRange
     ) then
 
         return false
@@ -1152,8 +1138,8 @@ end
 
 funcs.getCurrentFruits = function()
 
-    BaseLocals.result = {}
-    BaseLocals.allowed = {}
+    local result = {}
+    local allowed = {}
 
     if State.FruitNames then
 
@@ -1162,14 +1148,14 @@ funcs.getCurrentFruits = function()
         ) do
 
             if enabled then
-                BaseLocals.allowed[name] = true
+                allowed[name] = true
             end
 
         end
 
     else
 
-        BaseLocals.names = {
+        local names = {
             "Mango",
             "Orange",
             "Banana",
@@ -1178,73 +1164,64 @@ funcs.getCurrentFruits = function()
             "Pear",
             "Chakra Fruit",
             "Life Up Fruit",
-            "Fruit Of Forgetfulness",
+            "Fruit Of Forgetfulness"
         }
 
-        for _, name in ipairs(
-            BaseLocals.names
-        ) do
-
-            BaseLocals.allowed[name] = true
-
+        for _, name in ipairs(names) do
+            allowed[name] = true
         end
 
     end
 
-
-    BaseLocals.hrp =
+    local hrp =
         funcs.getHRP()
 
-    if not BaseLocals.hrp then
-        return BaseLocals.result
+    if not hrp then
+        return result
     end
 
-
-    BaseLocals.currentPosition =
-        BaseLocals.hrp.Position
-
+    local currentPosition =
+        hrp.Position
 
     for _, obj in ipairs(
         workspace:GetDescendants()
     ) do
 
-        if BaseLocals.allowed[obj.Name] then
+        if allowed[obj.Name] then
 
-            BaseLocals.position =
+            local position =
                 funcs.getFruitPosition(
                     obj
                 )
 
-            if BaseLocals.position
+            if position
                 and (
-                    BaseLocals.position
-                    - BaseLocals.currentPosition
-                ).Magnitude <= 300 then
+                    position
+                    - currentPosition
+                ).Magnitude <= 350 then
 
-                BaseLocals.playerNearby =
+                local playerNearby =
                     funcs.isPlayerWithinDistance(
-                        BaseLocals.position,
-                        50
+                        position,
+                        TreePlayerRange,
                     )
 
-                if not BaseLocals.playerNearby then
+                if not playerNearby then
 
                     table.insert(
-                        BaseLocals.result,
+                        result,
                         {
                             Object = obj,
-                            Position = BaseLocals.position
+                            Position = position
                         }
                     )
 
                 end
-
             end
         end
     end
 
-
-    return BaseLocals.result
+    return result
 
 end
 
@@ -1256,44 +1233,36 @@ funcs.teleportToFruit = function(
         return false
     end
 
-
-    BaseLocals.hrp =
+    local hrp =
         funcs.getHRP()
 
-    if not BaseLocals.hrp then
+    if not hrp then
         return false
     end
 
-
-    BaseLocals.position =
+    local position =
         funcs.getFruitPosition(
             fruitData.Object
         )
 
-    if not BaseLocals.position then
+    if not position then
         return false
     end
-
 
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-
-    BaseLocals.position =
-        BaseLocals.position
+    position =
+        position
         - Vector3.new(
             0,
-                       0.5,
+            0.5,
             0
         )
 
-
-    BaseLocals.hrp.CFrame =
-        CFrame.new(
-            BaseLocals.position
-        )
-
+    hrp.CFrame =
+        CFrame.new(position)
 
     return true
 
@@ -1303,19 +1272,12 @@ funcs.waitForTreeFruits = function(
     treeData
 )
 
-    BaseLocals.timeout = 10
-
-    BaseLocals.startTime =
-        tick()
-
-    BaseLocals.currentRunId =
-        State.TreeFarmRunId
-
+    local timeout = 10
+    local startTime = tick()
+    local currentRunId = State.TreeFarmRunId
 
     while State.TreeFarmEnabled
-        and BaseLocals.currentRunId
-            == State.TreeFarmRunId do
-
+        and currentRunId == State.TreeFarmRunId do
 
         if funcs.isAnyActiveChakraUser() then
 
@@ -1331,36 +1293,27 @@ funcs.waitForTreeFruits = function(
 
             funcs.teleportToSafePoint()
 
-
             repeat
                 task.wait(0.25)
-
             until not funcs.isAnyActiveChakraUser()
                 or not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId
-
+                or currentRunId ~= State.TreeFarmRunId
 
             if not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return {}
 
             end
 
-
-            BaseLocals.startTime =
-                tick()
+            startTime = tick()
 
         end
 
-
-        BaseLocals.currentFruits =
+        local currentFruits =
             funcs.getCurrentFruits()
 
-
-        if #BaseLocals.currentFruits > 0 then
+        if #currentFruits > 0 then
 
             funcs.updateStatus(
                 "Fruit Detected",
@@ -1372,18 +1325,14 @@ funcs.waitForTreeFruits = function(
                 "Waiting 1 second..."
             )
 
-
             task.wait(1)
 
-
             if not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return {}
 
             end
-
 
             if funcs.isAnyActiveChakraUser() then
 
@@ -1399,19 +1348,14 @@ funcs.waitForTreeFruits = function(
 
                 funcs.teleportToSafePoint()
 
-
                 repeat
                     task.wait(0.25)
-
                 until not funcs.isAnyActiveChakraUser()
                     or not State.TreeFarmEnabled
-                    or BaseLocals.currentRunId
-                        ~= State.TreeFarmRunId
-
+                    or currentRunId ~= State.TreeFarmRunId
 
                 if not State.TreeFarmEnabled
-                    or BaseLocals.currentRunId
-                        ~= State.TreeFarmRunId then
+                    or currentRunId ~= State.TreeFarmRunId then
 
                     return {}
 
@@ -1419,19 +1363,13 @@ funcs.waitForTreeFruits = function(
 
             end
 
-
             return funcs.getCurrentFruits()
 
         end
 
-
-        if tick() - BaseLocals.startTime
-            >= BaseLocals.timeout then
-
+        if tick() - startTime >= timeout then
             return {}
-
         end
-
 
         funcs.updateStatus(
             "Waiting For Fruit",
@@ -1443,17 +1381,18 @@ funcs.waitForTreeFruits = function(
             treeData.Tree.Name
         )
 
-
         task.wait(0.25)
 
     end
-
 
     return {}
 
 end
 
-funcs.isPlayerNearFruit = function(position)
+
+funcs.isPlayerNearFruit = function(
+    position
+)
 
     if not position then
         return false
@@ -1465,25 +1404,25 @@ funcs.isPlayerNearFruit = function(position)
 
         if player ~= Services.LocalPlayer then
 
-            BaseLocals.character =
+            local character =
                 player.Character
 
-            if BaseLocals.character then
+            if character then
 
-                BaseLocals.rootPart =
-                    BaseLocals.character:FindFirstChild(
+                local rootPart =
+                    character:FindFirstChild(
                         "HumanoidRootPart"
                     )
 
-                if BaseLocals.rootPart then
+                if rootPart then
 
-                    BaseLocals.distance =
+                    local distance =
                         (
-                            BaseLocals.rootPart.Position
+                            rootPart.Position
                             - position
                         ).Magnitude
 
-                    if BaseLocals.distance <= 75 then
+                    if distance <= 75 then
                         return true
                     end
 
@@ -1495,6 +1434,7 @@ funcs.isPlayerNearFruit = function(position)
     return false
 
 end
+
 
 funcs.startAutoPickup = function()
 
@@ -1509,14 +1449,14 @@ funcs.startAutoPickup = function()
 
     end
 
-    BaseLocals.connectionName =
+    local connectionName =
         "TreeFarm_AutoPickup"
 
     State.AutoPickupConnectionName =
-        BaseLocals.connectionName
+        connectionName
 
     Connect(
-        BaseLocals.connectionName,
+        connectionName,
         Services.RunService.Heartbeat,
         function()
 
@@ -1524,69 +1464,86 @@ funcs.startAutoPickup = function()
                 return
             end
 
-            BaseLocals.character =
+            local character =
                 Services.LocalPlayer.Character
 
-            if not BaseLocals.character then
+            if not character then
                 return
             end
 
-            BaseLocals.rootPart =
-                BaseLocals.character:FindFirstChild(
+            local rootPart =
+                character:FindFirstChild(
                     "HumanoidRootPart"
                 )
 
-            if not BaseLocals.rootPart then
+            if not rootPart then
                 return
             end
 
-            BaseLocals.pickupList =
+            local pickupList =
                 State.PickupList
 
-            if not BaseLocals.pickupList then
+            if not pickupList then
                 return
             end
 
-            BaseLocals.dataEvent =
-                Services.ReplicatedStorage
-                    :FindFirstChild("Events")
-                    and Services.ReplicatedStorage.Events
-                        :FindFirstChild("DataEvent")
+            local events =
+                Services.ReplicatedStorage:FindFirstChild(
+                    "Events"
+                )
 
-            if not BaseLocals.dataEvent then
+            if not events then
+                return
+            end
+
+            local dataEvent =
+                events:FindFirstChild(
+                    "DataEvent"
+                )
+
+            if not dataEvent then
                 return
             end
 
             for pos, obj in pairs(
-                BaseLocals.pickupList
+                pickupList
             ) do
 
                 if obj
                     and obj.Parent then
 
-                    BaseLocals.distance =
+                    if typeof(pos) ~= "Vector3" then
+                        continue
+                    end
+
+                    local distance =
                         (
-                            BaseLocals.rootPart.Position
+                            rootPart.Position
                             - pos
                         ).Magnitude
 
-                    if BaseLocals.distance < 25 then
+                    if distance < 25 then
 
-                        BaseLocals.id =
+                        local id =
                             obj:FindFirstChild(
                                 "ID"
                             )
 
-                        if BaseLocals.id then
+                        if id then
 
-                            BaseLocals.dataEvent:FireServer(
+                            dataEvent:FireServer(
                                 "PickUp",
-                                BaseLocals.id.Value
+                                id.Value
                             )
 
                         end
 
                     end
+
+                else
+
+                    pickupList[pos] =
+                        nil
 
                 end
 
@@ -1596,6 +1553,7 @@ funcs.startAutoPickup = function()
     )
 
 end
+
 
 funcs.stopAutoPickup = function()
 
@@ -1611,6 +1569,7 @@ funcs.stopAutoPickup = function()
     end
 
 end
+
 
 funcs.setTreeFarmNoFall = function(
     enabled
@@ -1641,19 +1600,17 @@ funcs.setTreeFarmNoFall = function(
                         local method =
                             getnamecallmethod()
 
-                        if method
-                            == "FindFirstChild" then
+                        if method == "FindFirstChild" then
 
-                            local args =
-                                {...}
+                            local args = {...}
 
-                            if args[1]
-                                == "NegateFall"
+                            if args[1] == "NegateFall"
                                 and getgenv().NoFallEnabled then
 
                                 return true
 
                             end
+
                         end
 
                         return oldNamecall(
@@ -1693,10 +1650,10 @@ end
 
 funcs.runTreeFarm = function()
 
-    BaseLocals.trees =
+    local trees =
         funcs.getTrees()
 
-    if #BaseLocals.trees == 0 then
+    if #trees == 0 then
 
         funcs.updateStatus(
             "No Valid Trees Found",
@@ -1711,69 +1668,18 @@ funcs.runTreeFarm = function()
         return
     end
 
-    BaseLocals.currentRunId =
+    local currentRunId =
         State.TreeFarmRunId
 
-    funcs.isPlayerNearFruit = function(
-        position
-    )
-
-        if not position then
-            return false
-        end
-
-        for _, player in ipairs(
-            Services.Players:GetPlayers()
-        ) do
-
-            if player ~= Services.LocalPlayer then
-
-                BaseLocals.character =
-                    player.Character
-
-                if BaseLocals.character then
-
-                    BaseLocals.rootPart =
-                        BaseLocals.character:FindFirstChild(
-                            "HumanoidRootPart"
-                        )
-
-                    if BaseLocals.rootPart then
-
-                        BaseLocals.distance =
-                            (
-                                BaseLocals.rootPart.Position
-                                - position
-                            ).Magnitude
-
-                        if BaseLocals.distance <= 75 then
-                            return true
-                        end
-
-                    end
-
-                end
-
-            end
-
-        end
-
-        return false
-
-    end
-
-
     for index, treeData in ipairs(
-        BaseLocals.trees
+        trees
     ) do
 
         if not State.TreeFarmEnabled
-            or BaseLocals.currentRunId
-                ~= State.TreeFarmRunId then
+            or currentRunId ~= State.TreeFarmRunId then
 
             return
         end
-
 
         if funcs.isAnyActiveChakraUser() then
 
@@ -1790,25 +1696,18 @@ funcs.runTreeFarm = function()
             funcs.teleportToSafePoint()
 
             repeat
-
                 task.wait(0.25)
-
             until not funcs.isAnyActiveChakraUser()
                 or not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId
-
+                or currentRunId ~= State.TreeFarmRunId
 
             if not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return
-
             end
 
         end
-
 
         funcs.updateStatus(
             "Checking Tree",
@@ -1820,24 +1719,21 @@ funcs.runTreeFarm = function()
             string.format(
                 "%d / %d  •  %s",
                 index,
-                #BaseLocals.trees,
+                #trees,
                 treeData.Tree.Name
             )
         )
-
 
         if funcs.isAnyActiveChakraUser() then
             continue
         end
 
-
-        BaseLocals.teleported =
+        local teleported =
             funcs.teleportToTree(
                 treeData
             )
 
-
-        if not BaseLocals.teleported then
+        if not teleported then
 
             funcs.updateStatus(
                 "Tree Skipped",
@@ -1849,56 +1745,44 @@ funcs.runTreeFarm = function()
                 string.format(
                     "%d / %d  •  Player nearby",
                     index,
-                    #BaseLocals.trees
+                    #trees
                 )
             )
 
             task.wait(0.15)
 
             continue
-
         end
 
-
         task.wait(0.25)
-
 
         if funcs.checkNearbyPlayerAfterTeleport() then
 
             task.wait(0.25)
 
             continue
-
         end
 
-
-        BaseLocals.currentFruits =
+        local currentFruits =
             funcs.waitForTreeFruits(
                 treeData
             )
 
-
         if not State.TreeFarmEnabled
-            or BaseLocals.currentRunId
-                ~= State.TreeFarmRunId then
+            or currentRunId ~= State.TreeFarmRunId then
 
             return
-
         end
 
-
         for fruitIndex, fruitData in ipairs(
-            BaseLocals.currentFruits
+            currentFruits
         ) do
 
             if not State.TreeFarmEnabled
-                or BaseLocals.currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return
-
             end
-
 
             if funcs.isAnyActiveChakraUser() then
 
@@ -1914,49 +1798,38 @@ funcs.runTreeFarm = function()
 
                 funcs.teleportToSafePoint()
 
-
                 repeat
-
                     task.wait(0.25)
-
                 until not funcs.isAnyActiveChakraUser()
                     or not State.TreeFarmEnabled
-                    or BaseLocals.currentRunId
-                        ~= State.TreeFarmRunId
-
+                    or currentRunId ~= State.TreeFarmRunId
 
                 if not State.TreeFarmEnabled
-                    or BaseLocals.currentRunId
-                        ~= State.TreeFarmRunId then
+                    or currentRunId ~= State.TreeFarmRunId then
 
                     return
-
                 end
 
             end
-
 
             if funcs.checkNearbyPlayerAfterTeleport() then
                 break
             end
 
-
             if fruitData.Object
                 and fruitData.Object.Parent then
 
-                BaseLocals.fruitPosition =
+                local fruitPosition =
                     funcs.getFruitPosition(
                         fruitData.Object
                     )
 
-
-                if not BaseLocals.fruitPosition then
+                if not fruitPosition then
                     continue
                 end
 
-
                 if funcs.isPlayerNearFruit(
-                    BaseLocals.fruitPosition
+                    fruitPosition
                 ) then
 
                     funcs.updateStatus(
@@ -1969,16 +1842,14 @@ funcs.runTreeFarm = function()
                         string.format(
                             "%d / %d  •  Player within 75 studs",
                             fruitIndex,
-                            #BaseLocals.currentFruits
+                            #currentFruits
                         )
                     )
 
                     task.wait(0.15)
 
                     continue
-
                 end
-
 
                 funcs.updateStatus(
                     "Collecting Fruit",
@@ -1990,21 +1861,25 @@ funcs.runTreeFarm = function()
                     string.format(
                         "%d / %d  •  %s",
                         fruitIndex,
-                        #BaseLocals.currentFruits,
+                        #currentFruits,
                         treeData.Tree.Name
                     )
                 )
 
-
                 if not funcs.isAnyActiveChakraUser() then
 
                     if not funcs.isPlayerNearFruit(
-                        BaseLocals.fruitPosition
+                        fruitPosition
                     ) then
 
-                        funcs.teleportToFruit(
-                            fruitData
-                        )
+                        local collected =
+                            funcs.teleportToFruit(
+                                fruitData
+                            )
+
+                        if not collected then
+                            continue
+                        end
 
                     else
 
@@ -2021,32 +1896,24 @@ funcs.runTreeFarm = function()
                         task.wait(0.15)
 
                         continue
-
                     end
-
                 end
 
-
                 task.wait(0.25)
-
 
                 if funcs.checkNearbyPlayerAfterTeleport() then
                     break
                 end
 
             end
-
         end
-
 
         task.wait(0.25)
 
     end
 
-
     if State.TreeFarmEnabled
-        and BaseLocals.currentRunId
-            == State.TreeFarmRunId then
+        and currentRunId == State.TreeFarmRunId then
 
         funcs.updateStatus(
             "Tree Cycle Completed",
@@ -2168,56 +2035,55 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
 
     do
 
-        BaseLocals.character =
+        local character =
             Services.LocalPlayer.Character
             or Services.LocalPlayer.CharacterAdded:Wait()
 
-        BaseLocals.humanoid =
-            BaseLocals.character:FindFirstChildOfClass(
+        local humanoid =
+            character:FindFirstChildOfClass(
                 "Humanoid"
             )
 
-        if BaseLocals.humanoid then
+        if humanoid then
 
-            BaseLocals.animator =
-                BaseLocals.humanoid:FindFirstChildOfClass(
+            local animator =
+                humanoid:FindFirstChildOfClass(
                     "Animator"
                 )
 
-            if not BaseLocals.animator then
+            if not animator then
 
-                BaseLocals.animator =
+                animator =
                     Instance.new(
                         "Animator"
                     )
 
-                BaseLocals.animator.Parent =
-                    BaseLocals.humanoid
+                animator.Parent =
+                    humanoid
 
             end
 
-            BaseLocals.animation =
+            local animation =
                 Instance.new(
                     "Animation"
                 )
 
-            BaseLocals.animation.AnimationId =
+            animation.AnimationId =
                 "rbxassetid://122919972398961"
 
-            BaseLocals.track =
-                BaseLocals.animator:LoadAnimation(
-                    BaseLocals.animation
+            local track =
+                animator:LoadAnimation(
+                    animation
                 )
 
-            BaseLocals.track.Looped = true
-
-            BaseLocals.track:Play()
+            track.Looped = true
+            track:Play()
 
             State.TreeFarmAnimation =
-                BaseLocals.animation
+                animation
 
             State.TreeFarmAnimationTrack =
-                BaseLocals.track
+                track
 
         end
 
@@ -2232,41 +2098,37 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
             return
         end
 
-        BaseLocals.pickupable =
+        local pickupable =
             obj:FindFirstChild(
                 "Pickupable"
             )
 
-        if not BaseLocals.pickupable then
+        if not pickupable then
             return
         end
 
-        BaseLocals.id =
+        local id =
             obj:FindFirstChild(
                 "ID"
             )
 
-        if not BaseLocals.id then
+        if not id then
             return
         end
 
-        BaseLocals.pos =
+        local pos =
             obj.Position
 
-        State.PickupList[
-            BaseLocals.pos
-        ] = obj
+        State.PickupList[pos] =
+            obj
 
         obj.Destroying:Connect(
             function()
 
-                if State.PickupList[
-                    BaseLocals.pos
-                ] == obj then
+                if State.PickupList[pos] == obj then
 
-                    State.PickupList[
-                        BaseLocals.pos
-                    ] = nil
+                    State.PickupList[pos] =
+                        nil
 
                 end
 
@@ -2324,26 +2186,26 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
                 return
             end
 
-            BaseLocals.character =
+            local character =
                 Services.LocalPlayer.Character
 
-            if not BaseLocals.character then
+            if not character then
                 return
             end
 
-            BaseLocals.rootPart =
-                BaseLocals.character:FindFirstChild(
+            local rootPart =
+                character:FindFirstChild(
                     "HumanoidRootPart"
                 )
 
-            if not BaseLocals.rootPart then
+            if not rootPart then
                 return
             end
 
-            BaseLocals.currentTime =
+            local currentTime =
                 tick()
 
-            if BaseLocals.currentTime
+            if currentTime
                 - State.TreeFarmAutoPickLastRun
                 < 0.1 then
 
@@ -2351,12 +2213,12 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
             end
 
             State.TreeFarmAutoPickLastRun =
-                BaseLocals.currentTime
+                currentTime
 
-            BaseLocals.myPosition =
-                BaseLocals.rootPart.Position
+            local myPosition =
+                rootPart.Position
 
-            BaseLocals.pickRange =
+            local pickRange =
                 State.FruitPickRange or 50
 
             for pos, obj in next,
@@ -2365,33 +2227,45 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
                 if obj
                     and obj.Parent then
 
-                    BaseLocals.distance =
+                    if typeof(pos) ~= "Vector3" then
+                        continue
+                    end
+
+                    local distance =
                         (
-                            BaseLocals.myPosition
+                            myPosition
                             - pos
                         ).Magnitude
 
-                    if BaseLocals.distance
-                        <= BaseLocals.pickRange then
+                    if distance <= pickRange then
 
-                        BaseLocals.id =
+                        local id =
                             obj:FindFirstChild(
                                 "ID"
                             )
 
-                        if BaseLocals.id then
+                        if id then
 
-                            Services.ReplicatedStorage
-                                :WaitForChild(
-                                    "Events"
-                                )
-                                :WaitForChild(
+                            local events =
+                                Services.ReplicatedStorage
+                                    :FindFirstChild(
+                                        "Events"
+                                    )
+
+                            local dataEvent =
+                                events
+                                and events:FindFirstChild(
                                     "DataEvent"
                                 )
-                                :FireServer(
+
+                            if dataEvent then
+
+                                dataEvent:FireServer(
                                     "PickUp",
-                                    BaseLocals.id.Value
+                                    id.Value
                                 )
+
+                            end
 
                         end
 
@@ -2409,23 +2283,23 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
         end
     )
 
-    BaseLocals.currentRunId =
+    local currentRunId =
         State.TreeFarmRunId
 
     task.spawn(
         function()
 
-            BaseLocals.firstCheck =
+            local firstCheck =
                 true
 
             while State.TreeFarmEnabled
-                and BaseLocals.currentRunId
+                and currentRunId
                     == State.TreeFarmRunId do
 
-                BaseLocals.activePlayers =
+                local activePlayers =
                     funcs.GetActiveChakraPlayers()
 
-                if #BaseLocals.activePlayers > 0 then
+                if #activePlayers > 0 then
 
                     if State.TreeFarmAnimationTrack
                         and State.TreeFarmAnimationTrack.IsPlaying then
@@ -2443,16 +2317,16 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
                         ),
                         string.format(
                             "%d user(s) detected",
-                            #BaseLocals.activePlayers
+                            #activePlayers
                         )
                     )
 
-                    if not BaseLocals.firstCheck then
+                    if not firstCheck then
 
-                        BaseLocals.hrp =
+                        local hrp =
                             funcs.getHRP()
 
-                        if BaseLocals.hrp then
+                        if hrp then
                             funcs.teleportToSafePoint()
                         end
 
@@ -2474,16 +2348,16 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
 
                         task.wait(0.25)
 
-                        BaseLocals.activePlayers =
+                        activePlayers =
                             funcs.GetActiveChakraPlayers()
 
-                    until #BaseLocals.activePlayers == 0
+                    until #activePlayers == 0
                         or not State.TreeFarmEnabled
-                        or BaseLocals.currentRunId
+                        or currentRunId
                             ~= State.TreeFarmRunId
 
                     if not State.TreeFarmEnabled
-                        or BaseLocals.currentRunId
+                        or currentRunId
                             ~= State.TreeFarmRunId then
 
                         break
@@ -2511,7 +2385,7 @@ Modules.TreeFarmToggle:OnChanged(function(Value)
 
                 end
 
-                BaseLocals.firstCheck =
+                firstCheck =
                     false
 
                 if funcs.GetActiveChakraPlayers
