@@ -395,21 +395,22 @@ funcs.getTrees = function()
                 )
 
             if BaseLocals.fruitSpawns
-                and BaseLocals.mainBranch then
+                and BaseLocals.mainBranch
+                and BaseLocals.mainBranch:IsA("BasePart") then
 
                 table.insert(
                     BaseLocals.trees,
                     {
                         Tree = obj,
+                        FruitSpawns =
+                            BaseLocals.fruitSpawns,
                         MainBranch =
                             BaseLocals.mainBranch
                     }
                 )
 
             end
-
         end
-
     end
 
     table.sort(
@@ -426,12 +427,17 @@ funcs.getTrees = function()
 
 end
 
+
 funcs.teleportToTree = function(
     treeData
 )
 
-    if not treeData then
+    if not treeData
+        or not treeData.Tree
+        or not treeData.Tree.Parent then
+
         return false
+
     end
 
     if funcs.isAnyActiveChakraUser() then
@@ -449,26 +455,14 @@ funcs.teleportToTree = function(
         treeData.MainBranch
 
     if not BaseLocals.mainBranch
-        or not BaseLocals.mainBranch.Parent then
+        or not BaseLocals.mainBranch.Parent
+        or not BaseLocals.mainBranch:IsA("BasePart") then
 
         return false
     end
 
-    if BaseLocals.mainBranch:IsA("BasePart") then
-
-        BaseLocals.targetPosition =
-            BaseLocals.mainBranch.Position
-
-    elseif BaseLocals.mainBranch:IsA("Model") then
-
-        BaseLocals.targetPosition =
-            BaseLocals.mainBranch:GetPivot().Position
-
-    else
-
-        return false
-
-    end
+    BaseLocals.targetPosition =
+        BaseLocals.mainBranch.Position
 
     BaseLocals.playerRange =
         State.TreePlayerRange or 150
@@ -492,24 +486,11 @@ funcs.teleportToTree = function(
         noClip(true)
     end
 
-    BaseLocals.hrp.CFrame =
-        CFrame.new(
-            BaseLocals.targetPosition
-            + Vector3.new(0, 3, 0)
-        )
-
-    BaseLocals.hrp.AssemblyLinearVelocity =
-        Vector3.zero
-
-    BaseLocals.hrp.AssemblyAngularVelocity =
-        Vector3.zero
-
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
 
-        State.TreeFloatVelocity =
-            nil
+        State.TreeFloatVelocity = nil
 
     end
 
@@ -532,6 +513,11 @@ funcs.teleportToTree = function(
     State.TreeFloatVelocity.Parent =
         BaseLocals.hrp
 
+    BaseLocals.hrp.CFrame =
+        CFrame.new(
+            BaseLocals.targetPosition
+        )
+
     task.wait(0.1)
 
     if not State.TreeFarmEnabled then
@@ -542,10 +528,19 @@ funcs.teleportToTree = function(
         return false
     end
 
+    if funcs.isAnyActiveChakraUser() then
+        return false
+    end
+
+    BaseLocals.hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    BaseLocals.hrp.AssemblyAngularVelocity =
+        Vector3.zero
+
     BaseLocals.hrp.CFrame =
         CFrame.new(
             BaseLocals.targetPosition
-            + Vector3.new(0, 3, 0)
         )
 
     return true
