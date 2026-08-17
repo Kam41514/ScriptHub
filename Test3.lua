@@ -407,7 +407,9 @@ funcs.getTrees = function()
                 )
 
             end
+
         end
+
     end
 
     table.sort(
@@ -436,7 +438,6 @@ funcs.teleportToTree = function(
         return false
     end
 
-
     BaseLocals.hrp =
         funcs.getHRP()
 
@@ -444,25 +445,33 @@ funcs.teleportToTree = function(
         return false
     end
 
-
     BaseLocals.mainBranch =
         treeData.MainBranch
 
     if not BaseLocals.mainBranch
-        or not BaseLocals.mainBranch.Parent
-        or not BaseLocals.mainBranch:IsA("BasePart") then
+        or not BaseLocals.mainBranch.Parent then
 
         return false
     end
 
+    if BaseLocals.mainBranch:IsA("BasePart") then
 
-    BaseLocals.targetPosition =
-        BaseLocals.mainBranch.Position
+        BaseLocals.targetPosition =
+            BaseLocals.mainBranch.Position
 
+    elseif BaseLocals.mainBranch:IsA("Model") then
+
+        BaseLocals.targetPosition =
+            BaseLocals.mainBranch:GetPivot().Position
+
+    else
+
+        return false
+
+    end
 
     BaseLocals.playerRange =
         State.TreePlayerRange or 150
-
 
     if funcs.isPlayerWithinDistance(
         BaseLocals.targetPosition,
@@ -470,30 +479,30 @@ funcs.teleportToTree = function(
     ) then
 
         return false
-    end
 
+    end
 
     if funcs.isAnyActiveChakraUser() then
         return false
     end
 
-
     if funcs.noClip then
-
         funcs.noClip(true)
-
     elseif noClip then
-
         noClip(true)
-
     end
-
 
     BaseLocals.hrp.CFrame =
         CFrame.new(
             BaseLocals.targetPosition
+            + Vector3.new(0, 3, 0)
         )
 
+    BaseLocals.hrp.AssemblyLinearVelocity =
+        Vector3.zero
+
+    BaseLocals.hrp.AssemblyAngularVelocity =
+        Vector3.zero
 
     if State.TreeFloatVelocity then
 
@@ -504,14 +513,11 @@ funcs.teleportToTree = function(
 
     end
 
-
     State.TreeFloatVelocity =
         Instance.new("BodyVelocity")
 
-
     State.TreeFloatVelocity.Name =
         "TreeFarmFloatVelocity"
-
 
     State.TreeFloatVelocity.MaxForce =
         Vector3.new(
@@ -520,38 +526,27 @@ funcs.teleportToTree = function(
             math.huge
         )
 
-
     State.TreeFloatVelocity.Velocity =
         Vector3.zero
-
 
     State.TreeFloatVelocity.Parent =
         BaseLocals.hrp
 
-
-    task.wait(0.05)
-
+    task.wait(0.1)
 
     if not State.TreeFarmEnabled then
         return false
     end
 
-
     if not BaseLocals.hrp.Parent then
         return false
     end
 
-
-    if funcs.isAnyActiveChakraUser() then
-        return false
-    end
-
-
     BaseLocals.hrp.CFrame =
         CFrame.new(
             BaseLocals.targetPosition
+            + Vector3.new(0, 3, 0)
         )
-
 
     return true
 
@@ -1519,86 +1514,87 @@ funcs.startAutoPickup = function()
 
     end
 
-    local connectionName =
+    BaseLocals.connectionName =
         "TreeFarm_AutoPickup"
 
     State.AutoPickupConnectionName =
-        connectionName
+        BaseLocals.connectionName
 
     Connect(
-        connectionName,
-        RunService.Heartbeat,
+        BaseLocals.connectionName,
+        Services.RunService.Heartbeat,
         function()
 
             if not State.TreeFarmEnabled then
                 return
             end
 
-            local character =
-                LocalPlayer.Character
+            BaseLocals.character =
+                Services.LocalPlayer.Character
 
-            if not character then
+            if not BaseLocals.character then
                 return
             end
 
-            local rootPart =
-                character:FindFirstChild(
+            BaseLocals.rootPart =
+                BaseLocals.character:FindFirstChild(
                     "HumanoidRootPart"
                 )
 
-            if not rootPart then
+            if not BaseLocals.rootPart then
                 return
             end
 
-            local pickupList =
+            BaseLocals.pickupList =
                 State.PickupList
 
-            if not pickupList then
+            if not BaseLocals.pickupList then
                 return
             end
 
-            local dataEvent =
-                ReplicatedStorage
-                :FindFirstChild("Events")
-                and ReplicatedStorage.Events
-                :FindFirstChild(
-                    "DataEvent"
-                )
+            BaseLocals.dataEvent =
+                Services.ReplicatedStorage
+                    :FindFirstChild("Events")
+                    and Services.ReplicatedStorage.Events
+                        :FindFirstChild("DataEvent")
 
-            if not dataEvent then
+            if not BaseLocals.dataEvent then
                 return
             end
 
             for pos, obj in pairs(
-                pickupList
+                BaseLocals.pickupList
             ) do
 
                 if obj
                     and obj.Parent then
 
-                    local distance =
+                    BaseLocals.distance =
                         (
-                            rootPart.Position
+                            BaseLocals.rootPart.Position
                             - pos
                         ).Magnitude
 
-                    if distance < 25 then
+                    if BaseLocals.distance < 25 then
 
-                        local id =
+                        BaseLocals.id =
                             obj:FindFirstChild(
                                 "ID"
                             )
 
-                        if id then
+                        if BaseLocals.id then
 
-                            dataEvent:FireServer(
+                            BaseLocals.dataEvent:FireServer(
                                 "PickUp",
-                                id.Value
+                                BaseLocals.id.Value
                             )
 
                         end
+
                     end
+
                 end
+
             end
 
         end
