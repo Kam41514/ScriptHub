@@ -20,14 +20,28 @@ local Services = {
     ReplicatedStorage = game:GetService("ReplicatedStorage"),
 }
 
+local remotes = Services.ReplicatedStorage:WaitForChild("Events")
+local dataEvent = remotes:WaitForChild("DataEvent")
+local player = Services.Players.LocalPlayer
+local gameManager = require(Services.ReplicatedStorage:WaitForChild("GameManager"))
+local dataFunction = Services.ReplicatedStorage.Events:WaitForChild("DataFunction")
+local DataEvent = Services.ReplicatedStorage.Events:WaitForChild("DataEvent")
+local BaseLocals = {}
+local GuiSettings = {}
+local Modules = {}
+local Groupboxes = {}
+
 Services.Camera = workspace.CurrentCamera
 Services.LocalPlayer = Services.Players.LocalPlayer
 
 Services.PlayerScripts = Services.LocalPlayer:WaitForChild("PlayerScripts")
 
 Services.PlayerModule = require(Services.PlayerScripts:WaitForChild("PlayerModule"))
-
 Services.ControlModule = Services.PlayerModule:GetControls()
+Services.Blocking = Services.ReplicatedStorage
+    :WaitForChild("Settings")
+    :WaitForChild(Services.LocalPlayer.Name)
+    :WaitForChild("Blocking")
 
 -- Connection Manager
 
@@ -72,62 +86,6 @@ end
 -- Functions
 local funcs = {}
 
-
--- Mod Detector
-
-local function CheckModerator(player)
-    task.spawn(function()
-
-        local success, rank = pcall(function()
-            return player:GetRankInGroup(7450839)
-        end)
-
-        if not success then
-            return
-        end
-
-        if rank ~= 0 then
-
-            Library:Notify({
-                Title = "🔴 Mod Detected",
-                Description = player.Name .. " is a moderator!",
-                Duration = 5
-            })
-
-            Connect(
-                "Moderator_Destroying_" .. player.UserId,
-                player.Destroying,
-                function()
-
-                    Library:Notify({
-                        Title = "🔴 Mod Left",
-                        Description = player.Name .. " left the server.",
-                        Duration = 5
-                    })
-
-                end
-            )
-        end
-    end)
-end
-
-
-for _, player in ipairs(Services.Players:GetPlayers()) do
-
-    if player ~= Services.LocalPlayer then
-        CheckModerator(player)
-    end
-
-end
-
-
-Connect(
-    "Moderator_PlayerAdded",
-    Services.Players.PlayerAdded,
-    function(player)
-        CheckModerator(player)
-    end
-)
 
 -- Updates:
 
@@ -178,6 +136,10 @@ local State = {
 
     KillBricks = {},
     NoKillBricks = false,
+    LogTarget = {},
+    CorruptedPointESPObjects = {},
+    CorruptedPointESPEnabled = false,
+    ChakraPointsFolder = workspace:WaitForChild("ChakraPoints"),
 
     KillBrickNames = {
         "LavarossaVoid",
@@ -237,12 +199,32 @@ local State = {
     noFogConnection = nil,
     oldFogEnd = nil,
 
-    OldBrightness = Services.Lighting.Brightness,
     FullBrightConnection = nil,
     BrightnessLevel = 2,
     FullBrightEnabled = false,
 
-    webhook = ""
+    webhook = "",
+
+     JumpCounters = Services.ReplicatedStorage.Settings[Services.Players.LocalPlayer.Name].JumpCounters,
+    InitialJumpCount = nil,
+    ChakraSenseOwnersGui = nil,
+    ChakraSenseOwnersLabel = nil,
+    ChakraSenseOwnersStroke = nil,
+    ChakraSenseOwnersNextUpdate = 0,
+
+    AutoBowls = false,
+    SelectedRecipe = "Tangerine Fruit Bowl",
+    RecipeNames = {},
+    SellBowls = false,
+
+    AutoBlockEnabled = false,
+
+    ParryableEnabled = false,
+    BlockableEnabled = false,
+
+    selectedParryable = {
+        WeaponM2 = true,
+    },
 }
 
 
@@ -576,26 +558,887 @@ local Window = Library:CreateWindow({
 
 -- Tabs
 local Tabs = {
-    Main = Window:AddTab("Main", "house"),
+    Combat = Window:AddTab("Combat", "hand-fist"),
     Player = Window:AddTab("Player", "user"),
     Visual = Window:AddTab("Visual", "eye"),
+    Misc = Window:AddTab("Misc", "sparkles"),
+    Exploits = Window:AddTab("Exploits", "terminal"),
     Automation = Window:AddTab("Automation", "play"),
     Botting = Window:AddTab("Botting", "bot"),
-    Exploits = Window:AddTab("Exploits", "terminal"),
     Notifications = Window:AddTab("Notifications", "bell"),
     Config = Window:AddTab("Config", "settings"),
 }
+-- Groupboxes For Combat Tab
+Groupboxes.InfiniteScripts = Tabs.Combat:AddLeftGroupbox("Player Scripts", "user")
+Groupboxes.AutoBlocking = Tabs.Combat:AddRightGroupbox("Auto Blocking", "user")
 
--- Groupboxes For Main Tab
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Executable Scripts", "code")
-local LeftGroupBox2 = Tabs.Main:AddLeftGroupbox("Server Systems", "server")
-local RightGroupBox = Tabs.Main:AddRightGroupbox("Player Systems", "user")
-local RightGroupBox2 = Tabs.Main:AddRightGroupbox("UI Settings", "settings")
+State.AutoBlockEnabled = false
+State.selectedParryable = {
+    WeaponM2 = true,
+}
+State.ParryableEnabled = true
+State.BlockableEnabled = false
 
 
--- Execute Scripts
+BaseLocals.ParryableAnimations = {
 
-LeftGroupBox:AddButton({
+    WeaponM2 = {
+        Range = 25,
+
+        ["rbxassetid://11330795390"] = {   
+            Start = 0.13,
+            Stop = 0.4,
+        },
+
+        ["rbxassetid://6360969229"] = {
+            Start = 0.13,
+            Stop = 0.4,
+        },
+
+        ["rbxassetid://6329840310"] = {
+            Start = 0.13,
+            Stop = 0.4,
+        },
+
+        ["rbxassetid://5571540174"] = {
+            Start = 0.13,
+            Stop = 0.4,
+        },
+
+        ["rbxassetid://6904596529"] = {
+            Start = 0.13,
+            Stop = 0.4,
+        },
+
+         ["rbxassetid://7275651023"] = {
+            Start = 0.13,
+            Stop = 0.4,
+        },
+    },
+}
+
+
+BaseLocals.BlockableAnimations = {
+
+    PunchM1 = {
+        Range = 20,
+
+        ["rbxassetid://11330785444"] = {
+            Start = 0.05,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://11330787365"] = {
+            Start = 0.05,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://11330792100"] = {
+            Start = 0.05,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://11330793406"] = {
+            Start = 0.05,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://11330782198"] = {
+            Start = 0.05,
+            Stop = 0.3,
+        },
+    },
+
+    GreatswordM1 = {
+        Range = 20,
+
+        ["rbxassetid://6904029998"] = {
+            Start = 0.05,
+            Stop = 0.50,
+        },
+
+        ["rbxassetid://6904312276"] = {
+            Start = 0.05,
+            Stop = 0.50,
+        },
+
+        ["rbxassetid://6904161298"] = {
+            Start = 0.05,
+            Stop = 0.75,
+        },
+    },
+
+    SpearM1 = {
+        Range = 20,
+
+        ["rbxassetid://7275410799"] = {
+            Start = 0.015,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://7275470913"] = {
+            Start = 0.015,
+            Stop = 0.3,
+        },
+
+        ["rbxassetid://7275583556"] = {
+            Start = 0.015,
+            Stop = 0.30,
+        },
+
+        ["rbxassetid://7275616852"] = {
+            Start = 0.015,
+            Stop = 0.30,
+        },
+    },
+}
+
+
+BaseLocals.SequenceAnimations = {
+
+    GreatswordAirM2 = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://6329881782",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+
+    PunchM2Air = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://5571546692",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+
+    KunaiM2Air = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://6362979537",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+
+    KatanaM2Air = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://6329881782",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+
+    AsumaiM2Air = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://7913611566",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+
+    SpearM2Air = {
+        First = "rbxassetid://8205019911",
+        Second = "rbxassetid://7275679606",
+
+        Range = 40,
+
+        Start = 0.05,
+        Stop = 0.25,
+
+        Window = 0.5,
+    },
+}
+
+
+Services.Blocking = Services.ReplicatedStorage
+    :WaitForChild("Settings")
+    :WaitForChild(Services.LocalPlayer.Name)
+    :WaitForChild("Blocking")
+
+
+funcs.AnimationConnections = {}
+funcs.CharacterConnections = {}
+funcs.PlayerConnections = {}
+
+
+function funcs.CheckBlocking()
+
+    if not Services.Blocking then
+        return false
+    end
+
+    return Services.Blocking.Value == true
+end
+
+
+function funcs.StartBlocking()
+
+    if not State.AutoBlockEnabled then
+        return
+    end
+
+    if funcs.CheckBlocking() then
+        return
+    end
+
+    dataFunction:InvokeServer("Block")
+
+    if Services.Blocking then
+        Services.Blocking.Value = true
+    end
+end
+
+
+function funcs.StopBlocking()
+
+    if not Services.Blocking then
+        return
+    end
+
+    dataFunction:InvokeServer("EndBlock")
+
+    Services.Blocking.Value = false
+end
+
+
+function funcs.GetPlayerDistance(otherPlayer)
+
+    local character = Services.LocalPlayer.Character
+    local otherCharacter = otherPlayer.Character
+
+    local root = character
+        and character:FindFirstChild("HumanoidRootPart")
+
+    local otherRoot = otherCharacter
+        and otherCharacter:FindFirstChild("HumanoidRootPart")
+
+    if not root or not otherRoot then
+        return math.huge
+    end
+
+    return (root.Position - otherRoot.Position).Magnitude
+end
+
+
+function funcs.IsSelectedParryableAnimation(id)
+
+    if not State.AutoBlockEnabled then
+        return false, nil, nil
+    end
+
+    if not State.ParryableEnabled then
+        return false, nil, nil
+    end
+
+    if not State.selectedParryable then
+        return false, nil, nil
+    end
+
+    for animationName, selected in pairs(State.selectedParryable) do
+
+        if selected then
+
+            local selectedAnimations =
+                BaseLocals.ParryableAnimations[animationName]
+
+            if selectedAnimations then
+
+                local timer = selectedAnimations[id]
+
+                if timer then
+                    return true, timer, selectedAnimations.Range
+                end
+
+            end
+        end
+    end
+
+    return false, nil, nil
+end
+
+
+function funcs.IsBlockableAnimation(id)
+
+    if not State.AutoBlockEnabled then
+        return false, nil, nil
+    end
+
+    if not State.BlockableEnabled then
+        return false, nil, nil
+    end
+
+    if not State.selectedBlockable then
+        return false, nil, nil
+    end
+
+    for animationName, selected in pairs(State.selectedBlockable) do
+
+        if selected then
+
+            local selectedAnimations =
+                BaseLocals.BlockableAnimations[animationName]
+
+            if selectedAnimations then
+
+                local timer = selectedAnimations[id]
+
+                if timer then
+                    return true, timer, selectedAnimations.Range
+                end
+
+            end
+        end
+    end
+
+    return false, nil, nil
+end
+
+
+function funcs.ClearListeners()
+
+    for _, connection in pairs(funcs.AnimationConnections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+
+    for _, connection in pairs(funcs.CharacterConnections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+
+    for _, connection in pairs(funcs.PlayerConnections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+
+    funcs.AnimationConnections = {}
+    funcs.CharacterConnections = {}
+    funcs.PlayerConnections = {}
+end
+
+
+function funcs.ListenPlayer(otherPlayer)
+
+    if otherPlayer == Services.LocalPlayer then
+        return
+    end
+
+    if not State.AutoBlockEnabled then
+        return
+    end
+
+
+    local function CharacterReady(character)
+
+        if not State.AutoBlockEnabled then
+            return
+        end
+
+        local humanoid =
+            character:WaitForChild("Humanoid", 5)
+
+        if not humanoid then
+            return
+        end
+
+        if not State.AutoBlockEnabled then
+            return
+        end
+
+        local animator =
+            humanoid:WaitForChild("Animator", 5)
+
+        if not animator then
+            return
+        end
+
+        if not State.AutoBlockEnabled then
+            return
+        end
+
+
+        -- Her sequence için ayrı state tutuluyor.
+        local sequenceStates = {}
+
+        for sequenceName in pairs(BaseLocals.SequenceAnimations) do
+
+            sequenceStates[sequenceName] = {
+                LastAnimationId = nil,
+                LastAnimationTime = 0,
+            }
+
+        end
+
+
+        local connection = animator.AnimationPlayed:Connect(function(track)
+
+            if not State.AutoBlockEnabled then
+                return
+            end
+
+            if not track.Animation then
+                return
+            end
+
+
+            local id = track.Animation.AnimationId
+            local now = tick()
+
+
+            --------------------------------------------------
+            -- SEQUENCE ANIMATIONS
+            --------------------------------------------------
+
+            for sequenceName, sequence in
+                pairs(BaseLocals.SequenceAnimations) do
+
+                -- Boş sequence'leri yok say
+                if sequence.First ~= ""
+                    and sequence.Second ~= "" then
+
+                    local sequenceState =
+                        sequenceStates[sequenceName]
+
+                    --------------------------------------------------
+                    -- SECOND GELDİ Mİ?
+                    --------------------------------------------------
+
+                    if sequenceState.LastAnimationId
+                        == sequence.First
+
+                        and id == sequence.Second
+
+                        and (now - sequenceState.LastAnimationTime)
+                            <= sequence.Window then
+
+
+                        -- Sequence tüketildi
+                        sequenceState.LastAnimationId = nil
+                        sequenceState.LastAnimationTime = 0
+
+
+                        local distance =
+                            funcs.GetPlayerDistance(otherPlayer)
+
+                        local range =
+                            sequence.Range or 20
+
+
+                        if distance > range then
+                            continue
+                        end
+
+                        if funcs.CheckBlocking() then
+                            continue
+                        end
+
+
+                        task.wait(sequence.Start)
+
+
+                        if not State.AutoBlockEnabled then
+                            funcs.StopBlocking()
+                            return
+                        end
+
+                        if funcs.CheckBlocking() then
+                            continue
+                        end
+
+
+                        local currentDistance =
+                            funcs.GetPlayerDistance(otherPlayer)
+
+                        if currentDistance > range then
+                            continue
+                        end
+
+
+                        funcs.StartBlocking()
+
+
+                        task.wait(sequence.Stop)
+
+
+                        funcs.StopBlocking()
+
+                        return
+                    end
+
+
+                    --------------------------------------------------
+                    -- FIRST GELDİ Mİ?
+                    --------------------------------------------------
+
+                    if id == sequence.First then
+
+                        sequenceState.LastAnimationId = id
+                        sequenceState.LastAnimationTime = now
+
+                    elseif sequenceState.LastAnimationId
+                        and (now - sequenceState.LastAnimationTime)
+                            > sequence.Window then
+
+                        sequenceState.LastAnimationId = nil
+                        sequenceState.LastAnimationTime = 0
+                    end
+
+                end
+            end
+
+
+            --------------------------------------------------
+            -- NORMAL ANIMATIONS
+            --------------------------------------------------
+
+            local isParryable, parryTimer, parryRange =
+                funcs.IsSelectedParryableAnimation(id)
+
+            local isBlockable, blockTimer, blockRange =
+                funcs.IsBlockableAnimation(id)
+
+
+            if not isParryable and not isBlockable then
+                return
+            end
+
+
+            local distance =
+                funcs.GetPlayerDistance(otherPlayer)
+
+
+            local timer
+            local range
+
+
+            if isParryable then
+
+                timer = parryTimer
+                range = parryRange
+
+            elseif isBlockable then
+
+                timer = blockTimer
+                range = blockRange
+
+            end
+
+
+            if not timer then
+                return
+            end
+
+
+            range = range or 20
+
+
+            if distance > range then
+                return
+            end
+
+
+            if funcs.CheckBlocking() then
+                return
+            end
+
+
+            task.wait(timer.Start)
+
+
+            if not State.AutoBlockEnabled then
+                funcs.StopBlocking()
+                return
+            end
+
+
+            if funcs.CheckBlocking() then
+                return
+            end
+
+
+            local currentDistance =
+                funcs.GetPlayerDistance(otherPlayer)
+
+
+            if currentDistance > range then
+                return
+            end
+
+
+            funcs.StartBlocking()
+
+
+            task.wait(timer.Stop)
+
+
+            if not State.AutoBlockEnabled then
+                funcs.StopBlocking()
+                return
+            end
+
+
+            funcs.StopBlocking()
+
+        end)
+
+
+        table.insert(
+            funcs.AnimationConnections,
+            connection
+        )
+
+    end
+
+
+    if otherPlayer.Character then
+        CharacterReady(otherPlayer.Character)
+    end
+
+
+    local characterConnection =
+        otherPlayer.CharacterAdded:Connect(function(character)
+
+            if not State.AutoBlockEnabled then
+                return
+            end
+
+            CharacterReady(character)
+
+        end)
+
+
+    table.insert(
+        funcs.CharacterConnections,
+        characterConnection
+    )
+
+end
+
+
+function funcs.StartListeners()
+
+    funcs.ClearListeners()
+
+    if not State.AutoBlockEnabled then
+        return
+    end
+
+
+    for _, otherPlayer in
+        ipairs(Services.Players:GetPlayers()) do
+
+        funcs.ListenPlayer(otherPlayer)
+
+    end
+
+
+    local playerConnection =
+        Services.Players.PlayerAdded:Connect(function(otherPlayer)
+
+            if not State.AutoBlockEnabled then
+                return
+            end
+
+            funcs.ListenPlayer(otherPlayer)
+
+        end)
+
+
+    table.insert(
+        funcs.PlayerConnections,
+        playerConnection
+    )
+
+end
+
+
+Modules.AutoBlockToggle =
+    Groupboxes.AutoBlocking:AddToggle("AutoBlock", {
+
+    Text = "Auto Block",
+    Default = false,
+
+    Callback = function(value)
+
+        State.AutoBlockEnabled = value
+        State.BlockableEnabled = value
+
+        if value then
+
+            funcs.StartListeners()
+
+        else
+
+            funcs.ClearListeners()
+
+            funcs.StopBlocking()
+
+        end
+
+    end,
+})
+
+
+Modules.ParryableDropdown =
+    Groupboxes.AutoBlocking:AddDropdown(
+        "ParryableAnimations",
+        {
+
+        Values = (function()
+
+            local values = {}
+
+            for animationName in
+                pairs(BaseLocals.ParryableAnimations) do
+
+                table.insert(values, animationName)
+
+            end
+
+            table.sort(values)
+
+            return values
+
+        end)(),
+
+        Default = {
+            WeaponM2 = true,
+        },
+
+        Multi = true,
+
+        Text = "Parryable Animation",
+
+        Callback = function(value)
+
+            State.selectedParryable = value
+
+        end,
+
+    }
+)
+
+
+Modules.BlockableDropdown =
+    Groupboxes.AutoBlocking:AddDropdown(
+        "BlockableAnimations",
+        {
+
+        Values = (function()
+
+            local values = {}
+
+            for animationName in
+                pairs(BaseLocals.BlockableAnimations) do
+
+                table.insert(values, animationName)
+
+            end
+
+            table.sort(values)
+
+            return values
+
+        end)(),
+
+        Default = {
+            PunchM1 = true,
+        },
+
+        Multi = true,
+
+        Text = "Blockable Animation",
+
+        Callback = function(value)
+
+            State.selectedBlockable = value
+
+        end,
+
+    }
+)
+
+State.InitialJumpCount = nil
+
+Modules.InfiniteStamina =
+    Groupboxes.InfiniteScripts:AddToggle(
+        "InfiniteStamina",
+        {
+            Text = "Infinite Stamina",
+            Default = false,
+        }
+    ):OnChanged(function()
+
+        Disconnect("InfiniteStamina")
+
+        if not Toggles.InfiniteStamina.Value then
+            State.InitialJumpCount = nil
+            return
+        end
+
+        BaseLocals.currentValue = State.JumpCounters.Value
+
+        if BaseLocals.currentValue <= 0 then
+            State.InitialJumpCount = 1
+        else
+            State.InitialJumpCount = BaseLocals.currentValue
+        end
+
+        Connect(
+            "InfiniteStamina",
+            Services.RunService.Heartbeat,
+            function()
+
+                if not Toggles.InfiniteStamina.Value then
+                    Disconnect("InfiniteStamina")
+                    State.InitialJumpCount = nil
+                    return
+                end
+
+                if State.JumpCounters then
+                    State.JumpCounters.Value =
+                        State.InitialJumpCount
+                end
+
+            end
+        )
+
+    end)
+
+
+
+-- Groupboxes For Misc Tab
+Groupboxes.LeftGroupBox = Tabs.Misc:AddLeftGroupbox("Executable Scripts", "code")
+Groupboxes.RightGroupBox = Tabs.Misc:AddRightGroupbox("Player Systems", "user")
+Groupboxes.RightGroupBox2 = Tabs.Misc:AddRightGroupbox("UI Settings", "settings")
+
+
+-- Misc Tab
+
+Groupboxes.LeftGroupBox:AddButton({
     Text = "Execute Infinite Yield",
     Func = function()
         loadstring(game:HttpGet(
@@ -605,7 +1448,7 @@ LeftGroupBox:AddButton({
 })
 
 
-LeftGroupBox:AddButton({
+Groupboxes.LeftGroupBox:AddButton({
     Text = "Execute Dex Explorer",
     Func = function()
         loadstring(game:HttpGet(
@@ -615,90 +1458,6 @@ LeftGroupBox:AddButton({
 })
 
 
--- Copy Server ID
-
-LeftGroupBox2:AddButton({
-    Text = "Copy Server-ID",
-
-    Func = function()
-
-        if setclipboard then
-
-            setclipboard(
-                Services.LocalPlayer
-                    and game.JobId
-                    or ""
-            )
-
-            Library:Notify(
-                "Server ID Successfully Copied!",
-                2
-            )
-
-        else
-
-            Library:Notify(
-                "Clipboard not supported!",
-                2
-            )
-
-        end
-
-    end
-})
-
-
--- Teleport Error
-
-Connect(
-    "TeleportInitFailed",
-    Services.TeleportService.TeleportInitFailed,
-    function(player, teleportResult, errorMessage)
-
-        Library:Notify(
-            "Teleport Failed: "
-            .. tostring(errorMessage),
-            3
-        )
-
-    end
-)
-
-
--- ServerHop
-
-
-
--- Rejoin
-
-LeftGroupBox2:AddButton({
-    Text = "Rejoin Server",
-    Func = function()
-        Library:Notify("Rejoining The Server", 1)
-        task.wait(1)
-
-        Services.TeleportService:TeleportToPlaceInstance(
-            game.PlaceId,
-            game.JobId,
-            Services.Players.LocalPlayer
-        )
-    end
-})
-
-LeftGroupBox2:AddButton({
-    Text = "Rejoin Game",
-    Func = function()
-        Library:Notify("Rejoining The Game", 1)
-        task.wait(1)
-
-        Services.TeleportService:Teleport(game.PlaceId, Services.Players.LocalPlayer)
-    end
-})
-
-
-
--- Server Functions
-
 -- Empty
 
 
@@ -706,7 +1465,7 @@ for _, player in ipairs(Services.Players:GetPlayers()) do
     table.insert(State.PlayerList, player.Name)
 end
 
-RightGroupBox:AddDropdown("PlayerDropdown", {
+Groupboxes.RightGroupBox:AddDropdown("PlayerDropdown", {
     Values = {},
     Default = 1,
     Multi = false,
@@ -719,7 +1478,7 @@ end)
 UpdatePlayerList()
 
 
-RightGroupBox:AddButton({
+Groupboxes.RightGroupBox:AddButton({
     Text = "Copy Profile Link",
 
     Func = function()
@@ -771,7 +1530,7 @@ RightGroupBox:AddButton({
 })
 
 
-RightGroupBox2:AddLabel("Menu bind")
+Groupboxes.RightGroupBox2:AddLabel("Menu bind")
     :AddKeyPicker("MenuKeybind", {
         Default = "RightShift",
         NoUI = true,
@@ -783,11 +1542,11 @@ Library.ToggleKeybind = Options.MenuKeybind
 -- Player Tab
 
 -- Groupboxes For Player Tab
-local PlayerLeftGroupBox = Tabs.Player:AddLeftGroupbox("Flight", "wind")
-local PlayerLeftGroupBox2 = Tabs.Player:AddLeftGroupbox("Extras", "user")
-local PlayerLeftGroupBox3 = Tabs.Player:AddLeftGroupbox("World Settings", "globe")
-local PlayerRightGroupBox = Tabs.Player:AddRightGroupbox("Speed", "wind")
-local PlayerRightGroupBox2 = Tabs.Player:AddRightGroupbox("Proximity Detector", "bot")
+Groupboxes.PlayerLeftGroupBox = Tabs.Player:AddLeftGroupbox("Flight", "wind")
+Groupboxes.PlayerLeftGroupBox3 = Tabs.Player:AddLeftGroupbox("World Settings", "globe")
+Groupboxes.PlayerLeftGroupBox2 = Tabs.Player:AddLeftGroupbox("Extras", "user")
+Groupboxes.PlayerRightGroupBox = Tabs.Player:AddRightGroupbox("Speed", "wind")
+Groupboxes.PlayerRightGroupBox2 = Tabs.Player:AddRightGroupbox("Proximity Detector", "bot")
 
 -- Scripts For Player Tab
 
@@ -925,7 +1684,7 @@ end
 
 --// Flight
 
-Toggles.FlyToggle = PlayerLeftGroupBox:AddToggle(
+Toggles.FlyToggle = Groupboxes.PlayerLeftGroupBox:AddToggle(
     "FlyToggle",
     {
         Text = "Flight",
@@ -948,7 +1707,7 @@ Toggles.FlyToggle:AddKeyPicker(
 
 --// Noclip
 
-Toggles.NoclipToggle = PlayerLeftGroupBox:AddToggle(
+Toggles.NoclipToggle = Groupboxes.PlayerLeftGroupBox:AddToggle(
     "NoclipToggle",
     {
         Text = "Noclip",
@@ -971,7 +1730,7 @@ Toggles.NoclipToggle:AddKeyPicker(
 
 --// Auto Fall
 
-Toggles.AutoFallToggle = PlayerLeftGroupBox:AddToggle(
+Toggles.AutoFallToggle = Groupboxes.PlayerLeftGroupBox:AddToggle(
     "AutoFallToggle",
     {
         Text = "Auto Fall",
@@ -982,7 +1741,7 @@ Toggles.AutoFallToggle = PlayerLeftGroupBox:AddToggle(
 
 --// Speed
 
-Toggles.SpeedToggle = PlayerRightGroupBox:AddToggle(
+Toggles.SpeedToggle = Groupboxes.PlayerRightGroupBox:AddToggle(
     "SpeedToggle",
     {
         Text = "Speed",
@@ -1065,7 +1824,7 @@ end)
 
 --// Fly Speed
 
-PlayerLeftGroupBox:AddSlider(
+Groupboxes.PlayerLeftGroupBox:AddSlider(
     "FlySpeed",
     {
         Text = "Fly Speed",
@@ -1107,7 +1866,7 @@ Toggles.SpeedToggle:OnChanged(function(Value)
 
 end)
 
-PlayerRightGroupBox:AddSlider(
+Groupboxes.PlayerRightGroupBox:AddSlider(
     "SpeedSlider",
     {
         Text = "Speed Value",
@@ -1141,7 +1900,7 @@ PlayerRightGroupBox:AddSlider(
 
 end)
 
-PlayerLeftGroupBox2:AddButton({
+Groupboxes.PlayerLeftGroupBox2:AddButton({
     Text = "Reset Character",
 
     Func = function()
@@ -1156,7 +1915,7 @@ PlayerLeftGroupBox2:AddButton({
     end
 })
 
-Toggles.AutoLogToggle = PlayerRightGroupBox2:AddToggle(
+Toggles.AutoLogToggle = Groupboxes.PlayerRightGroupBox2:AddToggle(
     "AutoLogToggle",
     {
         Text = "Auto Log",
@@ -1196,7 +1955,7 @@ end
 
 
 
-Toggles.ProximityCheck = PlayerRightGroupBox2:AddToggle(
+Toggles.ProximityCheck = Groupboxes.PlayerRightGroupBox2:AddToggle(
     "ProximityCheck",
     {
         Text = "Proximity Check",
@@ -1213,7 +1972,7 @@ Toggles.ProximityCheck = PlayerRightGroupBox2:AddToggle(
 )
 
 
-PlayerRightGroupBox2:AddSlider(
+Groupboxes.PlayerRightGroupBox2:AddSlider(
     "ProximityDistance",
     {
         Text = "Proximity Check Distance",
@@ -1257,7 +2016,7 @@ local function CreateProximityUI()
         Vector2.new(0.5, 0)
 
     UI.ProximityLabel.Position =
-        UDim2.new(0.5, 0, 0, 80)
+        UDim2.new(0.5, 0, 0, 110)
 
     UI.ProximityLabel.Size =
         UDim2.new(0, 400, 0, 70)
@@ -1437,7 +2196,7 @@ end
 
 
 local NewNoFallToggle =
-    PlayerLeftGroupBox3:AddToggle(
+    Groupboxes.PlayerLeftGroupBox3:AddToggle(
         "NewNoFallToggle",
         {
             Text = "No Fall Damage",
@@ -1459,12 +2218,13 @@ local NewNoFallToggle =
 -- Wait To Not Crash
 task.wait(0.01)
 
-
 -- Groupboxes For Exploits Tab
-local ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
-local ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("Extras", "user")
+Groupboxes.ExploitsLeftGroupBox = Tabs.Exploits:AddLeftGroupbox("Teleportation", "wind")
+Groupboxes.ExploitsLeftGroupBox2 = Tabs.Exploits:AddLeftGroupbox("NPC Interaction", "contact")
 
-ExploitsLeftGroupBox:AddDropdown(
+local ChakraPointsFolder = workspace:WaitForChild("ChakraPoints")
+
+Groupboxes.ExploitsLeftGroupBox:AddDropdown(
     "PlayerDropdown",
     {
         Values = State.PlayerList,
@@ -1479,7 +2239,7 @@ ExploitsLeftGroupBox:AddDropdown(
 end)
 
 
-ExploitsLeftGroupBox:AddButton(
+Groupboxes.ExploitsLeftGroupBox:AddButton(
     "Teleport To Player",
     function()
 
@@ -1524,10 +2284,7 @@ ExploitsLeftGroupBox:AddButton(
     end
 )
 
-ExploitsLeftGroupBox:AddLabel("Chakra Point Teleport")
-
-local ChakraPointsFolder =
-    workspace:WaitForChild("ChakraPoints")
+Groupboxes.ExploitsLeftGroupBox:AddLabel("Chakra Point Teleport")
 
 State.ChakraPointOptions = {}
 State.ChakraPointMap = {}
@@ -1560,7 +2317,7 @@ end
 
 
 local ChakraPointsDropdown =
-    ExploitsLeftGroupBox:AddDropdown(
+    Groupboxes.ExploitsLeftGroupBox:AddDropdown(
         "ChakraDropdown",
         {
             Title = "Chakra Points",
@@ -1578,7 +2335,7 @@ ChakraPointsDropdown:OnChanged(function(value)
 end)
 
 
-ExploitsLeftGroupBox:AddButton({
+Groupboxes.ExploitsLeftGroupBox:AddButton({
     Text = "Teleport Point",
 
     Callback = function()
@@ -1587,7 +2344,7 @@ ExploitsLeftGroupBox:AddButton({
 
             Library:Notify({
                 Title = "Teleport Failed",
-                Content = "Select Chakra Point",
+                Description = "Select Chakra Point",
                 Duration = 3
             })
 
@@ -1707,12 +2464,12 @@ local function getSafePoint(position)
 end
 
 
-ExploitsLeftGroupBox:AddLabel(
+Groupboxes.ExploitsLeftGroupBox:AddLabel(
     "Safe Point"
 )
 
 
-ExploitsLeftGroupBox:AddButton({
+Groupboxes.ExploitsLeftGroupBox:AddButton({
     Text = "Teleport Safe Point",
 
     Callback = function()
@@ -1745,16 +2502,6 @@ ExploitsLeftGroupBox:AddButton({
 })
 
 
-local gameManager = require(
-    Services.ReplicatedStorage:WaitForChild("GameManager")
-)
-
-local dataFunction =
-    Services.ReplicatedStorage
-        :WaitForChild("Events")
-        :WaitForChild("DataFunction")
-
-
 State.PurchasableItems = {}
 State.SelectedItem = nil
 
@@ -1774,8 +2521,7 @@ end
 table.sort(State.PurchasableItems)
 
 
-local ItemDropdown =
-    ExploitsLeftGroupBox2:AddDropdown(
+Modules.ItemDropdown = Groupboxes.ExploitsLeftGroupBox2:AddDropdown(
         "ItemDropdown",
         {
             Text = "Select Item",
@@ -1786,76 +2532,126 @@ local ItemDropdown =
     )
 
 
-ItemDropdown:OnChanged(function(Value)
+Modules.ItemDropdown:OnChanged(function(Value)
 
     State.SelectedItem = Value
 
 end)
 
+BaseLocals.Chef = workspace:WaitForChild("Chef")
+BaseLocals.Medic = workspace:WaitForChild("Medic")
 
-ExploitsLeftGroupBox2:AddButton({
-    Text = "Buy Item",
+BaseLocals.ChefDialogPart =
+	BaseLocals.Chef:FindFirstChild("HumanoidRootPart")
+	or BaseLocals.Chef:FindFirstChild("Main")
+	or BaseLocals.Chef
 
-    Func = function()
+BaseLocals.MedicDialogPart =
+	BaseLocals.Medic:FindFirstChild("HumanoidRootPart")
+	or BaseLocals.Medic:FindFirstChild("Main")
+	or BaseLocals.Medic
 
-        if not State.SelectedItem then
-
-            Library:Notify({
-                Title = "Buy Item",
-                Description = "Please select an item first!",
-                Duration = 3
-            })
-
-            return
-        end
-
-
-        local success, result =
-            pcall(function()
-
-                return dataFunction:InvokeServer(
-                    "Buy",
-                    1,
-                    State.SelectedItem,
-                    1
-                )
-
-            end)
+funcs.buyItem = function(itemName, price, quantity)
+	local result = dataFunction:InvokeServer(
+		"Pay",
+		price,
+		itemName,
+		quantity,
+		BaseLocals.ChefDialogPart
+	)
 
 
-        if success then
+	return result
+end
 
-            Library:Notify({
-                Title = "Item Purchased",
-                Description = State.SelectedItem,
-                Duration = 3
-            })
 
-        else
+funcs.fixInjure = function(price)
+	local result = dataFunction:InvokeServer(
+		"Pay",
+		price,
+		"Injuries",
+		1,
+		BaseLocals.MedicDialogPart
+	)
 
-            Library:Notify({
-                Title = "Purchase Failed",
-                Description = tostring(result),
-                Duration = 3
-            })
 
-        end
+	return result
+end
 
-    end
+
+Groupboxes.ExploitsLeftGroupBox2:AddButton({
+	Text = "Buy Item",
+
+	Func = function()
+
+		if not State.SelectedItem then
+			Library:Notify({
+				Title = "Buy Item",
+				Description = "Please select an item first!",
+				Duration = 3
+			})
+			return
+		end
+
+		local success, result = pcall(function()
+			return funcs.buyItem(
+				State.SelectedItem,
+				3,
+				1
+			)
+		end)
+
+		if success and result == true then
+			Library:Notify({
+				Title = "Item Purchased",
+				Description = State.SelectedItem,
+				Duration = 3
+			})
+		else
+			Library:Notify({
+				Title = "Purchase Failed",
+				Description = tostring(result),
+				Duration = 3
+			})
+		end
+	end
 })
 
+Groupboxes.ExploitsLeftGroupBox2:AddLabel("Medic Interaction")
+Groupboxes.ExploitsLeftGroupBox2:AddButton({
+	Text = "Fix Injure",
 
-State.KillBrickNames = {
-    "LavarossaVoid",
-    "Void"
+	Func = function()
+		local success, result = pcall(function()
+			return funcs.fixInjure()
+		end)
+
+		if success and result == true then
+			Library:Notify({
+				Title = "Fix Injure",
+				Description = "Doctor Treated You Well.",
+				Duration = 3
+			})
+		else
+			Library:Notify({
+				Title = "Fix Injure Failed",
+				Description = tostring(result),
+				Duration = 3
+			})
+		end
+	end
+})
+
+State.KillBrickNames = State.KillBrickNames or {
+    'LavarossaVoid',
+    'Void'
 }
 
-
 State.KillBricks = State.KillBricks or {}
+State.NoKillBricks = State.NoKillBricks or false
 
 
 local function onChildAdded(object)
-
     if not table.find(
         State.KillBrickNames,
         object.Name
@@ -1863,6 +2659,12 @@ local function onChildAdded(object)
         return
     end
 
+    -- Aynı obje daha önce eklenmişse tekrar ekleme
+    for _, killBrick in ipairs(State.KillBricks) do
+        if killBrick.part == object then
+            return
+        end
+    end
 
     table.insert(
         State.KillBricks,
@@ -1872,38 +2674,27 @@ local function onChildAdded(object)
         }
     )
 
-
     if State.NoKillBricks then
         object.Parent = nil
     end
-
 end
 
 
 local function setNoKillBricks(state)
-
     State.NoKillBricks = state
 
-
-    for _, killBrick in ipairs(
-        State.KillBricks
-    ) do
-
+    for _, killBrick in ipairs(State.KillBricks) do
         if killBrick.part then
-
             killBrick.part.Parent =
                 state
                 and nil
                 or killBrick.oldParent
-
         end
-
     end
-
 end
 
 
-PlayerLeftGroupBox3:AddToggle(
+Groupboxes.PlayerLeftGroupBox3:AddToggle(
     "No Kill Bricks",
     {
         Text = "No Kill Bricks",
@@ -1919,19 +2710,15 @@ PlayerLeftGroupBox3:AddToggle(
 for _, v in ipairs(
     workspace:GetDescendants()
 ) do
-
     if table.find(
         State.KillBrickNames,
         v.Name
     ) then
-
         task.spawn(
             onChildAdded,
             v
         )
-
     end
-
 end
 
 
@@ -2018,14 +2805,15 @@ Connect(
 
 -- Visual Section
 
-local VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "eye")
-local VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Extra ESP", "eye")
-local VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
-local VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("World Settings", "globe")
+Groupboxes.VisualLeftGroupBox = Tabs.Visual:AddLeftGroupbox("Player ESP", "eye")
+Groupboxes.VisualLeftGroupBox2 = Tabs.Visual:AddLeftGroupbox("Extra ESP", "eye")
+Groupboxes.VisualRightGroupBox = Tabs.Visual:AddRightGroupbox("Leaderboard Settings")
+Groupboxes.VisualRightGroupBox2 = Tabs.Visual:AddRightGroupbox("World Settings", "globe")
 
 
 State.PlayerESPObjects = State.PlayerESPObjects or {}
 State.PlayerESPEnabled = false
+State.ChakraPointsFolder = ChakraPointsFolder
 
 
 local function RemovePlayerESPFromPlayer(plr)
@@ -2033,6 +2821,7 @@ local function RemovePlayerESPFromPlayer(plr)
     local data = State.PlayerESPObjects[plr]
 
     if data then
+
         if data.RenderConnectionName then
             Disconnect(data.RenderConnectionName)
         end
@@ -2046,12 +2835,15 @@ local function RemovePlayerESPFromPlayer(plr)
         end
 
         State.PlayerESPObjects[plr] = nil
+
     end
 
     Disconnect(
         "PlayerESP_Character_" .. plr.UserId
     )
+
 end
+
 
 local function CreatePlayerESP(plr)
 
@@ -2063,11 +2855,13 @@ local function CreatePlayerESP(plr)
         return
     end
 
+
     local function SetupCharacter(char)
 
         if not State.PlayerESPEnabled then
             return
         end
+
 
         local root =
             char:WaitForChild(
@@ -2081,9 +2875,11 @@ local function CreatePlayerESP(plr)
                 5
             )
 
+
         if not root or not humanoid then
             return
         end
+
 
         local highlight =
             Instance.new("Highlight")
@@ -2091,6 +2887,7 @@ local function CreatePlayerESP(plr)
         highlight.Name = "PlayerESP"
         highlight.FillTransparency = 1
         highlight.OutlineTransparency = 0
+
         highlight.OutlineColor =
             Color3.fromRGB(255, 0, 0)
 
@@ -2099,10 +2896,12 @@ local function CreatePlayerESP(plr)
 
         highlight.Parent = char
 
+
         local billboard =
             Instance.new("BillboardGui")
 
         billboard.Name = "PlayerESPText"
+
         billboard.Size =
             UDim2.new(0, 200, 0, 50)
 
@@ -2111,6 +2910,7 @@ local function CreatePlayerESP(plr)
 
         billboard.AlwaysOnTop = true
         billboard.Parent = root
+
 
         local text =
             Instance.new("TextLabel")
@@ -2121,6 +2921,7 @@ local function CreatePlayerESP(plr)
         text.BackgroundTransparency = 1
         text.TextStrokeTransparency = 0
         text.TextSize = 14
+
         text.Font =
             Enum.Font.SourceSansBold
 
@@ -2129,8 +2930,10 @@ local function CreatePlayerESP(plr)
 
         text.Parent = billboard
 
+
         local renderConnectionName =
             "PlayerESP_Render_" .. plr.UserId
+
 
         Connect(
             renderConnectionName,
@@ -2142,15 +2945,18 @@ local function CreatePlayerESP(plr)
                     return
                 end
 
+
                 if not char.Parent then
                     Disconnect(renderConnectionName)
                     return
                 end
 
+
                 if humanoid.Health <= 0 then
                     Disconnect(renderConnectionName)
                     return
                 end
+
 
                 local localCharacter =
                     Services.LocalPlayer.Character
@@ -2161,21 +2967,95 @@ local function CreatePlayerESP(plr)
                         "HumanoidRootPart"
                     )
 
+
                 local distance = 0
 
                 if localRoot then
 
-                    distance = math.floor(
-                        (
-                            localRoot.Position
-                            - root.Position
-                        ).Magnitude
-                    )
+                    distance =
+                        math.floor(
+                            (
+                                localRoot.Position
+                                - root.Position
+                            ).Magnitude
+                        )
 
                 end
 
+
+                -- En yakın ChakraPoint
+                local nearestChakraPoint = nil
+                local nearestChakraDistance = math.huge
+
+
+                for _, chakraPoint in ipairs(
+                    State.ChakraPointsFolder:GetChildren()
+                ) do
+
+                    if chakraPoint.Name == "ChakraPoint" then
+
+                        local pointPart =
+                            chakraPoint.PrimaryPart
+                            or chakraPoint:FindFirstChildWhichIsA(
+                                "BasePart",
+                                true
+                            )
+
+
+                        if pointPart then
+
+                            local pointDistance =
+                                (
+                                    root.Position
+                                    - pointPart.Position
+                                ).Magnitude
+
+
+                            if pointDistance < nearestChakraDistance then
+
+                                nearestChakraDistance =
+                                    pointDistance
+
+                                nearestChakraPoint =
+                                    chakraPoint
+
+                            end
+
+                        end
+
+                    end
+
+                end
+
+
+                local pointName = ""
+
+
+                if nearestChakraPoint then
+
+                    local pointNameValue =
+                        nearestChakraPoint:FindFirstChild(
+                            "PointName",
+                            true
+                        )
+
+
+                    if pointNameValue
+                        and pointNameValue:IsA("StringValue") then
+
+                        pointName =
+                            "["
+                            .. pointNameValue.Value
+                            .. "]\n"
+
+                    end
+
+                end
+
+
                 text.Text =
-                    plr.Name
+                    pointName
+                    .. plr.Name
                     .. "\n❤ "
                     .. math.floor(
                         humanoid.Health
@@ -2191,23 +3071,26 @@ local function CreatePlayerESP(plr)
             end
         )
 
+
         State.PlayerESPObjects[plr] = {
+
             Highlight = highlight,
+
             Billboard = billboard,
+
             RenderConnectionName =
                 renderConnectionName
+
         }
 
     end
 
 
-    -- Mevcut karakter
     if plr.Character then
         SetupCharacter(plr.Character)
     end
 
 
-    -- Karakter reset / respawn
     Connect(
         "PlayerESP_Character_" .. plr.UserId,
         plr.CharacterAdded,
@@ -2215,15 +3098,17 @@ local function CreatePlayerESP(plr)
 
             task.wait(1)
 
+
             if not State.PlayerESPEnabled then
                 return
             end
 
-            -- Eski ESP'yi temizle
+
             if State.PlayerESPObjects[plr] then
 
                 local old =
                     State.PlayerESPObjects[plr]
+
 
                 if old.RenderConnectionName then
                     Disconnect(
@@ -2231,27 +3116,28 @@ local function CreatePlayerESP(plr)
                     )
                 end
 
+
                 if old.Highlight then
                     old.Highlight:Destroy()
                 end
+
 
                 if old.Billboard then
                     old.Billboard:Destroy()
                 end
 
+
                 State.PlayerESPObjects[plr] = nil
 
             end
 
-            -- Yeni karaktere ESP
+
             SetupCharacter(char)
 
         end
     )
 
 end
-
-
 
 
 local function RemovePlayerESP()
@@ -2265,12 +3151,14 @@ local function RemovePlayerESP()
     end
 
 
-    DisconnectPrefix("PlayerESP_Character_")
+    DisconnectPrefix(
+        "PlayerESP_Character_"
+    )
 
 end
 
 
-VisualLeftGroupBox:AddToggle(
+Groupboxes.VisualLeftGroupBox:AddToggle(
     "PlayerESPToggle",
     {
         Text = "Player ESP",
@@ -2278,7 +3166,8 @@ VisualLeftGroupBox:AddToggle(
     }
 ):OnChanged(function(Value)
 
-    State.PlayerESPEnabled = Value
+    State.PlayerESPEnabled =
+        Value
 
 
     if Value then
@@ -2336,6 +3225,7 @@ VisualLeftGroupBox:AddToggle(
     end
 
 end)
+
 
 State.FruitESPObjects =
     State.FruitESPObjects or {}
@@ -2616,7 +3506,7 @@ Connect(
 )
 
 
-VisualLeftGroupBox2:AddToggle(
+Groupboxes.VisualLeftGroupBox2:AddToggle(
     "FruitESP",
     {
         Text = "Fruit ESP",
@@ -2640,6 +3530,323 @@ VisualLeftGroupBox2:AddToggle(
         end
     }
 )
+
+-- On work
+State.CorruptedPointESPObjects = {}
+State.CorruptedPointESPEnabled = false
+
+local function RemoveCorruptedPointESP()
+
+    Disconnect("CorruptedHealth_Update")
+    Disconnect("CorruptedPoint_Added")
+
+    for part, billboard in pairs(
+        State.CorruptedPointESPObjects
+    ) do
+
+        if billboard then
+            billboard:Destroy()
+        end
+
+        State.CorruptedPointESPObjects[part] = nil
+
+    end
+
+end
+
+
+local function CreateCorruptedPointBillboard(point)
+
+    if not State.CorruptedPointESPEnabled then
+        return
+    end
+
+    if not point
+        or point.Name ~= "CorruptedPoint"
+        or not point:IsA("Model") then
+        return
+    end
+
+    local health =
+        point:FindFirstChild("Health")
+
+    local part =
+        point.PrimaryPart
+        or point:FindFirstChildWhichIsA(
+            "BasePart",
+            true
+        )
+
+    if not health
+        or not health:IsA("NumberValue")
+        or not part then
+        return
+    end
+
+    if health.Value < 0 then
+        return
+    end
+
+    if State.CorruptedPointESPObjects[part] then
+        return
+    end
+
+    local billboard =
+        Instance.new("BillboardGui")
+
+    billboard.Name =
+        "CorruptedPointHealthESP"
+
+    billboard.Adornee =
+        part
+
+    billboard.Size =
+        UDim2.fromOffset(
+            190,
+            42
+        )
+
+    billboard.StudsOffset =
+        Vector3.new(
+            0,
+            4.5,
+            0
+        )
+
+    billboard.AlwaysOnTop = true
+    billboard.Enabled = true
+    billboard.MaxDistance = 10000
+
+    billboard.Parent =
+        Services.LocalPlayer:WaitForChild(
+            "PlayerGui"
+        )
+
+    local text =
+        Instance.new("TextLabel")
+
+    text.Size =
+        UDim2.fromScale(
+            1,
+            1
+        )
+
+    text.BackgroundTransparency = 1
+
+    text.TextColor3 =
+        Color3.fromRGB(
+            30,
+            140,
+            255
+        )
+
+    text.TextStrokeColor3 =
+        Color3.fromRGB(
+            0,
+            0,
+            0
+        )
+
+    text.TextStrokeTransparency =
+        0.25
+
+    text.TextSize = 13
+
+    text.Font =
+        Enum.Font.GothamMedium
+
+    text.TextXAlignment =
+        Enum.TextXAlignment.Center
+
+    text.TextYAlignment =
+        Enum.TextYAlignment.Center
+
+    text.Parent =
+        billboard
+
+    State.CorruptedPointESPObjects[part] =
+        billboard
+
+end
+
+
+local function CreateCorruptedPointESP()
+
+    RemoveCorruptedPointESP()
+
+    for _, point in ipairs(
+        workspace:GetChildren()
+    ) do
+
+        if point.Name == "CorruptedPoint"
+            and point:IsA("Model") then
+
+            CreateCorruptedPointBillboard(point)
+
+        end
+
+    end
+
+    Connect(
+        "CorruptedPoint_Added",
+        workspace.ChildAdded,
+        function(point)
+
+            if not State.CorruptedPointESPEnabled then
+                return
+            end
+
+            if point.Name ~= "CorruptedPoint"
+                or not point:IsA("Model") then
+                return
+            end
+
+            task.wait()
+
+            CreateCorruptedPointBillboard(point)
+
+        end
+    )
+
+    Connect(
+        "CorruptedHealth_Update",
+        Services.RunService.Heartbeat,
+        function()
+
+            if not State.CorruptedPointESPEnabled then
+                return
+            end
+
+            local character =
+                Services.LocalPlayer.Character
+
+            local root =
+                character
+                and character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
+            if not root then
+                return
+            end
+
+            for part, billboard in pairs(
+                State.CorruptedPointESPObjects
+            ) do
+
+                if not part
+                    or not part.Parent
+                    or not billboard
+                    or not billboard.Parent then
+
+                    State.CorruptedPointESPObjects[part] = nil
+
+                    if billboard then
+                        billboard:Destroy()
+                    end
+
+                    continue
+
+                end
+
+                local point =
+                    part:FindFirstAncestor(
+                        "CorruptedPoint"
+                    )
+
+                if not point
+                    or not point:IsA("Model") then
+
+                    State.CorruptedPointESPObjects[part] = nil
+
+                    billboard:Destroy()
+
+                    continue
+
+                end
+
+                local health =
+                    point:FindFirstChild("Health")
+
+                if not health
+                    or not health:IsA("NumberValue") then
+
+                    continue
+
+                end
+
+                if health.Value < 0 then
+
+                    State.CorruptedPointESPObjects[part] = nil
+
+                    billboard:Destroy()
+
+                    continue
+
+                end
+
+                local text =
+                    billboard:FindFirstChildOfClass(
+                        "TextLabel"
+                    )
+
+                if not text then
+                    continue
+                end
+
+                local distance =
+                    math.floor(
+                        (
+                            root.Position
+                            - part.Position
+                        ).Magnitude
+                    )
+
+                text.Text =
+                    "[Corrupted Point]"
+                    .. "\n"
+                    .. "Health: "
+                    .. tostring(
+                        100 - health.Value
+                    )
+                    .. " | "
+                    .. tostring(
+                        distance
+                    )
+                    .. " st"
+
+            end
+
+        end
+    )
+
+end
+
+
+Groupboxes.VisualLeftGroupBox2:AddToggle(
+    "CorruptedPointESPToggle",
+    {
+        Text = "Corrupted Point ESP",
+        Default = false
+    }
+):OnChanged(function(Value)
+
+    State.CorruptedPointESPEnabled =
+        Value
+
+    if Value then
+
+        CreateCorruptedPointESP()
+
+    else
+
+        RemoveCorruptedPointESP()
+
+    end
+
+end)
+
+
 
 State.ObserveEnabled = true
 State.CurrentObserveTarget = nil
@@ -2855,7 +4062,7 @@ end
 
 
 local ObserveToggle =
-    VisualRightGroupBox:AddToggle(
+    Groupboxes.VisualRightGroupBox:AddToggle(
         "ObserveToggle",
         {
             Text = "Leaderboard Observe",
@@ -3066,27 +4273,13 @@ if State.ObserveEnabled then
     end)
 end
 
-function funcs.fullBright(state)
-    State.FullBrightEnabled = state
+State.BrightnessLevel = State.BrightnessLevel or 2
+State.FullBrightEnabled = State.FullBrightEnabled or false
+State.FullBrightConnection = nil
+State.OldBrightness = nil
 
-    if State.FullBrightConnection then
-        State.FullBrightConnection:Disconnect()
-        State.FullBrightConnection = nil
-    end
 
-    if not state then
-        Services.Lighting.Brightness = State.OldBrightness
-        return
-    end
-
-    State.FullBrightConnection =
-        Services.RunService.RenderStepped:Connect(function()
-            Services.Lighting.Brightness =
-                State.BrightnessLevel
-        end)
-end
-
-VisualRightGroupBox2:AddSlider("BrightnessLevel", {
+Groupboxes.VisualRightGroupBox2:AddSlider("BrightnessLevel", {
     Text = "Brightness",
     Default = 2,
     Min = 0,
@@ -3102,49 +4295,627 @@ VisualRightGroupBox2:AddSlider("BrightnessLevel", {
     end
 })
 
-VisualRightGroupBox2:AddToggle("FullBright", {
-    Text = "Full Bright",
-    Default = false,
 
-    Callback = function(Value)
-        funcs.fullBright(Value)
+function funcs.fullBright(state)
+
+    State.FullBrightEnabled = state
+
+    if State.FullBrightConnection then
+        State.FullBrightConnection:Disconnect()
+        State.FullBrightConnection = nil
     end
-})
 
-VisualRightGroupBox2:AddToggle("NoFog", {
-    Text = "No Fog",
-    Default = false,
-    Callback = function(state)
-        if State.noFogConnection then
-            State.noFogConnection:Disconnect()
-            State.noFogConnection = nil
-        end
+    if state then
 
-        if state then
-            State.oldFogEnd = Services.Lighting.FogEnd
+        State.OldBrightness = Services.Lighting.Brightness
 
-            State.noFogConnection = Services.RunService.RenderStepped:Connect(function()
-                Services.Lighting.FogEnd = 9999999999
+        Services.Lighting.Brightness = State.BrightnessLevel
+
+        State.FullBrightConnection =
+            Services.RunService.RenderStepped:Connect(function()
+
+                if not State.FullBrightEnabled then
+                    return
+                end
+
+                Services.Lighting.Brightness = State.BrightnessLevel
+
             end)
-        else
-            if State.oldFogEnd ~= nil then
-                Services.Lighting.FogEnd = State.oldFogEnd
-                State.oldFogEnd = nil
-            end
+
+    else
+
+        if State.OldBrightness ~= nil then
+            Services.Lighting.Brightness = State.OldBrightness
+            State.OldBrightness = nil
         end
+
     end
+end
+
+funcs.noRain = function(state)
+	if not state then
+		if BaseLocals.noRainLoop then
+			task.cancel(BaseLocals.noRainLoop)
+			BaseLocals.noRainLoop = nil
+		end
+
+		return
+	end
+
+	BaseLocals.noRainLoop = task.spawn(function()
+		while true do
+			Services.ReplicatedStorage.Raining.Value = ""
+			task.wait()
+		end
+	end)
+end
+
+
+Groupboxes.VisualRightGroupBox2:AddToggle(
+    "FullBright",
+    {
+        Text = "Full Bright",
+        Default = false,
+    }
+):OnChanged(function()
+    funcs.fullBright(Toggles.FullBright.Value)
+end)
+
+Groupboxes.VisualRightGroupBox2:AddToggle("NoFog", {
+	Text = "No Fog",
+	Default = false,
+
+	Callback = function(state)
+		if State.noFogConnection then
+			State.noFogConnection:Disconnect()
+			State.noFogConnection = nil
+		end
+
+		if state then
+			State.oldFogEnd = Services.Lighting.FogEnd
+
+			-- İlk uygulama
+			Services.Lighting.FogEnd = 9999999999
+
+			State.noFogConnection = Services.Lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
+				if Services.Lighting.FogEnd ~= 9999999999 then
+					Services.Lighting.FogEnd = 9999999999
+				end
+			end)
+		else
+			if State.oldFogEnd ~= nil then
+				Services.Lighting.FogEnd = State.oldFogEnd
+				State.oldFogEnd = nil
+			end
+		end
+	end
 })
+
+Modules.NoRainToggle = Groupboxes.VisualRightGroupBox2:AddToggle("NoRain", {
+	Text = "No Rain",
+	Default = false
+})
+
+Modules.NoRainToggle:OnChanged(function(Value)
+	funcs.noRain(Value)
+end)
 
 
 task.wait(0.01)
 
 -- Automation
 
-local AutomationLeftGroupBox = Tabs.Automation:AddLeftGroupbox("Automation")
+Groupboxes.AutomationLeftGroupBox = Tabs.Automation:AddLeftGroupbox("Automation", "bot")
+Groupboxes.SellItems = Tabs.Automation:AddRightGroupbox("Auto Sell", "hand-coins")  
 
-local remotes = Services.ReplicatedStorage:WaitForChild("Events")
-local dataEvent = remotes:WaitForChild("DataEvent")
-local player = Services.Players.LocalPlayer
+State.SellBowls = false
+
+funcs.SellBowlsLoop = function()
+
+    if State.SellBowlsLoopRunning then
+        return
+    end
+
+    State.SellBowlsLoopRunning = true
+
+    task.spawn(function()
+
+        while State.SellBowls do
+
+            BaseLocals.PlayerData =
+                dataFunction:InvokeServer(
+                    "GetData"
+                )
+
+            if not BaseLocals.PlayerData then
+                task.wait(0.2)
+                continue
+            end
+
+            BaseLocals.Selected = nil
+            BaseLocals.SelectedIndex = nil
+
+            BaseLocals.Loadout =
+                BaseLocals.PlayerData.Loadout
+
+            if type(BaseLocals.Loadout) == "table" then
+
+                for Index, Value in pairs(
+                    BaseLocals.Loadout
+                ) do
+
+                    if type(Value) == "table"
+                        and type(Value.Item) == "string" then
+
+                        BaseLocals.Index =
+                            Index
+
+                        BaseLocals.Value =
+                            Value
+
+                        BaseLocals.ItemName =
+                            Value.Item
+
+                        BaseLocals.ItemData =
+                            gameManager.Items[
+                                BaseLocals.ItemName
+                            ]
+
+                        if BaseLocals.ItemData
+                            and type(BaseLocals.ItemData) == "table"
+                            and BaseLocals.ItemData.ExtraInfo == "FruitBowl" then
+
+                            BaseLocals.Selected =
+                                BaseLocals.ItemName
+
+                            BaseLocals.SelectedIndex =
+                                Index
+
+                            break
+
+                        end
+
+                    end
+
+                end
+
+            end
+
+            if not BaseLocals.Selected then
+
+                BaseLocals.ClientGui =
+                    Services.LocalPlayer.PlayerGui:FindFirstChild(
+                        "ClientGui"
+                    )
+
+                if BaseLocals.ClientGui then
+
+                    BaseLocals.Mainframe =
+                        BaseLocals.ClientGui:FindFirstChild(
+                            "Mainframe"
+                        )
+
+                    BaseLocals.LoadoutGui =
+                        BaseLocals.Mainframe
+                        and BaseLocals.Mainframe:FindFirstChild(
+                            "Loadout"
+                        )
+
+                    BaseLocals.Inventory =
+                        BaseLocals.LoadoutGui
+                        and BaseLocals.LoadoutGui:FindFirstChild(
+                            "Inventory"
+                        )
+
+                    BaseLocals.InventoryScroll =
+                        BaseLocals.Inventory
+                        and BaseLocals.Inventory:FindFirstChild(
+                            "InventoryScroll"
+                        )
+
+                end
+
+                if BaseLocals.InventoryScroll then
+
+                    for SlotIndex = 1, 100 do
+
+                        BaseLocals.Slot =
+                            BaseLocals.InventoryScroll:FindFirstChild(
+                                "InvSlot" .. SlotIndex
+                            )
+
+                        if BaseLocals.Slot then
+
+                            BaseLocals.SlotText =
+                                BaseLocals.Slot:FindFirstChild(
+                                    "SlotText"
+                                )
+
+                            if BaseLocals.SlotText then
+
+                                BaseLocals.SlotValue =
+                                    BaseLocals.SlotText.Text
+
+                                if type(
+                                    BaseLocals.SlotValue
+                                ) == "string"
+                                    and BaseLocals.SlotValue ~= "" then
+
+                                    BaseLocals.CleanName =
+                                        BaseLocals.SlotValue:lower():gsub(
+                                            "%s+",
+                                            ""
+                                        )
+
+                                    if BaseLocals.CleanName:find(
+                                        "fruitbowl",
+                                        1,
+                                        true
+                                    ) then
+
+                                        BaseLocals.Selected =
+                                            BaseLocals.SlotValue
+
+                                        BaseLocals.SelectedIndex =
+                                            SlotIndex
+
+                                        break
+
+                                    end
+
+                                end
+
+                            end
+
+                        end
+
+                    end
+
+                end
+
+            end
+
+            if not BaseLocals.Selected then
+                task.wait(0.2)
+                continue
+            end
+
+            BaseLocals.Merchant =
+                workspace:FindFirstChild(
+                    "Food Merchant",
+                    true
+                )
+
+            if not BaseLocals.Merchant then
+                task.wait(0.2)
+                continue
+            end
+
+            BaseLocals.DialogPart =
+                BaseLocals.Merchant:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+                or BaseLocals.Merchant:FindFirstChild(
+                    "Main"
+                )
+                or BaseLocals.Merchant
+
+            BaseLocals.SelectedItem =
+                BaseLocals.Selected
+
+            BaseLocals.ItemData =
+                gameManager.Items[
+                    BaseLocals.SelectedItem
+                ]
+
+            if not BaseLocals.ItemData then
+
+                for ItemName, Data in pairs(
+                    gameManager.Items
+                ) do
+
+                    if type(Data) == "table"
+                        and Data.ExtraInfo == "FruitBowl"
+                        and ItemName:lower()
+                            == BaseLocals.SelectedItem:lower() then
+
+                        BaseLocals.ItemName =
+                            ItemName
+
+                        BaseLocals.Data =
+                            Data
+
+                        BaseLocals.SelectedItem =
+                            ItemName
+
+                        BaseLocals.ItemData =
+                            Data
+
+                        break
+
+                    end
+
+                end
+
+            end
+
+            if not BaseLocals.ItemData then
+                task.wait(0.2)
+                continue
+            end
+
+            BaseLocals.Events =
+                Services.ReplicatedStorage:FindFirstChild(
+                    "Events"
+                )
+
+            BaseLocals.DataEvent =
+                BaseLocals.Events
+                and BaseLocals.Events:FindFirstChild(
+                    "DataEvent"
+                )
+
+            if not BaseLocals.DataEvent then
+                task.wait(0.2)
+                continue
+            end
+
+            BaseLocals.DataEvent:FireServer(
+                "Item",
+                "Selected",
+                BaseLocals.SelectedItem
+            )
+
+            task.wait(0.05)
+
+            if not State.SellBowls then
+                break
+            end
+
+            BaseLocals.MerchantVillage =
+                BaseLocals.DialogPart:GetAttribute(
+                    "Village"
+                )
+                or BaseLocals.Merchant:GetAttribute(
+                    "Village"
+                )
+
+            BaseLocals.PlayerVillage =
+                BaseLocals.PlayerData.Village
+
+            BaseLocals.VillageData,
+            BaseLocals.VillageMonth,
+            BaseLocals.VillageWeek =
+                dataFunction:InvokeServer(
+                    "getVillageData"
+                )
+
+            local function getVillageData(
+                village,
+                month,
+                week
+            )
+
+                if not village
+                    or not BaseLocals.VillageData then
+
+                    return nil
+                end
+
+                BaseLocals.MonthData =
+                    BaseLocals.VillageData[
+                        "Month" ..
+                        (month or BaseLocals.VillageMonth)
+                    ]
+
+                if not BaseLocals.MonthData then
+                    return nil
+                end
+
+                BaseLocals.WeekData =
+                    BaseLocals.MonthData[
+                        "Week" ..
+                        (week or BaseLocals.VillageWeek)
+                    ]
+
+                if not BaseLocals.WeekData then
+                    return nil
+                end
+
+                return BaseLocals.WeekData[village]
+
+            end
+
+            local function getVillageRelationship(
+                village1,
+                village2
+            )
+
+                if not village1
+                    or not village2 then
+
+                    return nil
+                end
+
+                if village1 == "Rogue"
+                    or village2 == "Rogue" then
+
+                    return "War"
+                end
+
+                if village1 == "Neutral"
+                    or village2 == "Neutral" then
+
+                    return "Neutral"
+                end
+
+                if village1 == village2 then
+                    return "Own"
+                end
+
+                BaseLocals.V1 =
+                    getVillageData(village1)
+
+                BaseLocals.V2 =
+                    getVillageData(village2)
+
+                if not BaseLocals.V1
+                    or not BaseLocals.V2 then
+
+                    return "Neutral"
+                end
+
+                if BaseLocals.V1.Politics
+                    and BaseLocals.V1.Politics.Alliances
+                    and table.find(
+                        BaseLocals.V1.Politics.Alliances,
+                        village2
+                    ) then
+
+                    return "Allied"
+                end
+
+                if BaseLocals.V2.Politics
+                    and BaseLocals.V2.Politics.Alliances
+                    and table.find(
+                        BaseLocals.V2.Politics.Alliances,
+                        village1
+                    ) then
+
+                    return "Allied"
+                end
+
+                if BaseLocals.V1.Politics
+                    and BaseLocals.V1.Politics.Wars
+                    and table.find(
+                        BaseLocals.V1.Politics.Wars,
+                        village2
+                    ) then
+
+                    return "War"
+                end
+
+                if BaseLocals.V2.Politics
+                    and BaseLocals.V2.Politics.Wars
+                    and table.find(
+                        BaseLocals.V2.Politics.Wars,
+                        village1
+                    ) then
+
+                    return "War"
+                end
+
+                return "Neutral"
+
+            end
+
+            BaseLocals.Relationship =
+                getVillageRelationship(
+                    BaseLocals.PlayerVillage,
+                    BaseLocals.MerchantVillage
+                )
+
+            BaseLocals.Economy =
+                "Average"
+
+            if BaseLocals.MerchantVillage == "Rogue" then
+
+                BaseLocals.Economy =
+                    "Struggling"
+
+            elseif BaseLocals.MerchantVillage
+                and BaseLocals.MerchantVillage ~= "Neutral" then
+
+                BaseLocals.MerchantData =
+                    getVillageData(
+                        BaseLocals.MerchantVillage
+                    )
+
+                if BaseLocals.MerchantData
+                    and BaseLocals.MerchantData.Politics
+                    and BaseLocals.MerchantData.Politics.Economy then
+
+                    BaseLocals.Economy =
+                        BaseLocals.MerchantData.Politics.Economy
+
+                end
+
+            end
+
+            BaseLocals.BasePrice =
+                gameManager:getPrice(
+                    BaseLocals.SelectedItem
+                )
+
+            if not BaseLocals.BasePrice then
+                task.wait(0.1)
+                continue
+            end
+
+            BaseLocals.FinalPrice =
+                gameManager:getModifiedPrice(
+                    BaseLocals.BasePrice,
+                    BaseLocals.Relationship,
+                    BaseLocals.Economy,
+                    "Sell"
+                )
+
+            task.wait(0.05)
+
+            if not State.SellBowls then
+                break
+            end
+
+            BaseLocals.Result =
+                dataFunction:InvokeServer(
+                    "SellFood",
+                    BaseLocals.SelectedItem,
+                    BaseLocals.FinalPrice,
+                    nil,
+                    BaseLocals.DialogPart
+                )
+
+            task.wait(0.05)
+
+        end
+
+        State.SellBowlsLoopRunning =
+            false
+
+    end)
+
+end
+
+
+Modules.SellBowls =
+    Groupboxes.SellItems:AddToggle(
+        "SellBowls",
+        {
+            Text = "Auto Sell Bowls",
+            Default = false
+        }
+    )
+
+Modules.SellBowls:OnChanged(function(Value)
+
+    State.SellBowls =
+        Value
+
+    if State.SellBowls then
+
+        State.SellBowlsLoopRunning =
+            false
+
+        funcs.SellBowlsLoop()
+
+    else
+
+        State.SellBowlsLoopRunning =
+            false
+
+    end
+
+end)
 
 local function onChildAdded(obj)
     if not obj:IsA("BasePart") then
@@ -3177,7 +4948,7 @@ end
 
 workspace.DescendantAdded:Connect(onChildAdded)
 
-AutomationLeftGroupBox:AddToggle("AutoPickup", {
+Groupboxes.AutomationLeftGroupBox:AddToggle("AutoPickup", {
     Text = "Auto Pickup",
     Default = false,
 
@@ -3237,57 +5008,780 @@ AutomationLeftGroupBox:AddToggle("AutoPickup", {
     end
 })
 
+BaseLocals.BowlHolder =
+	workspace:WaitForChild("BowlHolderHyuga")
+
+BaseLocals.CookingWater =
+	workspace:WaitForChild("FruitCookerHyuga")
+		:WaitForChild("CookingWater")
+
+BaseLocals.BowlFinish =
+	BaseLocals.BowlHolder:WaitForChild("BowlFinish")
+
+
+funcs.placeBowl = function()
+	if not BaseLocals.BowlHolder then
+		return false
+	end
+
+	DataEvent:FireServer(
+		"PlaceBowl",
+		BaseLocals.BowlHolder
+	)
+
+	return true
+end
+
+
+funcs.addFruit = function(itemName)
+	if not BaseLocals.CookingWater then
+		return false
+	end
+
+	DataEvent:FireServer(
+		"AddFruit",
+		BaseLocals.CookingWater,
+		itemName
+	)
+
+	return true
+end
+
+
+funcs.finishBowl = function()
+	if not BaseLocals.BowlFinish then
+		return false
+	end
+
+	DataEvent:FireServer(
+		"BowlFinish",
+		BaseLocals.BowlFinish
+	)
+
+	return true
+end
+
+State.RecipeNames = {}
+
+BaseLocals.Recipes = {
+
+    ["Tangerina Fruit Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Orange",
+                Amount = 3
+            }
+        }
+    },
+
+    ["Bolive Soup"] = {
+        Ingredients = {
+            {
+                Item = "Bolive Crops",
+                Amount = 2
+            },
+            {
+                Item = "Orange",
+                Amount = 2
+            },
+            {
+                Item = "Mango",
+                Amount = 1
+            }
+        }
+    },
+
+    ["Alluring Fruit Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Alluring Apple",
+                Amount = 2
+            },
+            {
+                Item = "Apple",
+                Amount = 3
+            },
+        }
+    },
+
+    ["Chakra Soup"] = {
+        Ingredients = {
+            {
+                Item = "Chakra Crop",
+                Amount = 2
+            },
+            {
+                Item = "Seaweed",
+                Amount = 2
+            },
+            {
+                Item = "Pear",
+                Amount = 1
+            },
+        }
+    },
+
+    ["Saltwater Seaweed Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Seaweed",
+                Amount = 3
+            },
+        }
+    },
+
+    ["Chickenanga Meat Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Mango",
+                Amount = 3
+            },
+            {
+                Item = "Chicken",
+                Amount = 2
+            },
+        }
+    },
+
+    ["Manganana Fruit Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Mango",
+                Amount = 2
+            },
+            {
+                Item = "Banana",
+                Amount = 3
+            },
+        }
+    },
+
+    ["Pearapple Fruit Bowl"] = {
+        Ingredients = {
+            {
+                Item = "Apple",
+                Amount = 2
+            },
+            {
+                Item = "Pear",
+                Amount = 2
+            },
+        }
+    },
+
+}
+
+
+for RecipeName in pairs(
+    BaseLocals.Recipes
+) do
+
+    table.insert(
+        State.RecipeNames,
+        RecipeName
+    )
+
+end
+
+Groupboxes.AutomationLeftGroupBox:AddToggle(
+    "AutoBowls",
+    {
+        Text = "Auto Bowl",
+        Default = false,
+
+        Callback = function(Value)
+
+            State.AutoBowls =
+                Value
+
+            if not Value then
+
+                if BaseLocals.BowlLoop then
+
+                    task.cancel(
+                        BaseLocals.BowlLoop
+                    )
+
+                    BaseLocals.BowlLoop =
+                        nil
+
+                end
+
+                return
+
+            end
+
+
+            if BaseLocals.BowlLoop then
+                return
+            end
+
+
+            BaseLocals.BowlLoop =
+                task.spawn(function()
+
+                    while State.AutoBowls do
+
+
+                        local recipe =
+                            BaseLocals.Recipes[
+                                State.SelectedRecipe
+                            ]
+
+
+                        if not recipe
+                            or not recipe.Ingredients then
+
+                            task.wait(
+                                State.BowlCooldown
+                            )
+
+                            continue
+
+                        end
+
+                        local PlayerData =
+                            dataFunction:InvokeServer(
+                                "GetData"
+                            )
+
+
+                        local OwnedItems =
+                            {}
+
+                        if PlayerData
+                            and type(
+                                PlayerData.Loadout
+                            ) == "table" then
+
+                            for _, Value in pairs(
+                                PlayerData.Loadout
+                            ) do
+
+                                if type(Value) == "table"
+                                    and Value.Item then
+
+                                    local quantity =
+                                        tonumber(
+                                            Value.Quantity
+                                        ) or 0
+
+
+                                    OwnedItems[
+                                        Value.Item
+                                    ] =
+                                        (
+                                            OwnedItems[
+                                                Value.Item
+                                            ] or 0
+                                        )
+                                        + quantity
+
+                                end
+
+                            end
+
+                        end
+
+                        local HasEnough =
+                            true
+
+                        local MissingItem =
+                            nil
+
+                        local OwnedAmount =
+                            0
+
+                        local RequiredAmount =
+                            0
+
+
+                        for _, ingredient in ipairs(
+                            recipe.Ingredients
+                        ) do
+
+                            local owned =
+                                OwnedItems[
+                                    ingredient.Item
+                                ] or 0
+
+
+                            if owned <
+                                ingredient.Amount then
+
+                                HasEnough =
+                                    false
+
+                                MissingItem =
+                                    ingredient.Item
+
+                                OwnedAmount =
+                                    owned
+
+                                RequiredAmount =
+                                    ingredient.Amount
+
+                                break
+
+                            end
+
+                        end
+
+                        if not HasEnough then
+
+                            Library:Notify({
+                                Title =
+                                    "Not Enough Items",
+
+                                Description =
+                                    MissingItem
+                                    .. " "
+                                    .. tostring(
+                                        OwnedAmount
+                                    )
+                                    .. "/"
+                                    .. tostring(
+                                        RequiredAmount
+                                    ),
+
+                                Time = 3
+                            })
+
+
+                            if Toggles.AutoBowls then
+
+                                Toggles.AutoBowls:SetValue(
+                                    false
+                                )
+
+                            else
+
+                                State.AutoBowls =
+                                    false
+
+                            end
+
+
+                            return
+
+                        end
+
+
+                        funcs.placeBowl()
+
+
+                        task.wait(
+                            State.BowlCooldown
+                        )
+
+
+                        if not State.AutoBowls then
+                            break
+                        end
+
+
+                        for _, ingredient in ipairs(
+                            recipe.Ingredients
+                        ) do
+
+                            for i = 1,
+                                ingredient.Amount do
+
+                                if not State.AutoBowls then
+                                    break
+                                end
+
+
+                                funcs.addFruit(
+                                    ingredient.Item
+                                )
+
+
+                                task.wait(
+                                    State.BowlCooldown
+                                )
+
+                            end
+
+
+                            if not State.AutoBowls then
+                                break
+                            end
+
+                        end
+
+
+                        if not State.AutoBowls then
+                            break
+                        end
+
+
+                        funcs.finishBowl()
+
+
+                        task.wait(
+                            State.BowlCooldown
+                        )
+
+                    end
+
+
+                    BaseLocals.BowlLoop =
+                        nil
+
+                end)
+
+        end
+    }
+)
+
+
+
+
+Groupboxes.AutomationLeftGroupBox:AddLabel(
+    "Auto Bowl Settings"
+)
+
+
+Modules.RecipeDropdown =
+    Groupboxes.AutomationLeftGroupBox:AddDropdown(
+        "RecipeDropdown",
+        {
+            Text = "Recipes",
+            Values = State.RecipeNames,
+            Multi = false,
+            Default = 1
+        }
+    )
+
+
+State.SelectedRecipe =
+    State.RecipeNames[1]
+
+
+Modules.RecipeDropdown:OnChanged(function(Value)
+
+    State.SelectedRecipe =
+        Value
+
+end)
+
+
+Modules.BowlCooldownSlider =
+    Groupboxes.AutomationLeftGroupBox:AddSlider(
+        "BowlCooldown",
+        {
+            Text = "Bowl Cooldown",
+            Default = 0.25,
+            Min = 0.01,
+            Max = 1,
+            Rounding = 2,
+            Compact = false
+        }
+    )
+
+
+State.BowlCooldown =
+    0.25
+
+
+Modules.BowlCooldownSlider:OnChanged(function(Value)
+
+    State.BowlCooldown =
+        Value
+
+end)
+
+
+
+Groupboxes.AutomationLeftGroupBox:AddButton(
+    "MakeBowlOnce",
+    {
+        Text = "Make Bowl",
+
+        Func = function()
+
+            if BaseLocals.BowlOnceRunning then
+                return
+            end
+
+            BaseLocals.BowlOnceRunning = true
+
+            task.spawn(function()
+
+                --------------------------------------------------
+                -- SELECTED RECIPE
+                --------------------------------------------------
+
+                local recipe =
+                    BaseLocals.Recipes[
+                        State.SelectedRecipe
+                    ]
+
+                if not recipe
+                    or type(recipe.Ingredients) ~= "table" then
+
+                    Library:Notify({
+                        Title = "Recipe Error",
+                        Description = "Invalid recipe selected.",
+                        Time = 3
+                    })
+
+                    BaseLocals.BowlOnceRunning = nil
+                    return
+                end
+
+
+                --------------------------------------------------
+                -- GET PLAYER DATA
+                --------------------------------------------------
+
+                local PlayerData =
+                    dataFunction:InvokeServer(
+                        "GetData"
+                    )
+
+
+                --------------------------------------------------
+                -- CHECK ALL INGREDIENTS
+                --------------------------------------------------
+
+                local MissingItems = {}
+
+                if PlayerData
+                    and type(PlayerData.Loadout) == "table" then
+
+                    for _, Ingredient in ipairs(
+                        recipe.Ingredients
+                    ) do
+
+                        local OwnedAmount = 0
+
+                        for _, Value in pairs(
+                            PlayerData.Loadout
+                        ) do
+
+                            if type(Value) == "table"
+                                and Value.Item == Ingredient.Item then
+
+                                OwnedAmount +=
+                                    tonumber(
+                                        Value.Quantity
+                                    ) or 0
+
+                            end
+
+                        end
+
+                        if OwnedAmount < Ingredient.Amount then
+
+                            table.insert(
+                                MissingItems,
+                                Ingredient.Item
+                                    .. " "
+                                    .. tostring(OwnedAmount)
+                                    .. "/"
+                                    .. tostring(Ingredient.Amount)
+                            )
+
+                        end
+
+                    end
+
+                end
+
+
+                --------------------------------------------------
+                -- NOT ENOUGH ITEMS
+                --------------------------------------------------
+
+                if #MissingItems > 0 then
+
+                    Library:Notify({
+                        Title = "Not Enough Items",
+                        Description =
+                            table.concat(
+                                MissingItems,
+                                ", "
+                            ),
+                        Time = 4
+                    })
+
+                    BaseLocals.BowlOnceRunning = nil
+                    return
+
+                end
+
+
+                --------------------------------------------------
+                -- PLACE BOWL
+                --------------------------------------------------
+
+                funcs.placeBowl()
+
+                task.wait(
+                    State.BowlCooldown
+                )
+
+
+                --------------------------------------------------
+                -- ADD INGREDIENTS
+                --------------------------------------------------
+
+                for _, Ingredient in ipairs(
+                    recipe.Ingredients
+                ) do
+
+                    for i = 1, Ingredient.Amount do
+
+                        funcs.addFruit(
+                            Ingredient.Item
+                        )
+
+                        task.wait(
+                            State.BowlCooldown
+                        )
+
+                    end
+
+                end
+
+
+                --------------------------------------------------
+                -- FINISH BOWL
+                --------------------------------------------------
+
+                funcs.finishBowl()
+
+                task.wait(
+                    State.BowlCooldown
+                )
+
+
+                --------------------------------------------------
+                -- DONE
+                --------------------------------------------------
+
+                Library:Notify({
+                    Title = "Bowl Created",
+                    Description =
+                        State.SelectedRecipe
+                        .. " completed.",
+                    Time = 3
+                })
+
+                BaseLocals.BowlOnceRunning = nil
+
+            end)
+
+        end
+    }
+)
+
+Groupboxes.AutomationLeftGroupBox:AddLabel("Buy Bowls")
+
+State.BowlAmount = State.BowlAmount or 1
+
+Groupboxes.AutomationLeftGroupBox:AddSlider(
+    "BowlAmount",
+    {
+        Text = "Bowl Amount",
+
+        Default =
+            State.BowlAmount,
+
+        Min = 1,
+
+        Max = 100,
+
+        Rounding = 0,
+
+        Compact = false,
+
+        Callback = function(Value)
+
+            State.BowlAmount =
+                Value
+
+        end
+    }
+)
+
+Groupboxes.AutomationLeftGroupBox:AddButton({
+    Text = "Buy Bowl",
+
+    Func = function()
+
+        local success, result =
+            pcall(function()
+
+                return funcs.buyItem(
+                    "Bowl",
+                    3,
+                    State.BowlAmount
+                )
+
+            end)
+
+        if success and result == true then
+
+            Library:Notify({
+                Title = "Item Purchased",
+                Description =
+                    "Purchased "
+                    .. tostring(State.BowlAmount)
+                    .. " Bowl(s)",
+                Duration = 3
+            })
+
+        else
+
+            Library:Notify({
+                Title = "Purchase Failed",
+                Description =
+                    tostring(result),
+                Duration = 3
+            })
+
+        end
+
+    end
+})
+
 
 -- Botting
 
-local BottingLeftGroupBox =
-    Tabs.Botting:AddLeftGroupbox("Auto Farm Settings")
+Groupboxes.BottingLeftGroupBox = Tabs.Botting:AddLeftGroupbox("Auto Farm Settings", "settings")
+Groupboxes.BottingRightGroupBox = Tabs.Botting:AddRightGroupbox("Auto Farm", "bot")
 
-local BottingRightGroupBox =
-    Tabs.Botting:AddRightGroupbox("Auto Farm")
+State.TreeFarmEnabled =State.TreeFarmEnabled or false
+State.TreeFloatVelocity =State.TreeFloatVelocity or nil
+State.AutoPickupConnectionName = State.AutoPickupConnectionName or nil
+State.TreeFarmRunId = State.TreeFarmRunId or 0
+State.CurrentTreeFarmKey = State.CurrentTreeFarmKey or nil
+State.TreePlayerRange = State.TreePlayerRange or 150
+State.TreeFarmPreviousNoFallState = State.TreeFarmPreviousNoFallState or false
+State.TreeFarmNoFallOldNamecall = State.TreeFarmNoFallOldNamecall or nil
+State.TreeFarmScreenGui =State.TreeFarmScreenGui or nil
+State.TreeFarmMainFrame =State.TreeFarmMainFrame or nil
+State.TreeFarmStatus =State.TreeFarmStatus or nil
+State.TreeFarmTreeLabel =State.TreeFarmTreeLabel or nil
+State.TreeFarmStatusDot =State.TreeFarmStatusDot or nil
 
-
-State.TreeFarmEnabled =
-    State.TreeFarmEnabled or false
-
-State.TreeFloatVelocity =
-    State.TreeFloatVelocity or nil
-
-State.AutoPickupConnectionName =
-    State.AutoPickupConnectionName or nil
-
-State.TreeFarmRunId =
-    State.TreeFarmRunId or 0
-
-State.CurrentTreeFarmKey =
-    State.CurrentTreeFarmKey or nil
-
-State.TreePlayerRange =
-    State.TreePlayerRange or 150
-
-State.TreeFarmPreviousNoFallState =
-    State.TreeFarmPreviousNoFallState or false
-
-State.TreeFarmNoFallOldNamecall =
-    State.TreeFarmNoFallOldNamecall or nil
-
-local Players = Services.Players
-local LocalPlayer = Services.LocalPlayer
-local RunService = Services.RunService
-local ReplicatedStorage = Services.ReplicatedStorage
 
 funcs.getCharacter = function()
 
     local character =
-        LocalPlayer.Character
+        Services.LocalPlayer.Character
 
     if character then
         return character
     end
 
-    return LocalPlayer.CharacterAdded:Wait()
+    return Services.LocalPlayer.CharacterAdded:Wait()
 
 end
+
 
 funcs.getHRP = function()
 
@@ -3306,10 +5800,10 @@ funcs.GetActiveChakraPlayers = function()
     local activePlayers = {}
 
     for _, plr in ipairs(
-        Players:GetPlayers()
+        Services.Players:GetPlayers()
     ) do
 
-        if plr ~= LocalPlayer
+        if plr ~= Services.LocalPlayer
             and plr.Character then
 
             local torso =
@@ -3349,28 +5843,41 @@ funcs.isPlayerWithinDistance = function(
     distance
 )
 
+    if not position or not distance then
+        return false
+    end
+
+    local maxDistance =
+        distance * distance
+
     for _, plr in ipairs(
-        Players:GetPlayers()
+        Services.Players:GetPlayers()
     ) do
 
-        if plr ~= LocalPlayer then
+        if plr ~= Services.LocalPlayer then
 
             local character =
                 plr.Character
 
-            local hrp =
-                character
-                and character:FindFirstChild(
-                    "HumanoidRootPart"
-                )
+            if character then
 
-            if hrp
-                and (
-                    hrp.Position - position
-                ).Magnitude <= distance then
+                local hrp =
+                    character:FindFirstChild(
+                        "HumanoidRootPart"
+                    )
 
-                return true
+                if hrp then
 
+                    local offset =
+                        hrp.Position - position
+
+                    if offset:Dot(offset)
+                        <= maxDistance then
+
+                        return true
+
+                    end
+                end
             end
         end
     end
@@ -3400,7 +5907,6 @@ funcs.teleportToSafePoint = function()
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
-
         State.TreeFloatVelocity = nil
 
     end
@@ -3425,19 +5931,18 @@ funcs.teleportToSafePoint = function()
     local currentPosition =
         hrp.Position
 
-    local nearestSafePoint = nil
+    local nearestSafePoint
     local nearestDistance = math.huge
 
     for _, safePoint in pairs(
         safePoints
     ) do
 
-        local pointPosition = nil
+        local pointPosition
 
         if typeof(safePoint) == "Vector3" then
 
-            pointPosition =
-                safePoint
+            pointPosition = safePoint
 
         elseif typeof(safePoint) == "CFrame" then
 
@@ -3446,21 +5951,20 @@ funcs.teleportToSafePoint = function()
 
         elseif typeof(safePoint) == "table" then
 
-            if typeof(safePoint.Position) == "Vector3" then
+            if typeof(safePoint.Position)
+                == "Vector3" then
 
                 pointPosition =
                     safePoint.Position
 
-            elseif typeof(safePoint.CFrame) == "CFrame" then
+            elseif typeof(safePoint.CFrame)
+                == "CFrame" then
 
                 pointPosition =
                     safePoint.CFrame.Position
 
-            elseif safePoint[1]
-                and typeof(safePoint[1]) == "number"
-                and safePoint[2]
+            elseif typeof(safePoint[1]) == "number"
                 and typeof(safePoint[2]) == "number"
-                and safePoint[3]
                 and typeof(safePoint[3]) == "number" then
 
                 pointPosition =
@@ -3473,31 +5977,26 @@ funcs.teleportToSafePoint = function()
             end
         end
 
-        if pointPosition then
+        if pointPosition
+            and not funcs.isPlayerWithinDistance(
+                pointPosition,
+                playerRange
+            ) then
 
-            local playerNearby =
-                funcs.isPlayerWithinDistance(
-                    pointPosition,
-                    playerRange
-                )
+            local distance =
+                (
+                    pointPosition
+                    - currentPosition
+                ).Magnitude
 
-            if not playerNearby then
+            if distance < nearestDistance then
 
-                local distance =
-                    (
-                        pointPosition
-                        - currentPosition
-                    ).Magnitude
+                nearestDistance =
+                    distance
 
-                if distance < nearestDistance then
+                nearestSafePoint =
+                    pointPosition
 
-                    nearestDistance =
-                        distance
-
-                    nearestSafePoint =
-                        pointPosition
-
-                end
             end
         end
     end
@@ -3507,7 +6006,7 @@ funcs.teleportToSafePoint = function()
         if funcs.updateStatus then
 
             funcs.updateStatus(
-                "   Safe Point",
+                "Safe Point",
                 Color3.fromRGB(
                     255,
                     90,
@@ -3522,10 +6021,13 @@ funcs.teleportToSafePoint = function()
     end
 
     local humanoid =
-        hrp.Parent:FindFirstChildOfClass("Humanoid")
+        hrp.Parent:FindFirstChildOfClass(
+            "Humanoid"
+        )
 
     local targetPosition =
-        nearestSafePoint + Vector3.new(0, 3, 0)
+        nearestSafePoint
+        + Vector3.new(0, 3, 0)
 
     if humanoid then
         humanoid:ChangeState(
@@ -3577,6 +6079,7 @@ funcs.teleportToSafePoint = function()
 
         hrp.AssemblyAngularVelocity =
             Vector3.zero
+
     end
 
     if humanoid then
@@ -3600,6 +6103,7 @@ funcs.teleportToSafePoint = function()
     end
 
     return true
+
 end
 
 funcs.getTrees = function()
@@ -3627,13 +6131,15 @@ funcs.getTrees = function()
                 )
 
             if fruitSpawns
-                and mainBranch then
+                and mainBranch
+                and mainBranch:IsA("BasePart") then
 
                 table.insert(
                     trees,
                     {
                         Tree = obj,
-                        MainBranch = mainBranch
+                        MainBranch = mainBranch,
+                        FruitSpawns = fruitSpawns
                     }
                 )
 
@@ -3655,9 +6161,14 @@ funcs.getTrees = function()
 
 end
 
+
 funcs.teleportToTree = function(
     treeData
 )
+
+    if not treeData then
+        return false
+    end
 
     if funcs.isAnyActiveChakraUser() then
         return false
@@ -3678,7 +6189,6 @@ funcs.teleportToTree = function(
         or not mainBranch:IsA("BasePart") then
 
         return false
-
     end
 
     local targetPosition =
@@ -3714,7 +6224,6 @@ funcs.teleportToTree = function(
     if State.TreeFloatVelocity then
 
         State.TreeFloatVelocity:Destroy()
-
         State.TreeFloatVelocity = nil
 
     end
@@ -3761,56 +6270,20 @@ funcs.teleportToTree = function(
 
 end
 
-funcs.checkNearbyPlayerAfterTeleport =
-    function()
+funcs.checkNearbyPlayerAfterTeleport = function()
 
-        local hrp =
-            funcs.getHRP()
+    local hrp = funcs.getHRP()
 
-        if not hrp then
-            return false
-        end
+    if not hrp then
+        return false
+    end
 
-        if funcs.isAnyActiveChakraUser() then
-
-            if funcs.updateStatus then
-                funcs.updateStatus(
-                    "Active Chakra User",
-                    Color3.fromRGB(
-                        255,
-                        180,
-                        70
-                    ),
-                    "Moving to nearest safe point..."
-                )
-            end
-
-            funcs.teleportToSafePoint()
-
-            return true
-
-        end
-
-        local playerRange =
-            State.TreePlayerRange or 150
-
-        if not funcs.isPlayerWithinDistance(
-            hrp.Position,
-            playerRange
-        ) then
-
-            return false
-
-        end
+    if funcs.isAnyActiveChakraUser() then
 
         if funcs.updateStatus then
             funcs.updateStatus(
-                "Player Detected",
-                Color3.fromRGB(
-                    255,
-                    90,
-                    90
-                ),
+                "Active Chakra User",
+                Color3.fromRGB(255, 180, 70),
                 "Moving to nearest safe point..."
             )
         end
@@ -3818,577 +6291,508 @@ funcs.checkNearbyPlayerAfterTeleport =
         funcs.teleportToSafePoint()
 
         return true
-
     end
 
-State.TreeFarmScreenGui =
-    State.TreeFarmScreenGui or nil
+    local playerRange =
+        State.TreePlayerRange or 150
 
-State.TreeFarmMainFrame =
-    State.TreeFarmMainFrame or nil
+    if not funcs.isPlayerWithinDistance(
+        hrp.Position,
+        playerRange
+    ) then
+        return false
+    end
 
-State.TreeFarmStatus =
-    State.TreeFarmStatus or nil
+    if funcs.updateStatus then
+        funcs.updateStatus(
+            "Player Detected",
+            Color3.fromRGB(255, 90, 90),
+            "Moving to nearest safe point..."
+        )
+    end
 
-State.TreeFarmTreeLabel =
-    State.TreeFarmTreeLabel or nil
+    funcs.teleportToSafePoint()
 
-State.TreeFarmStatusDot =
-    State.TreeFarmStatusDot or nil
+    return true
+end
 
 funcs.createStatusGui = function()
 
-if State.TreeFarmScreenGui then
+    if State.TreeFarmScreenGui then
+
+        State.TreeFarmScreenGui.Enabled = true
+
+        return
+
+    end
 
 
-State.TreeFarmScreenGui.Enabled =
-    true
+    BaseLocals.ScreenGui =
+        Instance.new("ScreenGui")
 
-return
+    BaseLocals.ScreenGui.Name =
+        "TreeFarmStatus"
 
-end
+    BaseLocals.ScreenGui.ResetOnSpawn =
+        false
 
-local ScreenGui =
-    Instance.new("ScreenGui")
+    BaseLocals.ScreenGui.IgnoreGuiInset =
+        true
 
-    ScreenGui.Name =
-    "TreeFarmStatus"
-
-    ScreenGui.ResetOnSpawn =
-    false
-
-    ScreenGui.IgnoreGuiInset =
-    true
-
-    ScreenGui.Parent =
-    LocalPlayer:WaitForChild(
-    "PlayerGui"
-    )
+    BaseLocals.ScreenGui.Parent =
+        Services.LocalPlayer:WaitForChild(
+            "PlayerGui"
+        )
 
     State.TreeFarmScreenGui =
-    ScreenGui
+        BaseLocals.ScreenGui
 
-    local MainFrame =
-    Instance.new("Frame")
 
-    MainFrame.Name =
-    "StatusFrame"
+    BaseLocals.MainFrame =
+        Instance.new("Frame")
 
-    MainFrame.Size =
-    UDim2.fromOffset(
-    255,
-    86
-    )
+    BaseLocals.MainFrame.Name =
+        "StatusFrame"
 
-    MainFrame.AnchorPoint =
-    Vector2.new(
-    1,
-    1
-    )
+    BaseLocals.MainFrame.Size =
+        UDim2.fromOffset(255, 86)
 
-    MainFrame.Position =
-    UDim2.new(
-    1,
-    -30,
-    0.72,
-    0
-    )
+    BaseLocals.MainFrame.AnchorPoint =
+        Vector2.new(1, 1)
 
-    MainFrame.BackgroundColor3 =
-    Color3.fromRGB(
-    20,
-    100,
-    190
-    )
+    BaseLocals.MainFrame.Position =
+        UDim2.new(1, -30, 0.72, 0)
 
-    MainFrame.BackgroundTransparency =
-    0.25
+    BaseLocals.MainFrame.BackgroundColor3 =
+        Color3.fromRGB(20, 100, 190)
 
-    MainFrame.BorderSizePixel =
-    0
+    BaseLocals.MainFrame.BackgroundTransparency =
+        0.25
 
-    MainFrame.ZIndex =
-    2
+    BaseLocals.MainFrame.BorderSizePixel =
+        0
 
-    MainFrame.Parent =
-    ScreenGui
+    BaseLocals.MainFrame.ZIndex =
+        2
+
+    BaseLocals.MainFrame.Parent =
+        BaseLocals.ScreenGui
 
     State.TreeFarmMainFrame =
-    MainFrame
-
-    local Corner =
-    Instance.new("UICorner")
-
-    Corner.CornerRadius =
-    UDim.new(
-    0,
-    18
-    )
-
-    Corner.Parent =
-    MainFrame
-
-    local Gradient =
-    Instance.new("UIGradient")
-
-    Gradient.Color =
-    ColorSequence.new({
-    ColorSequenceKeypoint.new(
-    0,
-    Color3.fromRGB(
-    35,
-    145,
-    255
-    )
-    ),
+        BaseLocals.MainFrame
 
 
-        ColorSequenceKeypoint.new(
-            1,
-            Color3.fromRGB(
-                15,
-                75,
-                160
+    BaseLocals.Corner =
+        Instance.new("UICorner")
+
+    BaseLocals.Corner.CornerRadius =
+        UDim.new(0, 18)
+
+    BaseLocals.Corner.Parent =
+        BaseLocals.MainFrame
+
+
+    BaseLocals.Gradient =
+        Instance.new("UIGradient")
+
+    BaseLocals.Gradient.Color =
+        ColorSequence.new({
+            ColorSequenceKeypoint.new(
+                0,
+                Color3.fromRGB(
+                    35,
+                    145,
+                    255
+                )
+            ),
+
+            ColorSequenceKeypoint.new(
+                1,
+                Color3.fromRGB(
+                    15,
+                    75,
+                    160
+                )
             )
+        })
+
+    BaseLocals.Gradient.Rotation =
+        35
+
+    BaseLocals.Gradient.Parent =
+        BaseLocals.MainFrame
+
+
+    BaseLocals.Stroke =
+        Instance.new("UIStroke")
+
+    BaseLocals.Stroke.Color =
+        Color3.fromRGB(
+            100,
+            200,
+            255
         )
-    })
+
+    BaseLocals.Stroke.Transparency =
+        0.35
+
+    BaseLocals.Stroke.Thickness =
+        1.5
+
+    BaseLocals.Stroke.Parent =
+        BaseLocals.MainFrame
 
 
-    Gradient.Rotation =
-    35
+    BaseLocals.Shadow =
+        Instance.new("ImageLabel")
 
-    Gradient.Parent =
-    MainFrame
+    BaseLocals.Shadow.Name =
+        "Shadow"
 
-    local Stroke =
-    Instance.new("UIStroke")
+    BaseLocals.Shadow.AnchorPoint =
+        Vector2.new(0.5, 0.5)
 
-    Stroke.Color =
-    Color3.fromRGB(
-    100,
-    200,
-    255
-    )
+    BaseLocals.Shadow.Position =
+        UDim2.fromScale(0.5, 0.5)
 
-    Stroke.Transparency =
-    0.35
+    BaseLocals.Shadow.Size =
+        UDim2.new(1, 20, 1, 20)
 
-    Stroke.Thickness =
-    1.5
+    BaseLocals.Shadow.BackgroundTransparency =
+        1
 
-    Stroke.Parent =
-    MainFrame
+    BaseLocals.Shadow.Image =
+        "rbxassetid://1316045217"
 
-    local Shadow =
-    Instance.new("ImageLabel")
+    BaseLocals.Shadow.ImageColor3 =
+        Color3.fromRGB(
+            0,
+            80,
+            180
+        )
 
-    Shadow.Name =
-    "Shadow"
+    BaseLocals.Shadow.ImageTransparency =
+        0.65
 
-    Shadow.AnchorPoint =
-    Vector2.new(
-    0.5,
-    0.5
-    )
+    BaseLocals.Shadow.ScaleType =
+        Enum.ScaleType.Slice
 
-    Shadow.Position =
-    UDim2.fromScale(
-    0.5,
-    0.5
-    )
+    BaseLocals.Shadow.SliceCenter =
+        Rect.new(
+            10,
+            10,
+            118,
+            118
+        )
 
-    Shadow.Size =
-    UDim2.new(
-    1,
-    20,
-    1,
-    20
-    )
+    BaseLocals.Shadow.ZIndex =
+        1
 
-    Shadow.BackgroundTransparency =
-    1
+    BaseLocals.Shadow.Parent =
+        BaseLocals.MainFrame
 
-    Shadow.Image =
-    "rbxassetid://1316045217"
 
-    Shadow.ImageColor3 =
-    Color3.fromRGB(
-    0,
-    80,
-    180
-    )
+    BaseLocals.Content =
+        Instance.new("Frame")
 
-    Shadow.ImageTransparency =
-    0.65
+    BaseLocals.Content.Name =
+        "Content"
 
-    Shadow.ScaleType =
-    Enum.ScaleType.Slice
+    BaseLocals.Content.BackgroundTransparency =
+        1
 
-    Shadow.SliceCenter =
-    Rect.new(
-    10,
-    10,
-    118,
-    118
-    )
+    BaseLocals.Content.Size =
+        UDim2.fromScale(1, 1)
 
-    Shadow.ZIndex =
-    1
+    BaseLocals.Content.ZIndex =
+        3
 
-    Shadow.Parent =
-    MainFrame
+    BaseLocals.Content.Parent =
+        BaseLocals.MainFrame
 
-    local Content =
-    Instance.new("Frame")
 
-    Content.Name =
-    "Content"
+    BaseLocals.Padding =
+        Instance.new("UIPadding")
 
-    Content.BackgroundTransparency =
-    1
+    BaseLocals.Padding.PaddingLeft =
+        UDim.new(0, 15)
 
-    Content.Size =
-    UDim2.fromScale(
-    1,
-    1
-    )
+    BaseLocals.Padding.PaddingRight =
+        UDim.new(0, 15)
 
-    Content.ZIndex =
-    3
+    BaseLocals.Padding.PaddingTop =
+        UDim.new(0, 10)
 
-    Content.Parent =
-    MainFrame
+    BaseLocals.Padding.PaddingBottom =
+        UDim.new(0, 10)
 
-    local Padding =
-    Instance.new("UIPadding")
+    BaseLocals.Padding.Parent =
+        BaseLocals.Content
 
-    Padding.PaddingLeft =
-    UDim.new(
-    0,
-    15
-    )
 
-    Padding.PaddingRight =
-    UDim.new(
-    0,
-    15
-    )
+    BaseLocals.Header =
+        Instance.new("TextLabel")
 
-    Padding.PaddingTop =
-    UDim.new(
-    0,
-    10
-    )
+    BaseLocals.Header.Size =
+        UDim2.new(1, -25, 0, 19)
 
-    Padding.PaddingBottom =
-    UDim.new(
-    0,
-    10
-    )
+    BaseLocals.Header.BackgroundTransparency =
+        1
 
-    Padding.Parent =
-    Content
+    BaseLocals.Header.Text =
+        "FRUIT FARM"
 
-    local Header =
-    Instance.new("TextLabel")
+    BaseLocals.Header.TextColor3 =
+        Color3.fromRGB(
+            245,
+            250,
+            255
+        )
 
-    Header.Size =
-    UDim2.new(
-    1,
-    -25,
-    0,
-    19
-    )
+    BaseLocals.Header.TextSize =
+        13
 
-    Header.BackgroundTransparency =
-    1
+    BaseLocals.Header.Font =
+        Enum.Font.GothamBold
 
-    Header.Text =
-    "FRUIT FARM"
+    BaseLocals.Header.TextXAlignment =
+        Enum.TextXAlignment.Left
 
-    Header.TextColor3 =
-    Color3.fromRGB(
-    245,
-    250,
-    255
-    )
+    BaseLocals.Header.ZIndex =
+        4
 
-    Header.TextSize =
-    13
+    BaseLocals.Header.Parent =
+        BaseLocals.Content
 
-    Header.Font =
-    Enum.Font.GothamBold
 
-    Header.TextXAlignment =
-    Enum.TextXAlignment.Left
+    BaseLocals.StatusDot =
+        Instance.new("Frame")
 
-    Header.ZIndex =
-    4
+    BaseLocals.StatusDot.Size =
+        UDim2.fromOffset(8, 8)
 
-    Header.Parent =
-    Content
+    BaseLocals.StatusDot.Position =
+        UDim2.new(1, -8, 0, 6)
 
-    local StatusDot =
-    Instance.new("Frame")
+    BaseLocals.StatusDot.BackgroundColor3 =
+        Color3.fromRGB(
+            90,
+            240,
+            150
+        )
 
-    StatusDot.Size =
-    UDim2.fromOffset(
-    8,
-    8
-    )
+    BaseLocals.StatusDot.BorderSizePixel =
+        0
 
-    StatusDot.Position =
-    UDim2.new(
-    1,
-    -8,
-    0,
-    6
-    )
+    BaseLocals.StatusDot.ZIndex =
+        4
 
-    StatusDot.BackgroundColor3 =
-    Color3.fromRGB(
-    90,
-    240,
-    150
-    )
+    BaseLocals.StatusDot.Parent =
+        BaseLocals.Content
 
-    StatusDot.BorderSizePixel =
-    0
 
-    StatusDot.ZIndex =
-    4
+    BaseLocals.DotCorner =
+        Instance.new("UICorner")
 
-    StatusDot.Parent =
-    Content
+    BaseLocals.DotCorner.CornerRadius =
+        UDim.new(1, 0)
 
-    local DotCorner =
-    Instance.new("UICorner")
-
-    DotCorner.CornerRadius =
-    UDim.new(
-    1,
-    0
-    )
-
-    DotCorner.Parent =
-    StatusDot
+    BaseLocals.DotCorner.Parent =
+        BaseLocals.StatusDot
 
     State.TreeFarmStatusDot =
-    StatusDot
+        BaseLocals.StatusDot
 
-    local Status =
-    Instance.new("TextLabel")
 
-    Status.Size =
-    UDim2.new(
-    1,
-    0,
-    0,
-    20
-    )
+    BaseLocals.Status =
+        Instance.new("TextLabel")
 
-    Status.Position =
-    UDim2.fromOffset(
-    0,
-    26
-    )
+    BaseLocals.Status.Size =
+        UDim2.new(1, 0, 0, 20)
 
-    Status.BackgroundTransparency =
-    1
+    BaseLocals.Status.Position =
+        UDim2.fromOffset(0, 26)
 
-    Status.Text =
-    "Checking Active Chakra Users..."
+    BaseLocals.Status.BackgroundTransparency =
+        1
 
-    Status.TextColor3 =
-    Color3.fromRGB(
-    225,
-    240,
-    255
-    )
+    BaseLocals.Status.Text =
+        "Checking Active Chakra Users..."
 
-    Status.TextSize =
-    12
+    BaseLocals.Status.TextColor3 =
+        Color3.fromRGB(
+            225,
+            240,
+            255
+        )
 
-    Status.Font =
-    Enum.Font.GothamMedium
+    BaseLocals.Status.TextSize =
+        12
 
-    Status.TextXAlignment =
-    Enum.TextXAlignment.Left
+    BaseLocals.Status.Font =
+        Enum.Font.GothamMedium
 
-    Status.TextTruncate =
-    Enum.TextTruncate.AtEnd
+    BaseLocals.Status.TextXAlignment =
+        Enum.TextXAlignment.Left
 
-    Status.ZIndex =
-    4
+    BaseLocals.Status.TextTruncate =
+        Enum.TextTruncate.AtEnd
 
-    Status.Parent =
-    Content
+    BaseLocals.Status.ZIndex =
+        4
+
+    BaseLocals.Status.Parent =
+        BaseLocals.Content
 
     State.TreeFarmStatus =
-    Status
+        BaseLocals.Status
 
-    local TreeLabel =
-    Instance.new("TextLabel")
 
-    TreeLabel.Size =
-    UDim2.new(
-    1,
-    0,
-    0,
-    18
-    )
+    BaseLocals.TreeLabel =
+        Instance.new("TextLabel")
 
-    TreeLabel.Position =
-    UDim2.fromOffset(
-    0,
-    49
-    )
+    BaseLocals.TreeLabel.Size =
+        UDim2.new(1, 0, 0, 18)
 
-    TreeLabel.BackgroundTransparency =
-    1
+    BaseLocals.TreeLabel.Position =
+        UDim2.fromOffset(0, 49)
 
-    TreeLabel.Text =
-    "Waiting..."
+    BaseLocals.TreeLabel.BackgroundTransparency =
+        1
 
-    TreeLabel.TextColor3 =
-    Color3.fromRGB(
-    175,
-    220,
-    255
-    )
+    BaseLocals.TreeLabel.Text =
+        "Waiting..."
 
-    TreeLabel.TextSize =
-    11
+    BaseLocals.TreeLabel.TextColor3 =
+        Color3.fromRGB(
+            175,
+            220,
+            255
+        )
 
-    TreeLabel.Font =
-    Enum.Font.Gotham
+    BaseLocals.TreeLabel.TextSize =
+        11
 
-    TreeLabel.TextXAlignment =
-    Enum.TextXAlignment.Left
+    BaseLocals.TreeLabel.Font =
+        Enum.Font.Gotham
 
-    TreeLabel.TextTruncate =
-    Enum.TextTruncate.AtEnd
+    BaseLocals.TreeLabel.TextXAlignment =
+        Enum.TextXAlignment.Left
 
-    TreeLabel.ZIndex =
-    4
+    BaseLocals.TreeLabel.TextTruncate =
+        Enum.TextTruncate.AtEnd
 
-    TreeLabel.Parent =
-    Content
+    BaseLocals.TreeLabel.ZIndex =
+        4
+
+    BaseLocals.TreeLabel.Parent =
+        BaseLocals.Content
 
     State.TreeFarmTreeLabel =
-    TreeLabel
+        BaseLocals.TreeLabel
 
-    local TimerLabel =
-    Instance.new("TextLabel")
 
-    TimerLabel.Name =
-    "Timer"
+    BaseLocals.TimerLabel =
+        Instance.new("TextLabel")
 
-    TimerLabel.Size =
-    UDim2.fromOffset(
-    90,
-    18
-    )
+    BaseLocals.TimerLabel.Name =
+        "Timer"
 
-    TimerLabel.AnchorPoint =
-    Vector2.new(
-    1,
-    1
-    )
+    BaseLocals.TimerLabel.Size =
+        UDim2.fromOffset(90, 18)
 
-    TimerLabel.Position =
-    UDim2.new(
-    1,
-    -8,
-    1,
-    -5
-    )
+    BaseLocals.TimerLabel.AnchorPoint =
+        Vector2.new(1, 1)
 
-    TimerLabel.BackgroundTransparency =
-    1
+    BaseLocals.TimerLabel.Position =
+        UDim2.new(1, -8, 1, -5)
 
-    TimerLabel.Text =
-    "Timer: 00:00"
+    BaseLocals.TimerLabel.BackgroundTransparency =
+        1
 
-    TimerLabel.TextColor3 =
-    Color3.fromRGB(
-    200,
-    230,
-    255
-    )
+    BaseLocals.TimerLabel.Text =
+        "Timer: 00:00"
 
-    TimerLabel.TextSize =
-    10
+    BaseLocals.TimerLabel.TextColor3 =
+        Color3.fromRGB(
+            200,
+            230,
+            255
+        )
 
-    TimerLabel.Font =
-    Enum.Font.GothamMedium
+    BaseLocals.TimerLabel.TextSize =
+        10
 
-    TimerLabel.TextXAlignment =
-    Enum.TextXAlignment.Right
+    BaseLocals.TimerLabel.Font =
+        Enum.Font.GothamMedium
 
-    TimerLabel.ZIndex =
-    4
+    BaseLocals.TimerLabel.TextXAlignment =
+        Enum.TextXAlignment.Right
 
-    TimerLabel.Parent =
-    Content
+    BaseLocals.TimerLabel.ZIndex =
+        4
+
+    BaseLocals.TimerLabel.Parent =
+        BaseLocals.Content
 
     State.TreeFarmTimer =
-    TimerLabel
+        BaseLocals.TimerLabel
 
-    local TimerStart =
-    tick()
+
+    BaseLocals.TimerStart =
+        tick()
 
     State.TreeFarmTimerStart =
-    TimerStart
+        BaseLocals.TimerStart
+
 
     task.spawn(function()
 
-    while State.TreeFarmScreenGui
-        and State.TreeFarmScreenGui.Parent do
+        while State.TreeFarmScreenGui
+            and State.TreeFarmScreenGui.Parent do
 
-        local Elapsed =
-            math.floor(
-                tick() - State.TreeFarmTimerStart
-            )
-
-        local Minutes =
-            math.floor(
-                Elapsed / 60
-            )
-
-        local Seconds =
-            Elapsed % 60
-
-        if State.TreeFarmTimer then
-
-            State.TreeFarmTimer.Text =
-                string.format(
-                    "Timer: %02d:%02d",
-                    Minutes,
-                    Seconds
+            BaseLocals.Elapsed =
+                math.floor(
+                    tick()
+                    - State.TreeFarmTimerStart
                 )
+
+            BaseLocals.Minutes =
+                math.floor(
+                    BaseLocals.Elapsed / 60
+                )
+
+            BaseLocals.Seconds =
+                BaseLocals.Elapsed % 60
+
+
+            if State.TreeFarmTimer then
+
+                State.TreeFarmTimer.Text =
+                    string.format(
+                        "Timer: %02d:%02d",
+                        BaseLocals.Minutes,
+                        BaseLocals.Seconds
+                    )
+
+            end
+
+
+            task.wait(1)
 
         end
 
-        task.wait(1)
-
-    end
-
     end)
 
-
-    end
-
+end
 
 funcs.hideStatusGui = function()
 
     if State.TreeFarmScreenGui then
 
-        State.TreeFarmScreenGui.Enabled =
-            false
+        State.TreeFarmScreenGui.Enabled =false
 
     end
-
 end
 
 funcs.updateStatus = function(
@@ -4397,19 +6801,19 @@ funcs.updateStatus = function(
     treeText
 )
 
-    local status =
+    BaseLocals.status =
         State.TreeFarmStatus
 
-    if not status then
+    if not BaseLocals.status then
         return
     end
 
-    status.Text =
+    BaseLocals.status.Text =
         text
 
     if color then
 
-        status.TextColor3 =
+        BaseLocals.status.TextColor3 =
             color
 
         if State.TreeFarmStatusDot then
@@ -4435,8 +6839,7 @@ funcs.getFruitPosition = function(
     fruit
 )
 
-    if not fruit
-        or not fruit.Parent then
+    if not fruit or not fruit.Parent then
 
         return nil
 
@@ -4482,7 +6885,7 @@ funcs.getCurrentFruits = function()
             "Pear",
             "Chakra Fruit",
             "Life Up Fruit",
-            "Fruit Of Forgetfulness",
+            "Fruit Of Forgetfulness"
         }
 
         for _, name in ipairs(names) do
@@ -4516,12 +6919,12 @@ funcs.getCurrentFruits = function()
                 and (
                     position
                     - currentPosition
-                ).Magnitude <= 300 then
+                ).Magnitude <= 350 then
 
                 local playerNearby =
                     funcs.isPlayerWithinDistance(
                         position,
-                        50
+                        TreePlayerRange
                     )
 
                 if not playerNearby then
@@ -4535,7 +6938,6 @@ funcs.getCurrentFruits = function()
                     )
 
                 end
-
             end
         end
     end
@@ -4584,6 +6986,7 @@ funcs.teleportToFruit = function(
         CFrame.new(position)
 
     return true
+
 end
 
 funcs.waitForTreeFruits = function(
@@ -4591,16 +6994,11 @@ funcs.waitForTreeFruits = function(
 )
 
     local timeout = 10
-
-    local startTime =
-        tick()
-
-    local currentRunId =
-        State.TreeFarmRunId
+    local startTime = tick()
+    local currentRunId = State.TreeFarmRunId
 
     while State.TreeFarmEnabled
-        and currentRunId
-            == State.TreeFarmRunId do
+        and currentRunId == State.TreeFarmRunId do
 
         if funcs.isAnyActiveChakraUser() then
 
@@ -4618,22 +7016,18 @@ funcs.waitForTreeFruits = function(
 
             repeat
                 task.wait(0.25)
-
             until not funcs.isAnyActiveChakraUser()
                 or not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId
+                or currentRunId ~= State.TreeFarmRunId
 
             if not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return {}
 
             end
 
-            startTime =
-                tick()
+            startTime = tick()
 
         end
 
@@ -4655,8 +7049,7 @@ funcs.waitForTreeFruits = function(
             task.wait(1)
 
             if not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return {}
 
@@ -4678,15 +7071,12 @@ funcs.waitForTreeFruits = function(
 
                 repeat
                     task.wait(0.25)
-
                 until not funcs.isAnyActiveChakraUser()
                     or not State.TreeFarmEnabled
-                    or currentRunId
-                        ~= State.TreeFarmRunId
+                    or currentRunId ~= State.TreeFarmRunId
 
                 if not State.TreeFarmEnabled
-                    or currentRunId
-                        ~= State.TreeFarmRunId then
+                    or currentRunId ~= State.TreeFarmRunId then
 
                     return {}
 
@@ -4720,6 +7110,265 @@ funcs.waitForTreeFruits = function(
 
 end
 
+
+funcs.isPlayerNearFruit = function(
+    position
+)
+
+    if not position then
+        return false
+    end
+
+    for _, player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
+
+        if player ~= Services.LocalPlayer then
+
+            local character =
+                player.Character
+
+            if character then
+
+                local rootPart =
+                    character:FindFirstChild(
+                        "HumanoidRootPart"
+                    )
+
+                if rootPart then
+
+                    local distance =
+                        (
+                            rootPart.Position
+                            - position
+                        ).Magnitude
+
+                    if distance <= 75 then
+                        return true
+                    end
+
+                end
+            end
+        end
+    end
+
+    return false
+
+end
+
+
+funcs.startAutoPickup = function()
+
+    if State.AutoPickupConnectionName then
+
+        Disconnect(
+            State.AutoPickupConnectionName
+        )
+
+        State.AutoPickupConnectionName =
+            nil
+
+    end
+
+    local connectionName =
+        "TreeFarm_AutoPickup"
+
+    State.AutoPickupConnectionName =
+        connectionName
+
+    Connect(
+        connectionName,
+        Services.RunService.Heartbeat,
+        function()
+
+            if not State.TreeFarmEnabled then
+                return
+            end
+
+            local character =
+                Services.LocalPlayer.Character
+
+            if not character then
+                return
+            end
+
+            local rootPart =
+                character:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
+            if not rootPart then
+                return
+            end
+
+            local pickupList =
+                State.PickupList
+
+            if not pickupList then
+                return
+            end
+
+            local events =
+                Services.ReplicatedStorage:FindFirstChild(
+                    "Events"
+                )
+
+            if not events then
+                return
+            end
+
+            local dataEvent =
+                events:FindFirstChild(
+                    "DataEvent"
+                )
+
+            if not dataEvent then
+                return
+            end
+
+            for pos, obj in pairs(
+                pickupList
+            ) do
+
+                if obj
+                    and obj.Parent then
+
+                    if typeof(pos) ~= "Vector3" then
+                        continue
+                    end
+
+                    local distance =
+                        (
+                            rootPart.Position
+                            - pos
+                        ).Magnitude
+
+                    if distance < 25 then
+
+                        local id =
+                            obj:FindFirstChild(
+                                "ID"
+                            )
+
+                        if id then
+
+                            dataEvent:FireServer(
+                                "PickUp",
+                                id.Value
+                            )
+
+                        end
+
+                    end
+
+                else
+
+                    pickupList[pos] =
+                        nil
+
+                end
+
+            end
+
+        end
+    )
+
+end
+
+
+funcs.stopAutoPickup = function()
+
+    if State.AutoPickupConnectionName then
+
+        Disconnect(
+            State.AutoPickupConnectionName
+        )
+
+        State.AutoPickupConnectionName =
+            nil
+
+    end
+
+end
+
+
+funcs.setTreeFarmNoFall = function(
+    enabled
+)
+
+    if enabled then
+
+        if getgenv().NoFallEnabled then
+            return
+        end
+
+        State.TreeFarmPreviousNoFallState =
+            false
+
+        getgenv().NoFallEnabled =
+            true
+
+        if not State.TreeFarmNoFallOldNamecall then
+
+            local oldNamecall
+
+            oldNamecall =
+                hookmetamethod(
+                    game,
+                    "__namecall",
+                    function(self, ...)
+
+                        local method =
+                            getnamecallmethod()
+
+                        if method == "FindFirstChild" then
+
+                            local args = {...}
+
+                            if args[1] == "NegateFall"
+                                and getgenv().NoFallEnabled then
+
+                                return true
+
+                            end
+
+                        end
+
+                        return oldNamecall(
+                            self,
+                            ...
+                        )
+
+                    end
+                )
+
+            State.TreeFarmNoFallOldNamecall =
+                oldNamecall
+
+        end
+
+    else
+
+        getgenv().NoFallEnabled =
+            false
+
+        if State.TreeFarmNoFallOldNamecall then
+
+            hookmetamethod(
+                game,
+                "__namecall",
+                State.TreeFarmNoFallOldNamecall
+            )
+
+            State.TreeFarmNoFallOldNamecall =
+                nil
+
+        end
+
+    end
+
+end
+
 funcs.runTreeFarm = function()
 
     local trees =
@@ -4738,67 +7387,19 @@ funcs.runTreeFarm = function()
         )
 
         return
-
     end
 
     local currentRunId =
         State.TreeFarmRunId
-
-    local Players =
-        game:GetService("Players")
-
-    local function isPlayerNearFruit(position)
-
-        for _, player in ipairs(
-            Players:GetPlayers()
-        ) do
-
-            if player ~= Services.LocalPlayer then
-
-                local character =
-                    player.Character
-
-                if character then
-
-                    local rootPart =
-                        character:FindFirstChild(
-                            "HumanoidRootPart"
-                        )
-
-                    if rootPart then
-
-                        local distance =
-                            (
-                                rootPart.Position
-                                - position
-                            ).Magnitude
-
-                        if distance <= 75 then
-                            return true
-                        end
-
-                    end
-
-                end
-
-            end
-
-        end
-
-        return false
-
-    end
 
     for index, treeData in ipairs(
         trees
     ) do
 
         if not State.TreeFarmEnabled
-            or currentRunId
-                ~= State.TreeFarmRunId then
+            or currentRunId ~= State.TreeFarmRunId then
 
             return
-
         end
 
         if funcs.isAnyActiveChakraUser() then
@@ -4817,18 +7418,14 @@ funcs.runTreeFarm = function()
 
             repeat
                 task.wait(0.25)
-
             until not funcs.isAnyActiveChakraUser()
                 or not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId
+                or currentRunId ~= State.TreeFarmRunId
 
             if not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return
-
             end
 
         end
@@ -4876,18 +7473,15 @@ funcs.runTreeFarm = function()
             task.wait(0.15)
 
             continue
-
         end
-
-        task.wait(0.25)
-
-        if funcs.checkNearbyPlayerAfterTeleport() then
 
             task.wait(0.25)
 
-            continue
 
-        end
+if not State.TreeFarmEnabled
+    or currentRunId ~= State.TreeFarmRunId then
+    return
+end
 
         local currentFruits =
             funcs.waitForTreeFruits(
@@ -4895,11 +7489,9 @@ funcs.runTreeFarm = function()
             )
 
         if not State.TreeFarmEnabled
-            or currentRunId
-                ~= State.TreeFarmRunId then
+            or currentRunId ~= State.TreeFarmRunId then
 
             return
-
         end
 
         for fruitIndex, fruitData in ipairs(
@@ -4907,11 +7499,9 @@ funcs.runTreeFarm = function()
         ) do
 
             if not State.TreeFarmEnabled
-                or currentRunId
-                    ~= State.TreeFarmRunId then
+                or currentRunId ~= State.TreeFarmRunId then
 
                 return
-
             end
 
             if funcs.isAnyActiveChakraUser() then
@@ -4930,18 +7520,14 @@ funcs.runTreeFarm = function()
 
                 repeat
                     task.wait(0.25)
-
                 until not funcs.isAnyActiveChakraUser()
                     or not State.TreeFarmEnabled
-                    or currentRunId
-                        ~= State.TreeFarmRunId
+                    or currentRunId ~= State.TreeFarmRunId
 
                 if not State.TreeFarmEnabled
-                    or currentRunId
-                        ~= State.TreeFarmRunId then
+                    or currentRunId ~= State.TreeFarmRunId then
 
                     return
-
                 end
 
             end
@@ -4954,9 +7540,15 @@ funcs.runTreeFarm = function()
                 and fruitData.Object.Parent then
 
                 local fruitPosition =
-                    fruitData.Object.Position
+                    funcs.getFruitPosition(
+                        fruitData.Object
+                    )
 
-                if isPlayerNearFruit(
+                if not fruitPosition then
+                    continue
+                end
+
+                if funcs.isPlayerNearFruit(
                     fruitPosition
                 ) then
 
@@ -4977,7 +7569,6 @@ funcs.runTreeFarm = function()
                     task.wait(0.15)
 
                     continue
-
                 end
 
                 funcs.updateStatus(
@@ -4997,13 +7588,18 @@ funcs.runTreeFarm = function()
 
                 if not funcs.isAnyActiveChakraUser() then
 
-                    if not isPlayerNearFruit(
+                    if not funcs.isPlayerNearFruit(
                         fruitPosition
                     ) then
 
-                        funcs.teleportToFruit(
-                            fruitData
-                        )
+                        local collected =
+                            funcs.teleportToFruit(
+                                fruitData
+                            )
+
+                        if not collected then
+                            continue
+                        end
 
                     else
 
@@ -5020,9 +7616,7 @@ funcs.runTreeFarm = function()
                         task.wait(0.15)
 
                         continue
-
                     end
-
                 end
 
                 task.wait(0.25)
@@ -5032,7 +7626,6 @@ funcs.runTreeFarm = function()
                 end
 
             end
-
         end
 
         task.wait(0.25)
@@ -5040,8 +7633,7 @@ funcs.runTreeFarm = function()
     end
 
     if State.TreeFarmEnabled
-        and currentRunId
-            == State.TreeFarmRunId then
+        and currentRunId == State.TreeFarmRunId then
 
         funcs.updateStatus(
             "Tree Cycle Completed",
@@ -5057,202 +7649,10 @@ funcs.runTreeFarm = function()
 
 end
 
-funcs.startAutoPickup = function()
+-- On Work
 
-    if State.AutoPickupConnectionName then
-
-        Disconnect(
-            State.AutoPickupConnectionName
-        )
-
-        State.AutoPickupConnectionName =
-            nil
-
-    end
-
-    local connectionName =
-        "TreeFarm_AutoPickup"
-
-    State.AutoPickupConnectionName =
-        connectionName
-
-    Connect(
-        connectionName,
-        RunService.Heartbeat,
-        function()
-
-            if not State.TreeFarmEnabled then
-                return
-            end
-
-            local character =
-                LocalPlayer.Character
-
-            if not character then
-                return
-            end
-
-            local rootPart =
-                character:FindFirstChild(
-                    "HumanoidRootPart"
-                )
-
-            if not rootPart then
-                return
-            end
-
-            local pickupList =
-                State.PickupList
-
-            if not pickupList then
-                return
-            end
-
-            local dataEvent =
-                ReplicatedStorage
-                :FindFirstChild("Events")
-                and ReplicatedStorage.Events
-                :FindFirstChild(
-                    "DataEvent"
-                )
-
-            if not dataEvent then
-                return
-            end
-
-            for pos, obj in pairs(
-                pickupList
-            ) do
-
-                if obj
-                    and obj.Parent then
-
-                    local distance =
-                        (
-                            rootPart.Position
-                            - pos
-                        ).Magnitude
-
-                    if distance < 25 then
-
-                        local id =
-                            obj:FindFirstChild(
-                                "ID"
-                            )
-
-                        if id then
-
-                            dataEvent:FireServer(
-                                "PickUp",
-                                id.Value
-                            )
-
-                        end
-                    end
-                end
-            end
-
-        end
-    )
-
-end
-
-funcs.stopAutoPickup = function()
-
-    if State.AutoPickupConnectionName then
-
-        Disconnect(
-            State.AutoPickupConnectionName
-        )
-
-        State.AutoPickupConnectionName =
-            nil
-
-    end
-
-end
-
-funcs.setTreeFarmNoFall = function(
-    enabled
-)
-
-    if enabled then
-
-        if getgenv().NoFallEnabled then
-            return
-        end
-
-        State.TreeFarmPreviousNoFallState =
-            false
-
-        getgenv().NoFallEnabled =
-            true
-
-        if not State.TreeFarmNoFallOldNamecall then
-
-            local oldNamecall
-
-            oldNamecall =
-                hookmetamethod(
-                    game,
-                    "__namecall",
-                    function(self, ...)
-
-                        local method =
-                            getnamecallmethod()
-
-                        if method
-                            == "FindFirstChild" then
-
-                            local args =
-                                {...}
-
-                            if args[1]
-                                == "NegateFall"
-                                and getgenv().NoFallEnabled then
-
-                                return true
-
-                            end
-                        end
-
-                        return oldNamecall(
-                            self,
-                            ...
-                        )
-
-                    end
-                )
-
-            State.TreeFarmNoFallOldNamecall =
-                oldNamecall
-
-        end
-
-    else
-
-        getgenv().NoFallEnabled =
-            false
-
-        if State.TreeFarmNoFallOldNamecall then
-
-            hookmetamethod(
-                game,
-                "__namecall",
-                State.TreeFarmNoFallOldNamecall
-            )
-
-            State.TreeFarmNoFallOldNamecall =
-                nil
-
-        end
-
-    end
-
-end
-
-local TreeFarmToggle =
-    BottingRightGroupBox:AddToggle(
+Modules.TreeFarmToggle =
+    Groupboxes.BottingRightGroupBox:AddToggle(
         "TreeFarmToggle",
         {
             Text = "Fruit Farm",
@@ -5260,7 +7660,7 @@ local TreeFarmToggle =
         }
     )
 
-TreeFarmToggle:OnChanged(function(Value)
+Modules.TreeFarmToggle:OnChanged(function(Value)
 
     State.TreeFarmEnabled =
         Value
@@ -5353,15 +7753,11 @@ TreeFarmToggle:OnChanged(function(Value)
         "Scanning..."
     )
 
-    -- TREE FARM ANIMATION
     do
 
-        local player =
-            Services.Players.LocalPlayer
-
         local character =
-            player.Character
-            or player.CharacterAdded:Wait()
+            Services.LocalPlayer.Character
+            or Services.LocalPlayer.CharacterAdded:Wait()
 
         local humanoid =
             character:FindFirstChildOfClass(
@@ -5401,7 +7797,6 @@ TreeFarmToggle:OnChanged(function(Value)
                 )
 
             track.Looped = true
-
             track:Play()
 
             State.TreeFarmAnimation =
@@ -5414,7 +7809,6 @@ TreeFarmToggle:OnChanged(function(Value)
 
     end
 
-    -- AUTO PICK
     State.PickupList =
         State.PickupList or {}
 
@@ -5513,7 +7907,7 @@ TreeFarmToggle:OnChanged(function(Value)
             end
 
             local character =
-                Services.Players.LocalPlayer.Character
+                Services.LocalPlayer.Character
 
             if not character then
                 return
@@ -5553,6 +7947,10 @@ TreeFarmToggle:OnChanged(function(Value)
                 if obj
                     and obj.Parent then
 
+                    if typeof(pos) ~= "Vector3" then
+                        continue
+                    end
+
                     local distance =
                         (
                             myPosition
@@ -5568,17 +7966,26 @@ TreeFarmToggle:OnChanged(function(Value)
 
                         if id then
 
-                            Services.ReplicatedStorage
-                                :WaitForChild(
-                                    "Events"
-                                )
-                                :WaitForChild(
+                            local events =
+                                Services.ReplicatedStorage
+                                    :FindFirstChild(
+                                        "Events"
+                                    )
+
+                            local dataEvent =
+                                events
+                                and events:FindFirstChild(
                                     "DataEvent"
                                 )
-                                :FireServer(
+
+                            if dataEvent then
+
+                                dataEvent:FireServer(
                                     "PickUp",
                                     id.Value
                                 )
+
+                            end
 
                         end
 
@@ -5609,12 +8016,12 @@ TreeFarmToggle:OnChanged(function(Value)
                 and currentRunId
                     == State.TreeFarmRunId do
 
+
                 local activePlayers =
                     funcs.GetActiveChakraPlayers()
 
                 if #activePlayers > 0 then
 
-                    -- CHAKRA ALGILANDI: ANIMASYONU BOZ
                     if State.TreeFarmAnimationTrack
                         and State.TreeFarmAnimationTrack.IsPlaying then
 
@@ -5678,7 +8085,6 @@ TreeFarmToggle:OnChanged(function(Value)
 
                     end
 
-                    -- CHAKRA BİTTİ: ANİMASYONU TEKRAR OYNAT
                     if State.TreeFarmAnimationTrack
                         and not State.TreeFarmAnimationTrack.IsPlaying then
 
@@ -5707,7 +8113,6 @@ TreeFarmToggle:OnChanged(function(Value)
                     and #funcs.GetActiveChakraPlayers()
                         == 0 then
 
-                    -- NORMAL FARM: ANİMASYON ÇALIŞIYOR
                     if State.TreeFarmAnimationTrack
                         and not State.TreeFarmAnimationTrack.IsPlaying then
 
@@ -5784,8 +8189,9 @@ TreeFarmToggle:OnChanged(function(Value)
 
 end)
 
+-- Toggle On Tree
 
-TreeFarmToggle:AddKeyPicker(
+Modules.TreeFarmToggle:AddKeyPicker(
     "TreeFarmKeybind",
     {
         Default = "None",
@@ -5800,7 +8206,7 @@ TreeFarmToggle:AddKeyPicker(
     }
 )
 
-BottingLeftGroupBox:AddSlider(
+Groupboxes.BottingLeftGroupBox:AddSlider(
     "TreePlayerRange",
     {
         Text = "Proximity Check",
@@ -5826,16 +8232,12 @@ BottingLeftGroupBox:AddSlider(
 )
 
 
-
-
-
-
-
 -- Notifications
-local NotificationsLeftGroupBox = Tabs.Notifications:AddLeftGroupbox("Discord Webhook")
-local NotificationsRightGroupBox = Tabs.Notifications:AddRightGroupbox("Notifier")
+Groupboxes.NotificationsLeftGroupBox = Tabs.Notifications:AddLeftGroupbox("Discord Webhook", "link")
+Groupboxes.NotificationsRightGroupBox = Tabs.Notifications:AddRightGroupbox("Notifier", "bell")
+Groupboxes.NotificationsLeftGroupBox2 = Tabs.Notifications:AddLeftGroupbox("Send Player Info", "info")
 
-NotificationsLeftGroupBox:AddInput(
+Groupboxes.NotificationsLeftGroupBox:AddInput(
 "WebhookURL",
 {
 Text = "Webhook URL",
@@ -6671,7 +9073,7 @@ local function StartRareItemScanner()
     end)
 end
 
-NotificationsLeftGroupBox:AddButton({
+Groupboxes.NotificationsLeftGroupBox:AddButton({
 Text = "Send Inventory",
 
 Func = function()
@@ -6688,7 +9090,7 @@ Tooltip =
 getgenv().RareItemWebhookEnabled =
 true
 
-NotificationsLeftGroupBox:AddToggle(
+Groupboxes.NotificationsLeftGroupBox:AddToggle(
 "RareItemWebhookToggle",
 {
 Text = "Rare Item Webhook",
@@ -6856,7 +9258,7 @@ local function CreateChakraSenseUI()
         Vector2.new(0.5, 0)
 
     MyChakraTitle.Position =
-        UDim2.new(0.5, 0, 0, 80)
+        UDim2.new(0.5, 0, 0, 75)
 
     MyChakraTitle.Size =
         UDim2.new(0, 500, 0, 45)
@@ -6880,7 +9282,7 @@ local function CreateChakraSenseUI()
         0
 
     MyChakraTitle.Text =
-        "You Are Getting Observed"
+        "Someone Observed You"
 
     MyChakraTitle.TextXAlignment =
         Enum.TextXAlignment.Center
@@ -6905,7 +9307,7 @@ local function CreateChakraSenseUI()
         Vector2.new(0.5, 0)
 
     MyChakraDescription.Position =
-        UDim2.new(0.5, 0, 0, 125)
+        UDim2.new(0.5, 0, 0, 105)
 
     MyChakraDescription.Size =
         UDim2.new(0, 500, 0, 35)
@@ -7633,9 +10035,297 @@ Services.LocalPlayer.CharacterAdded:Connect(
     end
 )
 
+State.ChakraSenseOwnersGui = nil
+State.ChakraSenseOwnersLabel = nil
+State.ChakraSenseOwnersNextUpdate = 0
 
 
-NotificationsRightGroupBox:AddToggle(
+funcs.CreateChakraSenseOwnersUI = function()
+
+    if State.ChakraSenseOwnersGui then
+
+        State.ChakraSenseOwnersGui.Enabled =
+            State.ChakraSenseUIEnabled
+
+        if State.ChakraSenseOwnersLabel then
+
+            State.ChakraSenseOwnersLabel.Visible =
+                State.ChakraSenseUIEnabled
+
+        end
+
+        return
+
+    end
+
+
+    local player =
+        Services.LocalPlayer
+
+    if not player then
+        return
+    end
+
+
+    local playerGui =
+        player:WaitForChild(
+            "PlayerGui"
+        )
+
+
+    State.ChakraSenseOwnersGui =
+        Instance.new("ScreenGui")
+
+
+    State.ChakraSenseOwnersGui.Name =
+        "ChakraSenseOwnersStatus"
+
+
+    State.ChakraSenseOwnersGui.ResetOnSpawn =
+        false
+
+
+    State.ChakraSenseOwnersGui.IgnoreGuiInset =
+        true
+
+
+    State.ChakraSenseOwnersGui.ZIndexBehavior =
+        Enum.ZIndexBehavior.Sibling
+
+
+    State.ChakraSenseOwnersGui.Enabled =
+        State.ChakraSenseUIEnabled
+
+
+    State.ChakraSenseOwnersGui.Parent =
+        playerGui
+
+
+    State.ChakraSenseOwnersLabel =
+        Instance.new("TextLabel")
+
+
+    State.ChakraSenseOwnersLabel.Name =
+        "Owners"
+
+
+    State.ChakraSenseOwnersLabel.AnchorPoint =
+        Vector2.new(
+            0.5,
+            0
+        )
+
+
+    State.ChakraSenseOwnersLabel.Position =
+        UDim2.new(
+            0.5,
+            0,
+            0,
+            55
+        )
+
+
+    State.ChakraSenseOwnersLabel.Size =
+        UDim2.new(
+            0,
+            600,
+            0,
+            42
+        )
+
+
+    State.ChakraSenseOwnersLabel.BackgroundTransparency =
+        1
+
+
+    State.ChakraSenseOwnersLabel.BorderSizePixel =
+        0
+
+
+    State.ChakraSenseOwnersLabel.TextXAlignment =
+        Enum.TextXAlignment.Center
+
+
+    State.ChakraSenseOwnersLabel.TextYAlignment =
+        Enum.TextYAlignment.Center
+
+
+    State.ChakraSenseOwnersLabel.Font =
+        Enum.Font.GothamSemibold
+
+
+    State.ChakraSenseOwnersLabel.TextSize =
+        24
+
+
+    State.ChakraSenseOwnersLabel.TextColor3 =
+        Color3.fromRGB(
+            205,
+            120,
+            255
+        )
+
+
+    State.ChakraSenseOwnersLabel.TextStrokeColor3 =
+        Color3.fromRGB(
+            0,
+            0,
+            0
+        )
+
+
+    State.ChakraSenseOwnersLabel.TextStrokeTransparency =
+        0.5
+
+
+    State.ChakraSenseOwnersLabel.Text =
+        "Chakra Sense Owners: 0"
+
+
+    State.ChakraSenseOwnersLabel.Visible =
+        State.ChakraSenseUIEnabled
+
+
+    State.ChakraSenseOwnersLabel.Parent =
+        State.ChakraSenseOwnersGui
+
+
+    local padding =
+        Instance.new("UIPadding")
+
+
+    padding.PaddingLeft =
+        UDim.new(
+            0,
+            14
+        )
+
+
+    padding.PaddingRight =
+        UDim.new(
+            0,
+            14
+        )
+
+
+    padding.Parent =
+        State.ChakraSenseOwnersLabel
+
+end
+
+
+funcs.UpdateChakraSenseOwnersUI = function()
+
+    if not State.ChakraSenseUIEnabled then
+        return
+    end
+
+
+    if not State.ChakraSenseOwnersGui
+        or not State.ChakraSenseOwnersLabel then
+
+        funcs.CreateChakraSenseOwnersUI()
+
+    end
+
+
+    if not State.ChakraSenseOwnersLabel then
+        return
+    end
+
+
+    local cooldowns =
+        Services.ReplicatedStorage:FindFirstChild(
+            "Cooldowns"
+        )
+
+
+    if not cooldowns then
+
+        State.ChakraSenseOwnersLabel.Text =
+            "Chakra Sense Owners: 0"
+
+        return
+
+    end
+
+
+    local owners = {}
+
+
+    for _, player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
+
+        local playerFolder =
+            cooldowns:FindFirstChild(
+                player.Name
+            )
+
+
+        if playerFolder then
+
+            local chakraSense =
+                playerFolder:FindFirstChild(
+                    "Chakra Sense"
+                )
+
+
+            if chakraSense
+                and chakraSense:IsA("NumberValue") then
+
+                table.insert(
+                    owners,
+                    player.Name
+                )
+
+            end
+
+        end
+
+    end
+
+
+    table.sort(
+        owners
+    )
+
+
+    if #owners == 0 then
+
+        State.ChakraSenseOwnersLabel.Text =
+            "Chakra Sense Owners: 0"
+
+
+        State.ChakraSenseOwnersLabel.TextColor3 =
+            Color3.fromRGB(
+                170,
+                170,
+                180
+            )
+
+    else
+
+        State.ChakraSenseOwnersLabel.Text =
+            "Chakra Sense Owners: "
+            .. tostring(
+                #owners
+            )
+
+
+        State.ChakraSenseOwnersLabel.TextColor3 =
+            Color3.fromRGB(
+                205,
+                120,
+                255
+            )
+
+    end
+
+end
+
+
+Groupboxes.NotificationsRightGroupBox:AddToggle(
     "ChakraSenseStatus",
     {
         Text = "Chakra Sense Detector",
@@ -7648,39 +10338,55 @@ NotificationsRightGroupBox:AddToggle(
             State.ChakraSenseUIEnabled =
                 Value
 
-            if ChakraSenseGui then
-                ChakraSenseGui.Enabled =
-                    Value
-            end
 
-            if not Value then
+            if Value then
 
-                if ChakraSenseLabel then
-                    ChakraSenseLabel.Visible = false
-                end
+                funcs.CreateChakraSenseOwnersUI()
 
-                SetObservedUI(false)
+                funcs.UpdateChakraSenseOwnersUI()
 
             else
 
-                if ChakraSenseLabel then
-                    ChakraSenseLabel.Visible = true
+                if State.ChakraSenseOwnersGui then
+
+                    State.ChakraSenseOwnersGui.Enabled =
+                        false
+
                 end
 
-                SetupBeingObservedDetector()
-                UpdateChakraSenseUI()
-
-                if BeingObservedTriggered then
-                    UpdateObservedState()
-                end
             end
+
         end
     }
 )
 
 
+Connect(
+    "ChakraSenseOwners_Update",
+    Services.RunService.Heartbeat,
+    function()
 
-NotificationsRightGroupBox:AddToggle(
+        if not State.ChakraSenseUIEnabled then
+            return
+        end
+
+
+        if os.clock() >=
+            (State.ChakraSenseOwnersNextUpdate or 0) then
+
+            State.ChakraSenseOwnersNextUpdate =
+                os.clock() + 0.2
+
+
+            funcs.UpdateChakraSenseOwnersUI()
+
+        end
+
+    end
+)
+
+
+Groupboxes.NotificationsRightGroupBox:AddToggle(
     "JoinNotifier",
     {
         Text = "Player Joined",
@@ -7721,9 +10427,506 @@ Services.Players.PlayerAdded:Connect(
     end
 )
 
+
+Modules.TargetDropdown = Groupboxes.NotificationsLeftGroupBox2:AddDropdown(
+    "TargetDropdown",
+    {
+        Values = {},
+        Default = nil,
+        Multi = false,
+        Text = "Select Target Player",
+        Tooltip = "Choose a player"
+    }
+)
+
+
+funcs.UpdateTargetPlayers = function()
+
+    local TargetWebhookPlayers = {}
+
+    local PreviousTarget =
+        State.LogTarget
+
+
+    for _, Player in ipairs(
+        Services.Players:GetPlayers()
+    ) do
+
+        if Player ~= Services.Players.LocalPlayer then
+
+            table.insert(
+                TargetWebhookPlayers,
+                Player.Name
+            )
+
+        end
+
+    end
+
+
+    table.sort(
+        TargetWebhookPlayers
+    )
+
+
+    Modules.TargetDropdown:SetValues(
+        TargetWebhookPlayers
+    )
+
+
+    if #TargetWebhookPlayers == 0 then
+
+        State.LogTarget = nil
+
+        return
+
+    end
+
+
+    local TargetStillExists = false
+
+
+    if PreviousTarget then
+
+        for _, PlayerName in ipairs(
+            TargetWebhookPlayers
+        ) do
+
+            if PlayerName == PreviousTarget then
+
+                TargetStillExists = true
+
+                break
+
+            end
+
+        end
+
+    end
+
+
+    if TargetStillExists then
+
+        Modules.TargetDropdown:SetValue(
+            PreviousTarget
+        )
+
+        State.LogTarget =
+            PreviousTarget
+
+    else
+
+        Modules.TargetDropdown:SetValue(
+            TargetWebhookPlayers[1]
+        )
+
+        State.LogTarget =
+            TargetWebhookPlayers[1]
+
+    end
+
+end
+
+
+funcs.UpdateTargetPlayers()
+
+
+Services.Players.PlayerAdded:Connect(
+    function()
+
+        task.defer(
+            funcs.UpdateTargetPlayers
+        )
+
+    end
+)
+
+
+Services.Players.PlayerRemoving:Connect(
+    function()
+
+        task.defer(
+            funcs.UpdateTargetPlayers
+        )
+
+    end
+)
+
+
+Modules.TargetDropdown:OnChanged(
+    function(Value)
+
+        State.LogTarget =
+            Value
+
+    end
+)
+
+Modules.SendTargetInfo = Groupboxes.NotificationsLeftGroupBox2:AddButton({
+    Text = "Send Target Info",
+    Tooltip = "Requires Webhook URL At Webhook Tab",
+
+    Func = function()
+        if not State.webhook or State.webhook == "" then
+            Library:Notify({
+                Title = "Webhook Error",
+                Description = "Webhook URL is empty.",
+                Duration = 5
+            })
+            return
+        end
+
+        if not State.LogTarget or State.LogTarget == "" then
+            Library:Notify({
+                Title = "Target Error",
+                Description = "No target player selected.",
+                Duration = 5
+            })
+            return
+        end
+
+        local TargetPlayer = Services.Players:FindFirstChild(State.LogTarget)
+
+        if not TargetPlayer then
+            Library:Notify({
+                Title = "Target Error",
+                Description = "Target player is no longer in the server.",
+                Duration = 5
+            })
+            return
+        end
+
+        local Character = workspace:FindFirstChild(State.LogTarget)
+
+        if not Character then
+            Library:Notify({
+                Title = "Character Error",
+                Description = "Target character was not found in workspace.",
+                Duration = 5
+            })
+            return
+        end
+
+        local Humanoid = Character:FindFirstChild("Humanoid")
+
+        local CharacterDisplayName = "None"
+        local CharacterHealth = "None"
+        local CharacterMaxHealth = "None"
+
+        if Humanoid then
+            local DisplaySuccess, DisplayValue = pcall(function()
+                return Humanoid.DisplayName
+            end)
+
+            if DisplaySuccess and DisplayValue ~= nil then
+                CharacterDisplayName = tostring(DisplayValue)
+            end
+
+            local HealthSuccess, HealthValue = pcall(function()
+                return Humanoid.Health
+            end)
+
+            if HealthSuccess and HealthValue ~= nil then
+                CharacterHealth = tostring(HealthValue)
+            end
+
+            local MaxHealthSuccess, MaxHealthValue = pcall(function()
+                return Humanoid.MaxHealth
+            end)
+
+            if MaxHealthSuccess and MaxHealthValue ~= nil then
+                CharacterMaxHealth = tostring(MaxHealthValue)
+            end
+        end
+
+        -- Shirt / ShirtBroken
+        local ShirtID = "None"
+        local ShirtName = "None"
+        local ShirtTemplateContent = "None"
+
+        local Shirt = Character:FindFirstChild("Shirt")
+
+        if not Shirt then
+            Shirt = Character:FindFirstChild("ShirtBroken")
+        end
+
+        if Shirt then
+            ShirtName = Shirt.Name
+
+            local Success, Value = pcall(function()
+                return Shirt.ShirtTemplate
+            end)
+
+            if Success and Value then
+                ShirtID = tostring(Value):gsub("rbxassetid://", "")
+            end
+
+            local ContentSuccess, ContentValue = pcall(function()
+                return Shirt.ShirtTemplateContent
+            end)
+
+            if ContentSuccess and ContentValue then
+                ShirtTemplateContent = tostring(ContentValue)
+            end
+        end
+
+        -- Pants / PantsBroken
+        local PantsID = "None"
+        local PantsName = "None"
+        local PantsTemplateContent = "None"
+
+        local Pants = Character:FindFirstChild("Pants")
+
+        if not Pants then
+            Pants = Character:FindFirstChild("PantsBroken")
+        end
+
+        if Pants then
+            PantsName = Pants.Name
+
+            local Success, Value = pcall(function()
+                return Pants.PantsTemplate
+            end)
+
+            if Success and Value then
+                PantsID = tostring(Value):gsub("rbxassetid://", "")
+            end
+
+            local ContentSuccess, ContentValue = pcall(function()
+                return Pants.PantsTemplateContent
+            end)
+
+            if ContentSuccess and ContentValue then
+                PantsTemplateContent = tostring(ContentValue)
+            end
+        end
+
+        -- Body Colors
+        local BodyColors = Character:FindFirstChild("Body Colors")
+        local BodyColorsLua = "Body Colors not found."
+
+        if BodyColors then
+            local BodyColorValues = {
+                "HeadColor = " .. tostring(BodyColors.HeadColor),
+                "HeadColor3 = " .. tostring(BodyColors.HeadColor3),
+                "LeftArmColor = " .. tostring(BodyColors.LeftArmColor),
+                "LeftArmColor3 = " .. tostring(BodyColors.LeftArmColor3),
+                "RightArmColor = " .. tostring(BodyColors.RightArmColor),
+                "RightArmColor3 = " .. tostring(BodyColors.RightArmColor3),
+                "LeftLegColor = " .. tostring(BodyColors.LeftLegColor),
+                "LeftLegColor3 = " .. tostring(BodyColors.LeftLegColor3),
+                "RightLegColor = " .. tostring(BodyColors.RightLegColor),
+                "RightLegColor3 = " .. tostring(BodyColors.RightLegColor3),
+                "TorsoColor = " .. tostring(BodyColors.TorsoColor),
+                "TorsoColor3 = " .. tostring(BodyColors.TorsoColor3)
+            }
+
+            BodyColorsLua = table.concat(BodyColorValues, "\n")
+        end
+
+        -- Hair 1-100
+        local HairData = {}
+
+        local function ReadValueObject(Object)
+            if not Object then
+                return "None"
+            end
+
+            local Success, Value = pcall(function()
+                return Object.Value
+            end)
+
+            if Success and Value ~= nil then
+                return tostring(Value)
+            end
+
+            return "None"
+        end
+
+        local function ReadProperty(Object, PropertyName)
+            if not Object then
+                return "None"
+            end
+
+            local Success, Value = pcall(function()
+                return Object[PropertyName]
+            end)
+
+            if Success and Value ~= nil then
+                return tostring(Value)
+            end
+
+            return "None"
+        end
+
+        for i = 1, 100 do
+            local Hair = Character:FindFirstChild("Hair" .. i)
+
+            if Hair then
+                local GenderObject = Hair:FindFirstChild("Gender", true)
+                local GenderValue = "None"
+
+                if GenderObject then
+                    GenderValue = ReadValueObject(GenderObject)
+
+                    if GenderValue == "None" then
+                        GenderValue = ReadProperty(GenderObject, "Value")
+                    end
+                end
+
+                local Offset = Hair:FindFirstChild("Offset", true)
+                local Weld = Hair:FindFirstChildWhichIsA("Weld", true)
+                    or Hair:FindFirstChildWhichIsA("WeldConstraint", true)
+                local SpecialMesh = Hair:FindFirstChildWhichIsA("SpecialMesh", true)
+
+                local HairLines = {
+                    "Name = " .. Hair.Name,
+                    "Gender = " .. GenderValue,
+                    "Offset = " .. ReadProperty(Hair, "Offset")
+                }
+
+                if Offset then
+                    table.insert(HairLines, "Offset.Value = " .. ReadValueObject(Offset))
+                    table.insert(HairLines, "Offset.Position = " .. ReadProperty(Offset, "Position"))
+                end
+
+                if Weld then
+                    table.insert(HairLines, "Weld = " .. Weld.ClassName)
+                    table.insert(HairLines, "Weld.C0 = " .. ReadProperty(Weld, "C0"))
+                    table.insert(HairLines, "Weld.C1 = " .. ReadProperty(Weld, "C1"))
+                    table.insert(HairLines, "Weld.Part0 = " .. ReadProperty(Weld, "Part0"))
+                    table.insert(HairLines, "Weld.Part1 = " .. ReadProperty(Weld, "Part1"))
+                end
+
+                if SpecialMesh then
+                    table.insert(HairLines, "SpecialMesh.MeshId = " .. ReadProperty(SpecialMesh, "MeshId"))
+                    table.insert(HairLines, "SpecialMesh.TextureId = " .. ReadProperty(SpecialMesh, "TextureId"))
+                    table.insert(HairLines, "SpecialMesh.Offset = " .. ReadProperty(SpecialMesh, "Offset"))
+                    table.insert(HairLines, "SpecialMesh.Scale = " .. ReadProperty(SpecialMesh, "Scale"))
+                    table.insert(HairLines, "SpecialMesh.VertexColor = " .. ReadProperty(SpecialMesh, "VertexColor"))
+                    table.insert(HairLines, "SpecialMesh.MeshType = " .. ReadProperty(SpecialMesh, "MeshType"))
+                end
+
+                table.insert(HairData, table.concat(HairLines, "\n"))
+            end
+        end
+
+        local HairDataText = "No Hair1-Hair100 found."
+
+        if #HairData > 0 then
+            HairDataText = table.concat(HairData, "\n\n")
+        end
+
+        local Request = (syn and syn.request)
+            or (http and http.request)
+            or request
+            or http_request
+
+        if not Request then
+            Library:Notify({
+                Title = "Webhook Error",
+                Description = "HTTP request function is not available.",
+                Duration = 5
+            })
+            return
+        end
+
+        local HttpService = game:GetService("HttpService")
+
+        local Payload = {
+            username = "Send Target Info",
+
+            embeds = {{
+                title = "Target Player Information",
+                color = 30975,
+
+                fields = {
+                    {
+                        name = "👤 Player",
+                        value = "```lua\n" ..
+                            "Target = " .. TargetPlayer.Name .. "\n" ..
+                            "DisplayName = " .. TargetPlayer.DisplayName .. "\n" ..
+                            "UserId = " .. tostring(TargetPlayer.UserId) ..
+                            "\n```",
+                        inline = false
+                    },
+
+                    {
+                        name = "🧍 Character Info",
+                        value = "```lua\n" ..
+                            "Humanoid.DisplayName = " .. CharacterDisplayName .. "\n" ..
+                            "Humanoid.Health = " .. CharacterHealth .. "\n" ..
+                            "Humanoid.MaxHealth = " .. CharacterMaxHealth ..
+                            "\n```",
+                        inline = false
+                    },
+
+                    {
+                        name = "👕 Clothing",
+                        value = "```lua\n" ..
+                            ShirtName .. " = " .. ShirtID .. "\n" ..
+                            "ShirtTemplateContent = " .. ShirtTemplateContent .. "\n\n" ..
+                            PantsName .. " = " .. PantsID .. "\n" ..
+                            "PantsTemplateContent = " .. PantsTemplateContent ..
+                            "\n```",
+                        inline = false
+                    },
+
+                    {
+                        name = "🎨 Body Colors",
+                        value = "```lua\n" ..
+                            BodyColorsLua ..
+                            "\n```",
+                        inline = false
+                    },
+
+                    {
+                        name = "💇 Hair Info",
+                        value = "```lua\n" ..
+                            HairDataText ..
+                            "\n```",
+                        inline = false
+                    }
+                },
+
+                footer = {
+                    text = "Send Target Info • Target Information"
+                }
+            }}
+        }
+
+        local Success = pcall(function()
+            Request({
+                Url = State.webhook,
+                Method = "POST",
+
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+
+                Body = HttpService:JSONEncode(Payload)
+            })
+        end)
+
+        if Success then
+            Library:Notify({
+                Title = "Success",
+                Description = "Target information sent to webhook.",
+                Duration = 5
+            })
+        else
+            Library:Notify({
+                Title = "Webhook Error",
+                Description = "Failed to send target information.",
+                Duration = 5
+            })
+        end
+    end
+})
+
 -- Unload
 
-RightGroupBox2:AddButton("Unload", function()
+Groupboxes.RightGroupBox2:AddButton("Unload", function()
 
     if Toggles.FlyToggle then
         Toggles.FlyToggle:SetValue(false)
@@ -7858,6 +11061,32 @@ RightGroupBox2:AddButton("Unload", function()
         State.oldFogEnd = nil
     end
 
+    RemoveCorruptedPointESP()
+    State.CorruptedPointESPEnabled = false
+
+    if BaseLocals.noRainLoop then
+	task.cancel(BaseLocals.noRainLoop)
+	BaseLocals.noRainLoop = nil
+    end
+
+    State.AutoBlockEnabled = false
+
+    if Services.Blocking and Services.Blocking.Value == true then
+        dataFunction:InvokeServer("EndBlock")
+        Services.Blocking.Value = false
+    end
+
+    if BaseLocals.AutoBlockConnections then
+        for _, connection in ipairs(BaseLocals.AutoBlockConnections) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+
+        table.clear(BaseLocals.AutoBlockConnections)
+    end
+
+    Library:Unload()
 
 
     Library:Unload()
@@ -7867,7 +11096,7 @@ end)
 -- Auto Execute System
 
 
-RightGroupBox2:AddToggle(
+Groupboxes.RightGroupBox2:AddToggle(
     "AutoExecute",
     {
         Text = "Auto Execute on Teleport",
@@ -7914,6 +11143,63 @@ Services.Players.PlayerRemoving:Connect(function()
 end)
 
 UpdateOnCharacterReset()
+
+-- Mod Detector
+
+local function CheckModerator(player)
+    task.spawn(function()
+
+        local success, rank = pcall(function()
+            return player:GetRankInGroup(7450839)
+        end)
+
+        if not success then
+            return
+        end
+
+        if rank ~= 0 then
+
+            Library:Notify({
+                Title = "🔴 Mod Detected",
+                Description = player.Name .. " is a moderator!",
+                Duration = 5
+            })
+
+            Connect(
+                "Moderator_Destroying_" .. player.UserId,
+                player.Destroying,
+                function()
+
+                    Library:Notify({
+                        Title = "🔴 Mod Left",
+                        Description = player.Name .. " left the server.",
+                        Duration = 5
+                    })
+
+                end
+            )
+        end
+    end)
+end
+
+
+for _, player in ipairs(Services.Players:GetPlayers()) do
+
+    if player ~= Services.LocalPlayer then
+        CheckModerator(player)
+    end
+
+end
+
+
+Connect(
+    "Moderator_PlayerAdded",
+    Services.Players.PlayerAdded,
+    function(player)
+        CheckModerator(player)
+    end
+)
+
 
 Library:Notify({
     Title = "Bloodlines Hub",
