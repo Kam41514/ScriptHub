@@ -1,9 +1,3 @@
--- Script Path: game:GetService("ReplicatedStorage").GameManager
--- Took 1.48s to decompile.
--- Executor: Potassium (v2.4.2)
-
--- Decompiled with Potassium's decompiler.
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage");
 local ServerStorage = game:GetService("ServerStorage");
 local Debris = game:GetService("Debris");
