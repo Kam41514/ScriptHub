@@ -940,6 +940,26 @@ funcs.Connect(
 
 
 -- Misc
+Groupboxes.ExecutableScripts = Tabs.Misc:AddLeftGroupbox("Executable Scripts", "code")
+
+Groupboxes.ExecutableScripts:AddButton({
+    Text = "Execute Infinite Yield",
+    Func = function()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua"
+        ))()
+    end
+})
+
+
+Groupboxes.ExecutableScripts:AddButton({
+    Text = "Execute Dex Explorer",
+    Func = function()
+        loadstring(game:HttpGet(
+            "https://obj.wearedevs.net/2/scripts/Dex%20Explorer.lua"
+        ))()
+    end
+})
 
 -- Exploits
 
@@ -2197,15 +2217,24 @@ State.PathingUI.CurrentPointLabel =
 funcs.RedrawPath()
 
 -- Library
-Groupboxes.UnloadingSystem = Tabs.LibraryTab:AddLeftGroupbox("")
+Groupboxes.LibrarySystem = Tabs.LibraryTab:AddLeftGroupbox("UI Settings", "monitor")
 
-Groupboxes.UnloadingSystem:AddButton("Unload", function()
+Groupboxes.LibrarySystem:AddButton("Unload", function()
 
     funcs.UnloadPathing()
     funcs.DisconnectAll()
     Library:Unload()
 
 end)
+
+Groupboxes.LibrarySystem:AddLabel("Menu bind")
+    :AddKeyPicker("MenuKeybind", {
+        Default = "RightShift",
+        NoUI = true,
+        Text = "Toggle UI",
+    })
+
+Library.ToggleKeybind = Options.MenuKeybind
 
 
 -- Config
